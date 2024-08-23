@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Synapse X - Coming Soon</title>
+    <!-- Add Google Font Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
     <style>
         body, html {
             height: 100%;
@@ -26,20 +28,54 @@
             position: relative;
         }
 
+        .center-image {
+            text-align: center;
+            color: lightgray;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+
         .center-image img {
             max-width: 60%;
             max-height: 60%;
             margin-left: 130px;
         }
 
+        .center-image h1 {
+            margin-top: 1px;
+            margin-left: 135px;
+            font-size: 2em;
+        }
+
+        /* Style for the button */
+        .center-image .join-button {
+            margin-top: -500px;
+            margin-left: 140px;
+            padding: 10px 30px;
+            font-size: 1.2em;
+            color: white;
+            background-color: #7393B3;
+            border: none;
+            border-radius: 15px;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .center-image .join-button:hover {
+            background-color: #ADD8E6;
+        }
     </style>
 </head>
 <body>
     <div class="bg-image">
         <div class="center-image">
             <img src="dist/images/synapselogowhite.webp" alt="Centered Image"> <!-- Synapse Banner -->
-        </div>
-        <div>
+            <h1>Coming Soon</h1>
+            <!-- Join Button -->
+            <a href="https://example.com/join" class="join-button">Join Discord</a>
         </div>
     </div>
 </body>
