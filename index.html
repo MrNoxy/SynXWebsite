@@ -14,7 +14,28 @@
             font-family: Arial, sans-serif;
         }
 
+        @keyframes darken {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 0.2; /* Adjust the opacity to control the darkening */
+            }
+        }
+
+        @keyframes slideFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
         .bg-image {
+            position: relative;
             background-image: url('https://cdn.glitch.global/9bc64cf5-6089-435a-b2c9-6aec2e5da3c0/Lakeside_by_Louis_Coyle_16_9-2.png?v=1724444105352'); /* background image */
             background-size: cover;
             background-position: center;
@@ -25,7 +46,20 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            position: relative;
+        }
+
+        .bg-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0; /* Start with no darkening */
+            z-index: 1;
+            pointer-events: none;
+            animation: darken 1.5s ease-in-out forwards;
         }
 
         .center-image {
@@ -33,24 +67,34 @@
             color: lightgray;
             font-family: 'Poppins', sans-serif;
             font-weight: 700;
+            opacity: 0; /* Start with 0 opacity */
+            z-index: 2; /* Ensure the text is above the darkening layer */
+            animation: slideFadeIn 1.5s ease-in-out forwards;
+            animation-delay: 1.5s; /* Delay to start after background darkens */
         }
 
         .center-image img {
             max-width: 60%;
             max-height: 60%;
             margin-left: 0px;
+            opacity: 0; /* Start with 0 opacity */
+            animation: slideFadeIn 1.5s ease-in-out forwards;
+            animation-delay: 2s; /* Delay to start after the text */
         }
 
         .center-image h1 {
             margin-top: 1px;
-            margin-left: 00px;
+            margin-left: 0px;
             font-size: 2em;
+            opacity: 0; /* Start with 0 opacity */
+            animation: slideFadeIn 1.5s ease-in-out forwards;
+            animation-delay: 1.5s; /* Delay to start after background darkens */
         }
 
         /* Style for the button */
         .center-image .join-button {
             margin-top: -500px;
-            margin-left: 00px;
+            margin-left: 0px;
             padding: 10px 30px;
             font-size: 1.2em;
             color: white;
@@ -62,6 +106,9 @@
             font-weight: 700;
             display: inline-block;
             transition: background-color 0.3s ease;
+            opacity: 0; /* Start with 0 opacity */
+            animation: slideFadeIn 1.5s ease-in-out forwards;
+            animation-delay: 2.5s; /* Delay to start after the logo */
         }
 
         .center-image .join-button:hover {
@@ -72,10 +119,10 @@
 <body>
     <div class="bg-image">
         <div class="center-image">
-            <img src="dist/images/synapselogowhite.webp" alt="Centered Image"> <!-- Synapse Banner -->
+            <img src="https://cdn.glitch.global/9bc64cf5-6089-435a-b2c9-6aec2e5da3c0/synapselogowhite.webp?v=1724444107953" alt="Centered Image"> <!-- Synapse Banner -->
             <h1>Coming Soon</h1>
             <!-- Join Button -->
-            <a href="https://discord.gg/qDqgxVbp42" class="join-button">Join Discord</a>
+            <a href="https://example.com/join" class="join-button">Join Discord</a>
         </div>
     </div>
 </body>
