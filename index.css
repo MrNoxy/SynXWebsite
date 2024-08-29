@@ -1,3 +1,4 @@
+
 @import "https://web.archive.org/web/20220629233018cs_/https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Fira+Sans:ital,wght@0,100;0,300;0,400;0,600;1,100;1,300;1,400;1,600&display=swap";#site-fundraising {
     display: flex;
     align-items: center;
@@ -117,9 +118,9 @@
     flex-direction: column;
     justify-content: center;
     gap: 0%;
-    height:  100%;
+    height: 100%;
     background-image: url("https://cdn.glitch.global/b9695119-384a-4a61-a85b-83b5710f48a2/MEOW_2.png?v=1724877753033");
-    background-size: 110
+    background-size: 110%
 }
 
 #site-hero.center {
@@ -588,6 +589,7 @@ a {
     color: #fff
 }
 
+
 html,body {
     margin: 0;
     padding: 0;
@@ -612,6 +614,62 @@ button {
     width: inherit;
     text-align: inherit
 }
+
+.section .inner .title {
+    font-size: 2em;
+    font-weight: 700;
+    margin-bottom: 1em;
+    border-bottom-style: solid;
+    border-bottom-width: 10px;
+    border-bottom-color: #00162b;
+}
+
+.entry {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+}
+
+.entry-title {
+    font-weight: 700;
+    min-width: 30%;
+    background-color: #000d18;
+    color: #dcdcfa;
+    border: 1px solid #dcdcfa;
+    border-radius: 4px;
+    padding: 1em;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s ease;
+}
+
+.entry-title:hover {
+    background-color: #fff2e7;
+    color: #7c6d5e;
+}
+
+.toggle-icon {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+}
+
+.entry-content {
+    display: none;
+    padding: 1em;
+    border: 1px solid #dcdcfa;
+    border-top: none;
+    background-color: #000d18;
+    color: #dcdcfa;
+    border-radius: 0 0 4px 4px;
+}
+
+.entry-content.show {
+    display: block;
+}
+
+
 
 /*
      FILE ARCHIVED ON 23:30:18 Jun 29, 2022 AND RETRIEVED FROM THE
