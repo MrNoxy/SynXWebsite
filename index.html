@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css?family=Heebo:400,700|Oxygen:700" rel="stylesheet">
   <link rel="stylesheet" href="index.css">
+  <script src="script.js" defer></script>
   <link rel="canonical" href="https://synapse-x.xyz">
   <title>Synapse LLC Executor</title>
-  <meta name="description" content="Synapse: The Duo Project, Safest Executor.">
-  <meta property="og:title" content="Synapse Executor">
+  <meta name="description" content="Making Powerful Execution Fun!">
+  <meta property="og:title" content="Synapse X">
   <meta property="og:site_name" content="By Storm LLC">
   <meta property="og:url" content="https://synapse-x.xyz">
-  <meta property="og:description" content="Synapse: The Duo Project, Safest Executor.">
+  <meta property="og:description" content="Making Powerful Execution Fun!">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://cdn.glitch.global/b9695119-384a-4a61-a85b-83b5710f48a2/logo.png?v=1724866366683">
 </head>
@@ -31,15 +31,29 @@
           </div>
         </div>
       </a>
-      <a style="text-decoration:none;" href="https://discord.gg/qDqgxVbp42">
-        <div class="payment-container">
-          <div class="button" id="payment-btn">
-            <div class="caption">FAQ</div>
-            <div class="fineprint">Frequently Asked Question</div>
-            <div class="icon"></div>
-          </div>
-        </div>
-      </a>
+      
+      <a style="text-decoration:none;" href="#" id="scroll-btn">
+    <div class="payment-container">
+      <div class="button" id="payment-btn">
+        <div class="caption">FAQ</div>
+        <div class="fineprint">Frequently Asked Question</div>
+        <div class="icon"></div>
+      </div>
+    </div>
+</a>
+
+<!-- Add this script tag before the closing body tag -->
+<script>
+  document.getElementById('scroll-btn').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent default action
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth' // Smooth scroll
+    });
+  });
+</script>
+
+      
     </div>
     <div id="scroll">
   <svg
@@ -128,23 +142,76 @@
     </div>
     
     <div class="section" id="QA">
-      <div class="inner">
-        <div class="title">Questions and Answers <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--mdi iconify-inline" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24" data-icon="mdi:chat-question" style="vertical-align: -0.125em;"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.1 1 4.1 2.8 5.5c0 .6-.4 2.2-2.8 4.5c0 0 3.5 0 6.5-2.5c1.1.3 2.3.5 3.5.5c5.5 0 10-3.6 10-8s-4.5-8-10-8m1 12h-2v-2h2v2m1.8-5c-.3.4-.7.6-1.1.8c-.3.2-.4.3-.5.5c-.2.2-.2.4-.2.7h-2c0-.5.1-.8.3-1.1c.2-.2.6-.5 1.1-.8c.3-.1.5-.3.6-.5c.1-.2.2-.5.2-.7c0-.3-.1-.5-.3-.7c-.2-.2-.5-.3-.8-.3c-.3 0-.5.1-.7.2c-.2.1-.3.3-.3.6h-2c.1-.7.4-1.3.9-1.7c.5-.4 1.2-.5 2.1-.5c.9 0 1.7.2 2.2.6c.5.4.8 1 .8 1.7c.1.4 0 .8-.3 1.2Z"></path></svg></div>
-        <div class="contents-list">
-          <div class="entry">
-            <div class="entry-title">How long does it take for updates?
-            </div>
-            
-            <div class="entry-content">We will be using the CeleryAPI so the updates are pretty fast.
-            </div>
-          </div>
-          <div class="entry">
-            <div class="entry-title">Is this a virus or anything similar?
-            </div>
-            <div class="entry-content">Long story short, No. Synapse is not a virus. The reason for the exterme small file size is caused by Synapse being developed in WPF which is meant to be lightweight and simple without losing any quality.</div>
-          </div>
+    <div class="inner">
+        <div class="title">
+            Questions and Answers
+            <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" class="iconify iconify--mdi iconify-inline" width="1em" height="1em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24" data-icon="mdi:chat-question" style="vertical-align: -0.125em;">
+                <path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 2.1 1 4.1 2.8 5.5c0 .6-.4 2.2-2.8 4.5c0 0 3.5 0 6.5-2.5c1.1.3 2.3.5 3.5.5c5.5 0 10-3.6 10-8s-4.5-8-10-8m1 12h-2v-2h2v2m1.8-5c-.3.4-.7.6-1.1.8c-.3.2-.4.3-.5.5c-.2.2-.2.4-.2.7h-2c0-.5.1-.8.3-1.1c.2-.2.6-.5 1.1-.8c.3-.1.5-.3.6-.5c.1-.2.2-.5.2-.7c0-.3-.1-.5-.3-.7c-.2-.2-.5-.3-.8-.3c-.3 0-.5.1-.7.2c-.2.1-.3.3-.3.6h-2c.1-.7.4-1.3.9-1.7c.5-.4 1.2-.5 2.1-.5c.9 0 1.7.2 2.2.6c.5.4.8 1 .8 1.7c.1.4 0 .8-.3 1.2Z"></path>
+            </svg>
         </div>
-      </div>
+        <div class="contents-list">
+            <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    How long does it take for updates? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    We will be using the CeleryAPI so the updates are pretty fast.
+                </div>
+            </div>
+            <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Is this a virus or anything similar? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    Long story short, No. Synapse is not a virus. The reason for the extreme small file size is caused by Synapse being developed in WPF which is meant to be lightweight and simple without losing any quality.
+                </div>
+            </div>
+          <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Is this free? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    Yes, Synapse is free as mentioned before with no costs applied.
+                </div>
+            </div>
+          
+          <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Is this a new executor? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    Well sadly not really, Synapse is a custom user interface for the executor Celery! However We'd love to make this a functioning executor one day.
+                </div>
+            </div>
+          
+          <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Is this Synapse's come back? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    No. We are not affiliated with Synapse Softworks LLC. This is a project of Storm Softworks LLC before the rebrand to Synapse LLC.
+                </div>
+            </div>
+          
+          <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Why is this flagged as malware? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    Execution tools and other cheats often get flagged as malware due to the fact that they behave like malware. They manipulate also what's called a "process" in order to load a DLL file into the process which does it's thing - YOU are in the control of what the DLL is doing, unlike in cases of malware where it's doing what IT wants. TL;DR Execution tools share a similar behaviour like malware and is the main cause of what's called a "False positive".
+                </div>
+            </div>
+          <div class="entry">
+                <button class="entry-title" aria-expanded="false">
+                    Will this software ever be it's own execution tool? <span class="toggle-icon">&#9660;</span>
+                </button>
+                <div class="entry-content">
+                    Well - We personally, Athena & Noxy, don't think so. Our team of 2 is not enough to form a fully working execution tool without C++ knowledge we also cannot achieve much, only time will tell if anything will change and maybe, only with luck we would find someone who's interested into working on the execution and etc. For now, as of 29/08/2024, this will stay as a Celery skin.
+                </div>
+            </div>
+        </div>
     </div>
+</div>
+
     
 </body></html>
