@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Status Page</title>
+<style>
+  * {
+  box-sizing: border-box;
+}
+
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #000000;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 0;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+  #generalStatusBar {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    padding: 12px 24px;
+    width: 780px;
+    box-sizing: border-box;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    user-select: none;
+  }
+  #generalStatusText {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 18px;
+  }
+  #generalStatusIcon {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #00c17c; /* green by default */
+    flex-shrink: 0;
+  }
+  #generalLastUpdated {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    margin-left: 26px;
+  }
+  #generalAnnouncement {
+    color: #f0ad4e;
+    margin-left: 26px;
+    margin-top: 6px;
+    font-size: 14px;
+    user-select: none;
+    display: none;
+    white-space: pre-wrap;
+  }
+  .status-container {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    padding: 22px;
+    width: 780px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+  }
+  .app-section {
+    border-top: 0px solid #30363d;
+    padding-top: 0px;
+  }
+  .app-section:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .status-icon {
+    width: 10px;
+    height: 10px;
+    background-color: #00c17c;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-icon.down { background-color: #d2344e; }
+  .status-icon.unknown { background-color: #777; }
+  .status-icon.degraded { background-color: #f0a500; }
+  .status-icon.paused { background-color: #f0de4e; }
+  .status-icon.maintenance { background-color: #6a42f5; }
+  .status-icon.unlinked { background-color: #555a66; }
+  .status-label {
+    background-color: #2d313c;
+    padding: 6px 0px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 120px;
+    text-align: center;
+    user-select: none;
+    display: none;
+  }
+  .status-bar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible; /* allow glow */
+  padding-bottom: 0px;
+  gap: 4px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+  .status-bar {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  width: 100%;
+  min-width: max-content;
+  overflow: visible; /* allow box shadows */
+}
+
+  .day-labels {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    width: 100%;
+    min-width: max-content;
+  }
+  .day-label {
+    width: 46.5px;
+    font-size: 12px;
+    color: #888;
+    user-select: none;
+    text-align: center;
+  }
+  .label-start {
+    color: #8a91a5;
+    font-weight: 600;
+    width: 80px;
+    padding-top: 5px;
+  }
+  .label-end {
+    color: #8a91a5;
+    font-weight: 600;
+    padding-top: 5px;
+  }
+  .bar-box {
+    width: 48px;
+    height: 14px;
+    background-color: #00c17c;
+    border-radius: 4px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .bar-box.down { background-color: #d2344e; }
+  .bar-box.unknown { background-color: #777; }
+  .bar-box.degraded { background-color: #f0a500; }
+  .bar-box.paused { background-color: #f0de4e; }
+  .bar-box.maintenance { background-color: #6a42f5; }
+  .bar-box.unlinked { background-color: #555a66; }
+  .last-updated {
+    font-size: 14px;
+    color: #aaa;
+    user-select: none;
+    padding-left: 9px;
+    display: none;
+  }
+  
+  .bar-box:hover {
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+/* Add matching glow colors per status */
+.bar-box.operational:hover    { box-shadow: 0 0 6px 4px rgba(0, 193, 124, 0.4); }
+.bar-box.down:hover           { box-shadow: 0 0 6px 4px rgba(210, 52, 78, 0.4); }
+.bar-box.degraded:hover       { box-shadow: 0 0 6px 4px rgba(240, 165, 0, 0.4); }
+.bar-box.paused:hover         { box-shadow: 0 0 6px 4px rgba(240, 222, 78, 0.4); }
+.bar-box.maintenance:hover    { box-shadow: 0 0 6px 4px rgba(106, 66, 245, 0.4); }
+.bar-box.unknown:hover        { box-shadow: 0 0 6px 4px rgba(119, 119, 119, 0.4); }
+.bar-box.unlinked:hover       { box-shadow: 0 0 6px 4px rgba(85, 90, 102, 0.4); }
+
+#statusTooltip {
+  max-width: 280px;
+  line-height: 1.4em;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+</style>
+</head>
+<body>
+
+<div id="generalStatusBar">
+  <div id="generalStatusText">
+    <div id="generalStatusIcon"></div>
+    <span id="generalStatusLabel">Loading status...</span>
+  </div>
+  <div id="generalLastUpdated">Loading update time...</div>
+  <div id="generalAnnouncement"></div>
+</div>
+
+<div class="status-container" id="statusContainer"></div>
+
+<div class="status-container" id="notesContainer" style="margin-top: 32px;">
+  <div class="top-bar" style="font-size: 18px; font-weight: 700; color: #f0ad4e;">
+    Recent Notes & Changelogs
+  </div>
+  <!-- Notes list will be injected here -->
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebaseConfig.js"></script>
+
+<script>
+
+  firebase.initializeApp(window.firebaseConfig);
+
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+// Auto-fill today’s status from the most recent available one if missing
+function autofillTodayStatuses(apps) {
+  const todayStr = new Date().toISOString().split("T")[0];
+  let modified = false;
+
+  apps.forEach(app => {
+    if (!app.history) app.history = {};
+    if (app.history[todayStr]) return;
+
+    // Get all past dates sorted descending
+    const historyDates = Object.keys(app.history).filter(d => d < todayStr).sort().reverse();
+    if (historyDates.length > 0) {
+      const recentDate = historyDates[0];
+      app.history[todayStr] = JSON.parse(JSON.stringify(app.history[recentDate]));
+      modified = true;
+    }
+  });
+
+  if (modified) {
+    db.ref('statusApps').set(apps).catch(err => {
+      console.error("Failed to autofill and update Firebase:", err);
+    });
+  }
+
+  return apps;
+}
+
+  // Utility: time ago display
+  function timeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return `${seconds} seconds ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minutes ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  }
+
+  // Render a single app section with 14 days history
+  // Mapping status code to friendly text for tooltip
+const statusNames = {
+  operational: "Operational",
+  down: "Down",
+  degraded: "Degraded Performance",
+  paused: "Paused",
+  maintenance: "Maintenance",
+  unknown: "Unknown",
+  unlinked: "Unlinked",
+};
+
+function renderAppSection(app) {
+  const MAX_DAYS = 14;
+  const { name, history } = app;
+
+  const parsedHistory = [];
+  for (let i = MAX_DAYS - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+
+    let dayData = history && history[dateStr];
+    let status = "unlinked";
+    if (dayData) {
+      if (typeof dayData === "string") {
+        status = dayData; // fallback for old format
+      } else if (typeof dayData === "object" && dayData.status) {
+        status = dayData.status;
+      }
+    }
+
+    parsedHistory.push({ date, status, dateStr });
+  }
+
+  const section = document.createElement("div");
+  section.className = "app-section";
+
+  const topBar = document.createElement("div");
+  topBar.className = "top-bar";
+
+  const dot = document.createElement("div");
+  dot.className = "status-icon";
+
+  // Determine today's status dot color
+  const todayStr = new Date().toISOString().split("T")[0];
+  let todayData = history && history[todayStr];
+  let todayStatus = "unlinked";
+  if (todayData) {
+    if (typeof todayData === "string") {
+      todayStatus = todayData;
+    } else if (typeof todayData === "object" && todayData.status) {
+      todayStatus = todayData.status;
+    }
+  }
+  dot.classList.remove("down", "unknown", "degraded", "paused", "maintenance", "unlinked", "operational");
+  switch (todayStatus) {
+    case "down": dot.classList.add("down"); break;
+    case "unknown": dot.classList.add("unknown"); break;
+    case "degraded": dot.classList.add("degraded"); break;
+    case "paused": dot.classList.add("paused"); break;
+    case "maintenance": dot.classList.add("maintenance"); break;
+    case "unlinked": dot.classList.add("unlinked"); break;
+    case "operational": dot.classList.add("operational"); break;
+    default: dot.classList.add("unknown"); break;
+  }
+
+  const nameSpan = document.createElement("span");
+  nameSpan.textContent = name || "Unnamed App";
+
+  topBar.appendChild(dot);
+  topBar.appendChild(nameSpan);
+  section.appendChild(topBar);
+
+  const statusBarContainer = document.createElement("div");
+  statusBarContainer.className = "status-bar-container";
+
+  const statusBar = document.createElement("div");
+  statusBar.className = "status-bar";
+
+  const dayLabels = document.createElement("div");
+  dayLabels.className = "day-labels";
+
+  // Create tooltip element once
+  let tooltip = document.getElementById("statusTooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.id = "statusTooltip";
+    Object.assign(tooltip.style, {
+      position: "fixed",
+      padding: "6px 6px",
+      backgroundColor: "#2d313c",
+      color: "white",
+      borderRadius: "10px",
+      fontSize: "13px",
+      pointerEvents: "none",
+      opacity: "0",
+      transition: "opacity 0.15s ease",
+      zIndex: 1000,
+      userSelect: "none",
+      whiteSpace: "nowrap",
+    });
+    document.body.appendChild(tooltip);
+  }
+
+parsedHistory.forEach(({ status, dateStr }, index) => {
+  const box = document.createElement("div");
+  box.className = "bar-box";
+
+  box.classList.remove("down", "unknown", "degraded", "paused", "maintenance", "unlinked", "operational");
+  switch (status) {
+    case "down": box.classList.add("down"); break;
+    case "unknown": box.classList.add("unknown"); break;
+    case "degraded": box.classList.add("degraded"); break;
+    case "paused": box.classList.add("paused"); break;
+    case "maintenance": box.classList.add("maintenance"); break;
+    case "unlinked": box.classList.add("unlinked"); break;
+    case "operational": box.classList.add("operational"); break;
+    default: box.classList.add("unknown"); break;
+  }
+
+  // Extract version for this date (if present)
+  let version = "";
+  const dayData = history && history[dateStr];
+  if (dayData && typeof dayData === "object" && dayData.version) {
+    version = dayData.version;
+  }
+
+  box.addEventListener("mouseenter", (e) => {
+    const readableDate = new Date(dateStr).toLocaleDateString(undefined, {
+      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+    });
+
+    tooltip.innerHTML = `
+      <div style="font-weight: 600; margin-bottom: 4px;">${version || "No version"}</div>
+      <div><strong>Date:</strong> ${readableDate}</div>
+      <div><strong>Status:</strong> ${statusNames[status] || status}</div>
+    `;
+
+    tooltip.style.opacity = "1";
+    positionTooltip(e);
+  });
+  box.addEventListener("mousemove", (e) => {
+    positionTooltip(e);
+  });
+  box.addEventListener("mouseleave", () => {
+    tooltip.style.opacity = "0";
+  });
+
+  function positionTooltip(e) {
+    const padding = 12;
+    let left = e.clientX + padding;
+    let top = e.clientY + padding;
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (left + tooltipRect.width + padding > window.innerWidth) {
+      left = e.clientX - tooltipRect.width - padding;
+    }
+    if (top + tooltipRect.height + padding > window.innerHeight) {
+      top = e.clientY - tooltipRect.height - padding;
+    }
+
+    tooltip.style.left = left + "px";
+    tooltip.style.top = top + "px";
+  }
+
+  statusBar.appendChild(box);
+
+    const labelDiv = document.createElement("div");
+    labelDiv.className = "day-label";
+    if (index === 0) {
+      labelDiv.textContent = `${MAX_DAYS} days ago`;
+      labelDiv.classList.add("label-start");
+    } else if (index === parsedHistory.length - 1) {
+      labelDiv.textContent = "Today";
+      labelDiv.classList.add("label-end");
+    } else {
+      labelDiv.textContent = "";
+    }
+    dayLabels.appendChild(labelDiv);
+  });
+
+  statusBarContainer.appendChild(statusBar);
+  statusBarContainer.appendChild(dayLabels);
+  section.appendChild(statusBarContainer);
+
+  return section;
+}
+
+
+
+  // Update overall general status bar
+  function updateGeneralStatus(apps) {
+  const icon = document.getElementById("generalStatusIcon");
+  const label = document.getElementById("generalStatusLabel");
+  const lastUpdatedDiv = document.getElementById("generalLastUpdated");
+
+  if (!apps || apps.length === 0) {
+    label.textContent = "No apps available";
+    icon.style.backgroundColor = "#777";
+    lastUpdatedDiv.textContent = "";
+    return;
+  }
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const statusSet = new Set();
+  let newestUpdate = 0;
+
+  apps.forEach(app => {
+    if (app.lastUpdated && app.lastUpdated > newestUpdate) {
+      newestUpdate = app.lastUpdated;
+    }
+    let todayData = app.history && app.history[todayStr];
+    let todayStatus = "unlinked";
+    if (todayData) {
+      if (typeof todayData === "string") {
+        todayStatus = todayData;
+      } else if (typeof todayData === "object" && todayData.status) {
+        todayStatus = todayData.status;
+      }
+    }
+    if (!["unknown", "unlinked", undefined].includes(todayStatus)) {
+      statusSet.add(todayStatus);
+    }
+  });
+
+  const statuses = [...statusSet];
+
+  if (statuses.includes("down")) {
+    icon.style.backgroundColor = "#d2344e";
+  } else if (statuses.includes("degraded")) {
+    icon.style.backgroundColor = "#f0a500";
+  } else if (statuses.includes("paused")) {
+    icon.style.backgroundColor = "#f0de4e";
+  } else if (statuses.includes("maintenance")) {
+    icon.style.backgroundColor = "#6a42f5";
+  } else {
+    icon.style.backgroundColor = "#00c17c";
+  }
+
+  if (statuses.length === 0 || (statuses.length === 1 && statuses[0] === "operational")) {
+    label.textContent = "All services are online";
+  } else {
+    const readable = {
+      "down": "down",
+      "degraded": "degraded",
+      "paused": "paused",
+      "maintenance": "under maintenance"
+    };
+    const statusWords = statuses
+      .filter(s => s !== "operational")
+      .map(s => readable[s] || (s.charAt(0).toUpperCase() + s.slice(1)));
+    label.textContent = `Some services are ${statusWords.join(" or ")}`;
+  }
+
+  lastUpdatedDiv.textContent = newestUpdate
+    ? `Last updated ${timeAgo(newestUpdate)}`
+    : "";
+}
+
+function renderNotesPanel(apps) {
+  const notesContainer = document.getElementById("notesContainer");
+  notesContainer.innerHTML = ""; // Clear old content
+
+  // Title bar (optional, already in HTML)
+  // const titleBar = document.createElement("div");
+  // titleBar.className = "top-bar";
+  // titleBar.style.fontSize = "18px";
+  // titleBar.style.fontWeight = "700";
+  // titleBar.style.color = "#f0ad4e";
+  // titleBar.textContent = "Recent Notes & Changelogs";
+  // notesContainer.appendChild(titleBar);
+
+  // Create a container for the notes entries
+  const notesList = document.createElement("div");
+  notesList.style.display = "flex";
+  notesList.style.flexDirection = "column";
+  notesList.style.gap = "12px";
+
+  const MAX_DAYS = 14; // Show notes from last 14 days max
+  const today = new Date();
+
+  // Collect all notes from all apps within MAX_DAYS
+  const allNotes = [];
+
+  apps.forEach(app => {
+    for (let i = 0; i < MAX_DAYS; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      const dayData = app.history && app.history[dateStr];
+      if (dayData && typeof dayData === "object" && dayData.notes) {
+        allNotes.push({
+          appName: app.name || "Unnamed App",
+          dateStr,
+          version: dayData.version || "N/A",
+          notes: dayData.notes,
+          status: dayData.status || "unknown",
+        });
+      }
+    }
+  });
+
+  // Sort notes by date descending (latest first)
+  allNotes.sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+
+  // Helper: map status to class for color
+  const statusClassMap = {
+    operational: "operational",
+    down: "down",
+    degraded: "degraded",
+    paused: "paused",
+    maintenance: "maintenance",
+    unknown: "unknown",
+    unlinked: "unlinked",
+  };
+
+  allNotes.forEach(({ appName, dateStr, version, notes, status }) => {
+    const noteDiv = document.createElement("div");
+    noteDiv.style.backgroundColor = "#161b22";
+    noteDiv.style.border = "1px solid #30363d";
+    noteDiv.style.borderRadius = "16px";
+    noteDiv.style.padding = "14px 18px";
+    noteDiv.style.display = "grid";
+    noteDiv.style.gridTemplateColumns = "110px 50px 1fr 90px";
+    noteDiv.style.alignItems = "center";
+    noteDiv.style.gap = "12px";
+    noteDiv.style.fontSize = "14px";
+    noteDiv.style.color = "white";
+    noteDiv.style.userSelect = "none";
+
+    // Date formatted
+    const dateFormatted = new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric", month: "short", day: "numeric"
+    });
+
+    // App name
+    const appNameDiv = document.createElement("div");
+    appNameDiv.textContent = appName;
+    appNameDiv.style.fontWeight = "700";
+
+    // Version
+    const versionDiv = document.createElement("div");
+    versionDiv.textContent = version;
+    versionDiv.style.color = "#f0ad4e";
+
+    // Notes text
+    const notesDiv = document.createElement("div");
+    notesDiv.textContent = notes;
+
+    // Status badge
+    const statusDiv = document.createElement("div");
+    statusDiv.textContent = statusClassMap[status] ? status.charAt(0).toUpperCase() + status.slice(1) : status;
+    statusDiv.className = "status-label " + (statusClassMap[status] || "unknown");
+    statusDiv.style.display = "inline-block";
+    statusDiv.style.textAlign = "center";
+
+    // Append all columns
+    noteDiv.appendChild(appNameDiv);
+    noteDiv.appendChild(versionDiv);
+    noteDiv.appendChild(notesDiv);
+
+    notesList.appendChild(noteDiv);
+  });
+
+  if (allNotes.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.textContent = "No recent notes found.";
+    emptyMsg.style.color = "#888";
+    emptyMsg.style.textAlign = "center";
+    emptyMsg.style.padding = "20px";
+    notesList.appendChild(emptyMsg);
+  }
+
+  notesContainer.appendChild(notesList);
+}
+
+
+  // Show announcement if set
+  function updateAnnouncement(text) {
+    const announcementDiv = document.getElementById("generalAnnouncement");
+    if (text && text.trim().length > 0) {
+      announcementDiv.style.display = "block";
+      announcementDiv.textContent = text;
+    } else {
+      announcementDiv.style.display = "none";
+    }
+  }
+
+  // Load data from Firebase and render
+  function loadStatusPage() {
+  const container = document.getElementById("statusContainer");
+
+  // Fetch data from Firebase
+  Promise.all([
+    db.ref('statusApps').get(),
+    db.ref('statusAnnouncement').get()
+  ]).then(([appsSnap, annSnap]) => {
+    const apps = appsSnap.val() || [];
+    const announcementText = annSnap.val() || "";
+
+    // Create a document fragment to build the new content offscreen
+    const fragment = document.createDocumentFragment();
+
+    if (apps.length === 0) {
+      const noApps = document.createElement("div");
+      noApps.style.color = "#888";
+      noApps.style.textAlign = "center";
+      noApps.style.padding = "40px";
+      noApps.textContent = "No apps added yet.";
+      fragment.appendChild(noApps);
+    } else {
+      const updatedApps = autofillTodayStatuses(apps);
+      updatedApps.forEach(app => {
+  fragment.appendChild(renderAppSection(app));
+});
+renderNotesPanel(updatedApps);
+
+    }
+
+    // Replace old content with new content in one DOM operation
+    container.innerHTML = "";
+    container.appendChild(fragment);
+
+    updateGeneralStatus(apps);
+    updateAnnouncement(announcementText);
+  }).catch(err => {
+    console.error("Error loading status page:", err);
+  });
+}
+
+// Initial load and update every second
+loadStatusPage();
+setInterval(loadStatusPage, 1000);
+
+</script>
+</body>
+</html>
