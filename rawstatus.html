@@ -251,6 +251,10 @@ function autofillTodayStatuses(apps) {
     if (historyDates.length > 0) {
       const recentDate = historyDates[0];
       app.history[todayStr] = JSON.parse(JSON.stringify(app.history[recentDate]));
+
+      // Reset changelog and notes for the new day
+      app.history[todayStr].notes = "";
+
       modified = true;
     }
   });
@@ -263,6 +267,7 @@ function autofillTodayStatuses(apps) {
 
   return apps;
 }
+
 
   // Utility: time ago display
   function timeAgo(timestamp) {
@@ -715,3 +720,4 @@ setInterval(loadStatusPage, 1000);
 </script>
 </body>
 </html>
+
