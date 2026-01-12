@@ -1,0 +1,241 @@
+<html lang="en">
+   <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Krnl</title>
+	<link rel="canonical" href="https://krnl.ca/predocs" />
+      <link href="https://krnl.ca/predocs/css/css-style.css" rel="stylesheet" type="text/css">
+      <link href="predocs/css/mainpage.css" rel="stylesheet" type="text/css">
+      <link rel="icon" href="predocs/imgs/krnlmain.png" type="image/icon type">
+      <script src="ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+      <script>
+         $(window).scroll(function(){
+             $("#navt").css("top", Math.max(0, 250 - $(this).scrollTop()));
+         }); 
+      </script>
+   </head>
+   <body class="body">
+      <div>
+         <!-- Navbar / top bar -->
+         <header class="mainheader">
+            <div class="fatfuck">
+               <div class="">
+                  <div class="logonrefs">
+                     <a href="/"><img src="predocs/imgs/krnlmain.png" alt="" class="kernellogo"></a>
+                     <ul class="refs" style="margin-top: 50px;">
+                        <li class="refobject">
+                           <a href="faq"><span>Faq</span></a>
+                        </li>
+                        <li class="refobject">
+                           <a href="invite"><span>Support</span></a>
+                        </li>
+                        <li class="refobject">
+                           <a href="predocs"><span>Docs</span></a>
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+            <hr size="1" color="#282828" noshade>
+            <div class="fatfuck">
+               <div class="breadcrumb">
+                  <a class="breadhero" href="https://krnl.rocks/">Krnl</a>
+                  <p class="breaddivider">/</p>
+                  <a class="catdivider" href="predocs">Documentation</a>
+               </div>
+            </div>
+            <hr size="1" color="#282828" noshade>
+            <div  class="alertbanner">
+               [WARNING] This is just a preview of what the documentation will look like, unfinished and information may be wrong.
+            </div>
+         </header>
+         <!-- Body -->
+         <section style="height: 250px;">
+            <div class="bodyhandler">
+               <div style="margin-bottom: 50px;margin-top: 150px;" align="center">
+                  <h1 class="featuresinside" id="about">Documentation</h1>
+               </div>
+                <!-- Page size -->
+               <div style="display: flex;height:10000px;">
+                  <div id="navt" class="leclas" style="width: 25%;position: fixed; height:80vh; margin-top:59px;">
+                     <!-- Navigation -->
+                     <h1 >Navigation</h1>
+                     <hr size="1" color="#282828" noshade>
+                     <ul id="myUL">
+                        <li class="navitem"><a href="#information">General Information</a></li>
+                        <li class="navitem"><a href="#execenviron">Execution Environment</a></li>
+                        <!-- Debug library -->
+                        <li class="navitem"><span class="caret navitem"><a href="#debuglib">Debug Library</a></span>
+                           <ul class="nested">
+                              <li class="navitem"><a href="#debuggetconstants">debug.getconstants</a></li>
+                              <li class="navitem"><a href="#debuggetconstant">debug.getconstant</a></li>
+                              <li class="navitem"><a href="#debugsetconstant">debug.setconstant</a></li>
+                              <li class="navitem"><a href="#debuggetprotos">debug.getprotos</a></li>
+                              <li class="navitem"><a href="#debuggetproto">debug.getproto</a></li>
+                              <li class="navitem"><a href="#debuggetstack">debug.getstack</a></li>
+                              <li class="navitem"><a href="#debugsetstack">debug.setstack</a></li>
+                           </ul>
+                        </li>
+                        <!-- Drawing library -->
+                        <li class="navitem"><span class="caret navitem"><a href="#drawinglib">Drawing Library</a></span>
+                           <ul class="nested">
+                              <li class="navitem"><a href="#drawingnew">Drawing.new</a></li>
+                              <li><span class="caret"><a href="#drawingtypes">Types</a></span>
+                                <ul class="nested">
+                                  <li class="navitem"><a href="#drawingtext">Text</a></li>
+                                  <li class="navitem"><a href="#drawingline">Line</a></li>
+                                  <li class="navitem"><a href="#drawingsquare">Square</a></li>
+                                  <li class="navitem"><a href="#drawingcircle">Circle</a></li>
+                                  <li class="navitem"><a href="#drawingtriangle">Triangle</a></li>
+                                  <li class="navitem"><a href="#drawingquad">Quad</a></li>
+                                </ul>
+                              </li> 
+                           </ul>
+                        </li>
+                        <!-- Debug library -->
+                        <li class="navitem"><span class="caret navitem"><a href="#bitlib">Bit Library</a></span>
+                           <ul class="nested">
+                              <li class="navitem"><a href="#bitlshift">bit.lshift</a></li>
+                           </ul>
+                        </li>
+                     </ul>
+                     <script>
+                        var i,toggler=document.getElementsByClassName("caret");for(i=0;i<toggler.length;i++)toggler[i].addEventListener("click",function(){this.parentElement.querySelector(".nested").classList.toggle("active"),this.classList.toggle("caret-down")});
+                     </script>
+                  </div>
+                  <!-- Documentation -->
+                  <div class="docs">
+                     <h1 align="center" id="information" class="headeranchor">Official KRNL Documentation</h1><hr size="1" color="#282828" noshade>
+                     <p class="desc">This documentation covers every aspect of KRNL. It will work as a public knowledge base about, and objects related to KRNL. Anything you may find "undocumented" is either not available, or does not exist.<br><br>This will be updated as more is added to KRNL as a whole.</p>
+                     <h1 align="center" id="execenviron" class="headeranchor headertext">Execution Environment</h1><hr size="1" color="#282828" noshade>
+                     <p class="desc">A reference to every function contained within the execution environment.</p>
+<!-- Debug library -->
+<h1 class="headertext" id="debuglib" align="center">Debug Library</h1>
+<!-- Get constants -->
+<div class="codesample">
+<h3 id="debuggetconstants">debug.getconstants</h3>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">table</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getconstants(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>, <span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>)</span></pre>
+<p>Returns the constants in function or level <strong>func</strong> </p>
+<p><br><strong>EXAMPLE</strong></p>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">local</span> idx = <span class="hljs-number" style="color: rgb(222, 147, 95);">1</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">local</span> isReady = <span class="hljs-keyword" style="color: rgb(178, 148, 187);">false</span>
+<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+      <span class="hljs-keyword" style="color: rgb(178, 148, 187);">if</span> idx &gt; <span class="hljs-number" style="color: rgb(222, 147, 95);">0</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">then</span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(isReady <span class="hljs-keyword" style="color: rgb(178, 148, 187);">and</span> <span class="hljs-string" style="color: rgb(181, 189, 104);">'Can initiate an ability'</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">or</span> <span class="hljs-string" style="color: rgb(181, 189, 104);">'Cannot initiate an ability'</span>)
+      <span class="hljs-keyword" style="color: rgb(178, 148, 187);">elseif</span> idx == <span class="hljs-number" style="color: rgb(222, 147, 95);">0</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">then</span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'bruh moment'</span>)
+      <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-built_in" style="color: rgb(222, 147, 95);">table</span>.foreach(<span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getconstants(f), <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>)
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- 1 0</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- 2 print</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- 3 Can initiate an ability</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- 4 Cannot initiate an ability</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- 5 bruh moment</span></pre>
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Get constant -->
+<div class="codesample">
+<h3 id="debuggetconstant">debug.getconstant</h3>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">variant</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getconstant(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>, <span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">idx</span>)</span></pre>
+<p>Returns the constant in <strong>func</strong> at index <strong>idx</strong></p>
+<p><br><strong>EXAMPLE</strong></p>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em; margin-bottom:80px;"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">local</span> idx = <span class="hljs-number" style="color: rgb(222, 147, 95);">1</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">local</span> isReady = <span class="hljs-keyword" style="color: rgb(178, 148, 187);">false</span>
+<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">if</span> idx &gt; <span class="hljs-number" style="color: rgb(222, 147, 95);">0</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">then</span>
+      <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(isReady <span class="hljs-keyword" style="color: rgb(178, 148, 187);">and</span> <span class="hljs-string" style="color: rgb(181, 189, 104);">'Can initiate an ability'</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">or</span> <span class="hljs-string" style="color: rgb(181, 189, 104);">'Cannot initiate an ability'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">elseif</span> idx == <span class="hljs-number" style="color: rgb(222, 147, 95);">0</span> <span class="hljs-keyword" style="color: rgb(178, 148, 187);">then</span>
+      <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'bruh moment'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getconstant(f, <span class="hljs-number" style="color: rgb(222, 147, 95);">2</span>)) <span class="hljs-comment" style="color: rgb(150, 152, 150);">-- print</span></pre>                       
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Set constant -->
+<div class="codesample">
+<h3 id="debugsetconstant">debug.setconstant</h3>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">void</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.setconstant(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>, <span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">idx</span>, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">variant</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">value</span>)</span>  </pre> 
+<p>Sets the constant in function or level <strong>func</strong> at index <strong>idx</strong> to <strong>value</strong></p>
+<p><br><strong>EXAMPLE</strong></p>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;"><span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+   var = <span class="hljs-string" style="color: rgb(181, 189, 104);">"Ayo"</span>
+   <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(var, <span class="hljs-string" style="color: rgb(181, 189, 104);">"Hey"</span>)
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.setconstant(f, <span class="hljs-number" style="color: rgb(222, 147, 95);">2</span>, <span class="hljs-string" style="color: rgb(181, 189, 104);">"Hello"</span>)
+f()
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- Hello Hey</span></pre>
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Get protos -->
+<div class="codesample">
+   <h3 id="debuggetprotos">debug.getprotos</h3>
+   <pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">table</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getprotos(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>)</span></pre>
+   <p>Returns all inner functions of <strong>func</strong></p>
+   <p><br><strong>EXAMPLE</strong></p>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;"><span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+   <span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f1</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'hello from function f1'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+   <span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f2</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'hello from function f2'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">for</span> k,v <span class="hljs-keyword" style="color: rgb(178, 148, 187);">in</span> <span class="hljs-built_in" style="color: rgb(222, 147, 95);">next</span>, <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getprotos(f) <span class="hljs-keyword" style="color: rgb(178, 148, 187);">do</span>
+   v()
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- hello from function f1</span>
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- hello from function f2</span>
+</pre>
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Get proto -->
+<div class="codesample">
+   <h3 id="debuggetproto">debug.getproto</h3>
+   <pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">variant</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getproto(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">idx</span> [, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">bool</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">inst</span>])</span></pre>
+   <p>Returns the inner function of <strong>func</strong> at index <strong>idx</strong>. If <strong>inst</strong> is set to true, returns all instances of the inner function as a table.</p>
+   <p><br><strong>EXAMPLE</strong></p>
+<pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;"><span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+   <span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f1</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'hello from function f1'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+   <span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span> <span class="hljs-title" style="color: rgb(129, 162, 190);">f2</span><span class="hljs-params" style="color: rgb(222, 147, 95);">()</span></span>
+         <span class="hljs-built_in" style="color: rgb(222, 147, 95);">print</span>(<span class="hljs-string" style="color: rgb(181, 189, 104);">'hello from function f2'</span>)
+   <span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-keyword" style="color: rgb(178, 148, 187);">end</span>
+<span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getproto(f, <span class="hljs-number" style="color: rgb(222, 147, 95);">2</span>)()
+<span class="hljs-comment" style="color: rgb(150, 152, 150);">-- hello from function f2</span></pre>
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Get stack -->
+<div class="codesample">
+   <h3 id="debuggetstack">debug.getstack</h3>
+   <pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">table</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getstack(&lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">lvl</span>)</span></pre>
+   <p>WIP</p>
+   <p><br><strong>EXAMPLE</strong></p>
+   <pre>WIP</pre>
+</div>
+<hr size="1" color="#282828" noshade>
+<!-- Set stack -->
+<div class="codesample">
+   <h3 id="debugsetstack">debug.setstack</h3>
+   <pre class="hljs" style="display: block; overflow-x: auto; background: rgb(predocs/29-%2031-%2033.jpg); color: rgb(197, 200, 198); padding: 0.5em;">&lt;<span class="hljs-built_in" style="color: rgb(222, 147, 95);">function</span>, <span class="hljs-built_in" style="color: rgb(222, 147, 95);">table</span>&gt; <span class="hljs-built_in" style="color: rgb(222, 147, 95);">debug</span>.getproto(&lt;<span class="hljs-function"><span class="hljs-keyword" style="color: rgb(178, 148, 187);">function</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">func</span>, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">int</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">idx</span> [, &lt;<span class="hljs-title" style="color: rgb(129, 162, 190);">bool</span>&gt; <span class="hljs-title" style="color: rgb(129, 162, 190);">inst</span>])</span></pre>
+   <p>WIP</p>
+   <p><br><strong>EXAMPLE</strong></p>
+<pre>WIP</pre>
+</div>
+<hr size="1" color="#282828" noshade>
+                  </div>
+               </div>
+            </div>
+            <!-- Footer -->
+            <hr style="margin-top:600px;" size="1" color="#282828" noshade>
+            <div class="fatfuck">
+               <p style="margin-bottom: 20px;" align="center">Copyright © Krnl 2020</p>
+            </div>
+         </section>
+         <section>
+         </section>
+      </div>
+   </body>
+</html>
