@@ -1,0 +1,101 @@
+{
+  "ExecutorName": "Synapse UwU",
+  "Launcher": {
+    "Image": {
+      "Path": "https://images3.alphacoders.com/985/thumb-1920-985303.jpg",
+      "Online": true,
+      "Stretch": "UniformToFill"
+    },
+    "Logo": {
+      "Path": "https://image.pngaaa.com/258/738258-middle.png"
+    },
+    "BackColor": {
+      "A": 170,
+      "R": 255,
+      "G": 230,
+      "B": 245
+    },
+    "TopMost": true,
+    "Opacity": 0.90,
+    "Background": "",
+    "BaseStrings": {
+      "CheckingWhitelist": "checking cuteness level…",
+      "ChangingWhitelist": "updating sparkles…",
+      "DownloadingData": "downloading stickers…",
+      "CheckingData": "counting hearts…",
+      "DownloadingDlls": "packing bows…",
+      "DownloadingMonaco": "opening pastel editor…",
+      "DownloadingCefSharp": "loading cute web panel…",
+      "DownloadingSQLite": "saving pink settings…",
+      "JoiningDiscord": "joining the café…",
+      "Ready": "ready! ✧(｡•̀ᴗ-)✧"
+    }
+  },
+  "Main": {
+    "Image": {
+      "Path": "https://images3.alphacoders.com/858/thumb-1920-858735.jpg",
+      "Online": true,
+      "Stretch": "UniformToFill"
+    },
+    "Logo": {
+      "Path": "https://image.pngaaa.com/226/738226-middle.png"
+    },
+    "BackColor": {
+      "A": 165,
+      "R": 245,
+      "G": 235,
+      "B": 255
+    },
+    "TopMost": true,
+    "Opacity": 0.72,
+    "Background": "",
+    "BaseStrings": {
+      "FailedToFindRoblox": "femblox not found — open it first pls ♡",
+      "AlreadyInjected": "already on post nut clarity! (｡•̀ᴗ-)✧",
+      "CheckingWhitelist": "checking pass…",
+      "Checking": "loading…",
+      "Injecting": "ejaculating…",
+      "Ready": "ejaculated!! ♡",
+      "Failed": "oops~ tehe!",
+      "NotAttached": "not ejaculated — press attach!"
+    }
+  },
+  "Options": {
+    "Image": {
+      "Path": "https://images3.alphacoders.com/902/thumb-1920-902997.png",
+      "Online": true,
+      "Stretch": "UniformToFill"
+    },
+    "Logo": {
+      "Path": "https://image.pngaaa.com/224/738224-middle.png"
+    },
+    "BackColor": {
+      "A": 190,
+      "R": 255,
+      "G": 245,
+      "B": 250
+    },
+    "TopMost": true,
+    "Opacity": 0.84,
+    "Background": ""
+  },
+  "Scripthub": {
+    "Image": {
+      "Path": "https://images3.alphacoders.com/858/thumb-1920-858935.jpg",
+      "Online": true,
+      "Stretch": "UniformToFill"
+    },
+    "Logo": {
+      "Path": "https://image.pngaaa.com/258/738258-middle.png"
+    },
+    "BackColor": {
+      "A": 155,
+      "R": 255,
+      "G": 220,
+      "B": 235
+    },
+    "TopMost": true,
+    "Opacity": 0.80,
+    "Background": ""
+  }
+}
