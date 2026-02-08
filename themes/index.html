@@ -1,0 +1,1512 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Synapse X Quick Theme Editor</title>
+  <meta name="color-scheme" content="dark light" />
+  <style>
+    :root{
+      --bg0:#0b0c10;
+      --bg1:#0f1220;
+      --card: rgba(255,255,255,.08);
+      --card2: rgba(255,255,255,.12);
+      --stroke: rgba(255,255,255,.16);
+      --stroke2: rgba(255,255,255,.22);
+      --txt: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.42);
+      --shadow: 0 20px 60px rgba(0,0,0,.45);
+      --shadow2: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --blur: 18px;
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --accent: #9AE6FF;
+      --accent2:#B8A1FF;
+      --danger:#ff4d5a;
+      --ok:#4dffb5;
+      --warn:#ffd24d;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sys: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg0:#f3f5fb;
+        --bg1:#eef1ff;
+        --card: rgba(255,255,255,.65);
+        --card2: rgba(255,255,255,.8);
+        --stroke: rgba(20,20,40,.12);
+        --stroke2: rgba(20,20,40,.16);
+        --txt: rgba(20,22,35,.92);
+        --muted: rgba(20,22,35,.62);
+        --muted2: rgba(20,22,35,.42);
+        --shadow: 0 30px 70px rgba(20,22,35,.18);
+        --shadow2: 0 12px 36px rgba(20,22,35,.12);
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: var(--sys);
+      color:var(--txt);
+      background: radial-gradient(1200px 900px at 20% 10%, rgba(154,230,255,.18), transparent 55%),
+                  radial-gradient(1100px 800px at 80% 20%, rgba(184,161,255,.16), transparent 50%),
+                  radial-gradient(900px 900px at 50% 100%, rgba(77,255,181,.10), transparent 55%),
+                  linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* soft animated grain + glow */
+    .fx{
+      position:fixed; inset:0; pointer-events:none;
+      background:
+        radial-gradient(900px 700px at var(--mx,50%) var(--my,50%), rgba(255,255,255,.06), transparent 55%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      opacity:.35;
+      transform: translateZ(0);
+      animation: float 10s var(--ease) infinite alternate;
+    }
+    @keyframes float{
+      from{filter: blur(.0px) saturate(1.05)}
+      to{filter: blur(.2px) saturate(1.15)}
+    }
+
+    .wrap{
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .title{
+      font-size: 22px;
+      letter-spacing: .2px;
+      font-weight: 720;
+      display:flex; align-items:center; gap:10px;
+    }
+    .pill{
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      border-radius: 999px;
+      padding: 6px 10px;
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+    }
+    .subtitle{
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      max-width: 720px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      align-items:center;
+    }
+
+    .btn{
+      appearance:none;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.08);
+      color: var(--txt);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 650;
+      font-size: 13px;
+      cursor:pointer;
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: var(--shadow2);
+      transition: transform .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease);
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,.12); border-color: var(--stroke2); }
+    .btn:active{ transform: translateY(0px) scale(.98); }
+    .btn.primary{
+      border-color: rgba(154,230,255,.35);
+      background: linear-gradient(135deg, rgba(154,230,255,.16), rgba(184,161,255,.14));
+    }
+    .btn.danger{
+      border-color: rgba(255,77,90,.35);
+      background: rgba(255,77,90,.10);
+    }
+    .btn.ghost{
+      background: transparent;
+      box-shadow:none;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ flex-direction:column; align-items:stretch; }
+      .actions{ justify-content:flex-start; }
+    }
+
+    .card{
+      border: 1px solid var(--stroke);
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      overflow:hidden;
+      position:relative;
+    }
+    .cardHead{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.10), transparent);
+    }
+    .cardTitle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight: 720;
+      letter-spacing: .2px;
+    }
+    .badge{
+      font-size:12px;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+    }
+
+    .tabs{
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
+      padding: 12px 16px 0;
+    }
+    .tab{
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      padding: 9px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor:pointer;
+      transition: all .18s var(--ease);
+      user-select:none;
+    }
+    .tab:hover{ color: var(--txt); border-color: var(--stroke2); background: rgba(255,255,255,.10); }
+    .tab.active{
+      color: var(--txt);
+      border-color: rgba(154,230,255,.35);
+      background: linear-gradient(135deg, rgba(154,230,255,.16), rgba(184,161,255,.12));
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+
+    .pane{
+      padding: 12px 16px 16px;
+      display:none;
+      animation: in .25s var(--ease) both;
+    }
+    .pane.active{ display:block; }
+    @keyframes in{
+      from{ transform: translateY(6px); opacity:0; }
+      to{ transform: translateY(0); opacity:1; }
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 640px){
+      .row{ grid-template-columns: 1fr; }
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--radius2);
+      background: rgba(255,255,255,.06);
+      transition: border-color .18s var(--ease), background .18s var(--ease);
+    }
+    .field:hover{
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+    }
+    .label{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing:.2px;
+    }
+    .hint{ color: var(--muted2); font-weight:650; font-size:11px; }
+    input[type="text"], input[type="url"], input[type="number"], textarea, select{
+      width:100%;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.12);
+      color: var(--txt);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline:none;
+      font-size: 13px;
+      font-family: var(--sys);
+      transition: border-color .18s var(--ease), background .18s var(--ease);
+    }
+    @media (prefers-color-scheme: light){
+      input[type="text"], input[type="url"], input[type="number"], textarea, select{
+        background: rgba(255,255,255,.55);
+      }
+    }
+    input:focus, textarea:focus, select:focus{
+      border-color: rgba(154,230,255,.55);
+      box-shadow: 0 0 0 6px rgba(154,230,255,.10);
+    }
+
+    textarea{
+      min-height: 110px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .toggle{
+      display:flex; align-items:center; gap:10px;
+    }
+    .switch{
+      width: 46px; height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.10);
+      position:relative;
+      cursor:pointer;
+      transition: background .18s var(--ease), border-color .18s var(--ease);
+      flex: 0 0 auto;
+    }
+    .knob{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      position:absolute;
+      top: 50%; transform: translateY(-50%);
+      left: 3px;
+      background: rgba(255,255,255,.85);
+      box-shadow: 0 10px 20px rgba(0,0,0,.25);
+      transition: left .22s var(--ease), transform .18s var(--ease);
+    }
+    .switch.on{
+      background: linear-gradient(135deg, rgba(154,230,255,.35), rgba(184,161,255,.25));
+      border-color: rgba(154,230,255,.45);
+    }
+    .switch.on .knob{ left: 21px; }
+    .switch:active .knob{ transform: translateY(-50%) scale(.96); }
+
+    .preview{
+      position:relative;
+      min-height: 640px;
+    }
+    .previewInner{
+      padding: 14px;
+    }
+    .mock{
+      border-radius: 22px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.20);
+      box-shadow: var(--shadow);
+      position:relative;
+      transform: translateZ(0);
+    }
+    .mockTop{
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+    }
+    .dots{
+      display:flex; gap:7px; align-items:center;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; background: rgba(255,255,255,.24); }
+    .mockTitle{
+      font-weight: 760;
+      font-size: 13px;
+      color: var(--txt);
+      letter-spacing:.2px;
+      opacity:.95;
+      display:flex; align-items:center; gap:10px;
+    }
+    .mockBody{
+      position:relative;
+      height: 560px;
+      overflow:hidden;
+      display:flex;
+      align-items:flex-end;
+      padding: 18px;
+    }
+    .wallpaper{
+      position:absolute; inset:0;
+      background: radial-gradient(900px 700px at 25% 20%, rgba(154,230,255,.18), transparent 55%),
+                  radial-gradient(900px 700px at 80% 35%, rgba(184,161,255,.14), transparent 60%),
+                  linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.14));
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.08) contrast(1.02);
+      transform: scale(1.06);
+      transition: opacity .25s var(--ease);
+    }
+    .glassPanel{
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 25px 65px rgba(0,0,0,.42);
+      padding: 14px;
+      display:flex;
+      gap:14px;
+      align-items:center;
+      transform: translateY(0);
+      animation: bob 4.5s var(--ease) infinite alternate;
+    }
+    @keyframes bob{
+      from{ transform: translateY(2px); }
+      to{ transform: translateY(-2px); }
+    }
+
+    .logo{
+      width: 56px; height:56px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.14);
+      overflow:hidden;
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .logo img{ width:100%; height:100%; object-fit:cover; }
+    .logo .fallback{
+      width:100%; height:100%;
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 850;
+      letter-spacing:.5px;
+      color: rgba(255,255,255,.85);
+      background: linear-gradient(135deg, rgba(154,230,255,.24), rgba(184,161,255,.20));
+    }
+
+    .meta{
+      display:flex; flex-direction:column; gap:3px; min-width:0;
+    }
+    .meta .name{
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing:.2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .meta .desc{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .chips{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .chip{
+      font-size: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.10);
+      color: var(--muted);
+      padding: 6px 10px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      max-width: 160px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.55);
+      color: rgba(255,255,255,.92);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      padding: 10px 14px;
+      box-shadow: 0 18px 45px rgba(0,0,0,.35);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      font-size: 13px;
+      font-weight: 650;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .22s var(--ease), transform .22s var(--ease);
+    }
+    .toast.show{
+      opacity:1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .kvs{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .kv{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .kv b{ display:block; font-size:12px; letter-spacing:.2px; }
+    .kv span{ display:block; margin-top:4px; color: var(--muted); font-size:12px; }
+    .hr{
+      height:1px; background: rgba(255,255,255,.10);
+      margin: 12px 0;
+    }
+    .footerRow{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 10px 16px 14px;
+      color: var(--muted2);
+      font-size: 11px;
+    }
+
+    /* file inputs hidden */
+    input[type="file"]{ display:none; }
+  </style>
+</head>
+<body>
+  <div class="fx" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="title">
+          Synapse X Quick Theme Editor
+          <span class="pill" id="statePill">Loading default theme…</span>
+        </div>
+        <div class="subtitle">
+          Import a theme JSON, tweak visuals & strings, preview instantly, then export. Designed to feel smooth and “native”.
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" id="btnLoadDefault" title="Reload defaultTheme.json">Reload Default</button>
+        <button class="btn" id="btnLoadExample" title="Load zeroTwoTheme.json if it exists">Load Example</button>
+
+        <label class="btn" for="fileImport">Import JSON</label>
+        <input id="fileImport" type="file" accept=".json,application/json" />
+
+        <button class="btn primary" id="btnExport">Export JSON</button>
+        <button class="btn" id="btnSave">Save Local</button>
+        <button class="btn danger" id="btnResetLocal">Reset Local</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- EDITOR -->
+      <section class="card" aria-label="Editor">
+        <div class="cardHead">
+          <div class="cardTitle">Editor <span class="badge" id="activeSectionBadge">Launcher</span></div>
+          <div class="badge" id="dirtyBadge" style="display:none;">Unsaved changes</div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <div class="tab active" data-tab="Launcher" role="tab" aria-selected="true">Launcher</div>
+          <div class="tab" data-tab="Main" role="tab" aria-selected="false">Main</div>
+          <div class="tab" data-tab="Options" role="tab" aria-selected="false">Options</div>
+          <div class="tab" data-tab="Scripthub" role="tab" aria-selected="false">Scripthub</div>
+        </div>
+
+        <!-- COMMON -->
+        <div class="pane active" id="paneLauncher">
+          <div class="row">
+            <div class="field">
+              <div class="label">ExecutorName <span class="hint">top-level</span></div>
+              <input id="ExecutorName" type="text" placeholder="ExecutorName" />
+            </div>
+
+            <div class="field">
+              <div class="label">TopMost <span class="hint">boolean</span></div>
+              <div class="toggle">
+                <div class="switch" id="Launcher_TopMost"><div class="knob"></div></div>
+                <div class="small">Keeps window above others (preview badge only).</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">Image.Path <span class="hint">url</span></div>
+              <input id="Launcher_Image_Path" type="url" placeholder="https://…" />
+            </div>
+
+            <div class="field">
+              <div class="label">Image.Online <span class="hint">boolean</span></div>
+              <div class="toggle">
+                <div class="switch" id="Launcher_Image_Online"><div class="knob"></div></div>
+                <div class="small">If false, Path is treated as local by your app.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Image.Stretch <span class="hint">string</span></div>
+              <select id="Launcher_Image_Stretch">
+                <option>UniformToFill</option>
+                <option>Uniform</option>
+                <option>Fill</option>
+                <option>None</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <div class="label">Logo.Path <span class="hint">url</span></div>
+              <input id="Launcher_Logo_Path" type="url" placeholder="https://…" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">BackColor (A,R,G,B) <span class="hint">0–255</span></div>
+              <div class="row">
+                <input id="Launcher_Back_A" type="number" min="0" max="255" placeholder="A" />
+                <input id="Launcher_Back_R" type="number" min="0" max="255" placeholder="R" />
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <input id="Launcher_Back_G" type="number" min="0" max="255" placeholder="G" />
+                <input id="Launcher_Back_B" type="number" min="0" max="255" placeholder="B" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Opacity <span class="hint">0.0–1.0</span></div>
+              <input id="Launcher_Opacity" type="number" step="0.01" min="0" max="1" placeholder="0.85" />
+              <div class="small">Used to simulate glass intensity in preview.</div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Background <span class="hint">string</span></div>
+              <input id="Launcher_Background" type="text" placeholder="" />
+            </div>
+
+            <div class="field">
+              <div class="label">BaseStrings <span class="hint">JSON object</span></div>
+              <textarea id="Launcher_BaseStrings" spellcheck="false" placeholder='{"Ready":"…"}'></textarea>
+              <div class="small">Paste JSON object for Launcher.BaseStrings.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="pane" id="paneMain">
+          <div class="row">
+            <div class="field">
+              <div class="label">TopMost</div>
+              <div class="toggle">
+                <div class="switch" id="Main_TopMost"><div class="knob"></div></div>
+                <div class="small">Preview badge only.</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Opacity <span class="hint">0.0–1.0</span></div>
+              <input id="Main_Opacity" type="number" step="0.01" min="0" max="1" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">Image.Path</div>
+              <input id="Main_Image_Path" type="url" placeholder="https://…" />
+            </div>
+            <div class="field">
+              <div class="label">Image.Online</div>
+              <div class="toggle">
+                <div class="switch" id="Main_Image_Online"><div class="knob"></div></div>
+                <div class="small">Preview loads URL if Online is true.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Image.Stretch</div>
+              <select id="Main_Image_Stretch">
+                <option>UniformToFill</option>
+                <option>Uniform</option>
+                <option>Fill</option>
+                <option>None</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="label">Logo.Path</div>
+              <input id="Main_Logo_Path" type="url" placeholder="https://…" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">BackColor (A,R,G,B)</div>
+              <div class="row">
+                <input id="Main_Back_A" type="number" min="0" max="255" placeholder="A" />
+                <input id="Main_Back_R" type="number" min="0" max="255" placeholder="R" />
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <input id="Main_Back_G" type="number" min="0" max="255" placeholder="G" />
+                <input id="Main_Back_B" type="number" min="0" max="255" placeholder="B" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">BaseStrings <span class="hint">JSON object</span></div>
+              <textarea id="Main_BaseStrings" spellcheck="false" placeholder='{"Ready":"…"}'></textarea>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Background</div>
+              <input id="Main_Background" type="text" placeholder="" />
+            </div>
+            <div class="field">
+              <div class="label">Notes <span class="hint">preview-only</span></div>
+              <div class="small">
+                Preview uses the selected section’s image/logo/backcolor/opacity to simulate your app’s look.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPTIONS -->
+        <div class="pane" id="paneOptions">
+          <div class="row">
+            <div class="field">
+              <div class="label">TopMost</div>
+              <div class="toggle">
+                <div class="switch" id="Options_TopMost"><div class="knob"></div></div>
+                <div class="small">Preview badge only.</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Opacity</div>
+              <input id="Options_Opacity" type="number" step="0.01" min="0" max="1" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">Image.Path</div>
+              <input id="Options_Image_Path" type="url" placeholder="https://…" />
+            </div>
+            <div class="field">
+              <div class="label">Image.Online</div>
+              <div class="toggle">
+                <div class="switch" id="Options_Image_Online"><div class="knob"></div></div>
+                <div class="small">Preview loads URL if Online is true.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Image.Stretch</div>
+              <select id="Options_Image_Stretch">
+                <option>UniformToFill</option>
+                <option>Uniform</option>
+                <option>Fill</option>
+                <option>None</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="label">Logo.Path</div>
+              <input id="Options_Logo_Path" type="url" placeholder="https://…" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">BackColor (A,R,G,B)</div>
+              <div class="row">
+                <input id="Options_Back_A" type="number" min="0" max="255" placeholder="A" />
+                <input id="Options_Back_R" type="number" min="0" max="255" placeholder="R" />
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <input id="Options_Back_G" type="number" min="0" max="255" placeholder="G" />
+                <input id="Options_Back_B" type="number" min="0" max="255" placeholder="B" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Background</div>
+              <input id="Options_Background" type="text" placeholder="" />
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRIPTHUB -->
+        <div class="pane" id="paneScripthub">
+          <div class="row">
+            <div class="field">
+              <div class="label">TopMost</div>
+              <div class="toggle">
+                <div class="switch" id="Scripthub_TopMost"><div class="knob"></div></div>
+                <div class="small">Preview badge only.</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Opacity</div>
+              <input id="Scripthub_Opacity" type="number" step="0.01" min="0" max="1" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">Image.Path</div>
+              <input id="Scripthub_Image_Path" type="url" placeholder="https://…" />
+            </div>
+            <div class="field">
+              <div class="label">Image.Online</div>
+              <div class="toggle">
+                <div class="switch" id="Scripthub_Image_Online"><div class="knob"></div></div>
+                <div class="small">Preview loads URL if Online is true.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div class="field">
+              <div class="label">Image.Stretch</div>
+              <select id="Scripthub_Image_Stretch">
+                <option>UniformToFill</option>
+                <option>Uniform</option>
+                <option>Fill</option>
+                <option>None</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="label">Logo.Path</div>
+              <input id="Scripthub_Logo_Path" type="url" placeholder="https://…" />
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="row">
+            <div class="field">
+              <div class="label">BackColor (A,R,G,B)</div>
+              <div class="row">
+                <input id="Scripthub_Back_A" type="number" min="0" max="255" placeholder="A" />
+                <input id="Scripthub_Back_R" type="number" min="0" max="255" placeholder="R" />
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <input id="Scripthub_Back_G" type="number" min="0" max="255" placeholder="G" />
+                <input id="Scripthub_Back_B" type="number" min="0" max="255" placeholder="B" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">Background</div>
+              <input id="Scripthub_Background" type="text" placeholder="" />
+            </div>
+          </div>
+        </div>
+
+        <div class="footerRow">
+          <span>Tip: Use “Save Local” so your edits persist even if you refresh.</span>
+          <span style="font-family:var(--mono); opacity:.75;">v1 • JSON-safe</span>
+        </div>
+      </section>
+
+      <!-- PREVIEW -->
+      <section class="card preview" aria-label="Preview">
+        <div class="cardHead">
+          <div class="cardTitle">Live Preview <span class="badge" id="previewSectionBadge">Launcher</span></div>
+          <div class="badge" id="previewTopMost">TopMost: true</div>
+        </div>
+
+        <div class="previewInner">
+          <div class="small">
+            This is a visual simulation. Exported JSON keeps your exact structure (Image/Logo/BackColor/Opacity/BaseStrings).
+          </div>
+
+          <div class="kvs">
+            <div class="kv"><b>Image</b><span id="kvImage">—</span></div>
+            <div class="kv"><b>Logo</b><span id="kvLogo">—</span></div>
+            <div class="kv"><b>BackColor</b><span id="kvColor">—</span></div>
+            <div class="kv"><b>Opacity</b><span id="kvOpacity">—</span></div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="mock" id="mock">
+            <div class="mockTop">
+              <div class="dots" aria-hidden="true">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+              </div>
+              <div class="mockTitle">
+                <span id="mockExec">—</span>
+                <span class="badge" id="mockSection">Launcher</span>
+              </div>
+              <div class="badge" id="mockStatus">Ready</div>
+            </div>
+
+            <div class="mockBody" id="mockBody">
+              <div class="wallpaper" id="wallpaper"></div>
+
+              <div class="glassPanel" id="glassPanel">
+                <div class="logo" id="logoBox" aria-label="Logo">
+                  <div class="fallback" id="logoFallback">SX</div>
+                  <img id="logoImg" alt="" style="display:none;" />
+                </div>
+                <div class="meta">
+                  <div class="name" id="metaName">—</div>
+                  <div class="desc" id="metaDesc">—</div>
+                </div>
+                <div class="chips" id="chips">
+                  <div class="chip" id="chipStretch">Stretch: —</div>
+                  <div class="chip" id="chipOnline">Online: —</div>
+                  <div class="chip" id="chipBg">BG: —</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved.</div>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (id) => document.getElementById(id);
+    const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+
+    function safeParseJSON(text){
+      try{
+        const v = JSON.parse(text);
+        return { ok:true, value:v };
+      }catch(e){
+        return { ok:false, error:String(e) };
+      }
+    }
+
+    function rgbaFromBackColor(back){
+      const A = clamp(Number(back?.A ?? 0), 0, 255);
+      const R = clamp(Number(back?.R ?? 0), 0, 255);
+      const G = clamp(Number(back?.G ?? 0), 0, 255);
+      const B = clamp(Number(back?.B ?? 0), 0, 255);
+      // The JSON uses A 0-255; convert to CSS alpha 0-1
+      const a = (A / 255);
+      return { css:`rgba(${R},${G},${B},${a.toFixed(3)})`, A,R,G,B, a };
+    }
+
+    function toast(msg){
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toast._tm);
+      toast._tm = setTimeout(()=> t.classList.remove("show"), 1400);
+    }
+
+    function setPill(text, kind=""){
+      const pill = $("statePill");
+      pill.textContent = text;
+      pill.style.borderColor = kind==="ok" ? "rgba(77,255,181,.35)" :
+                               kind==="warn" ? "rgba(255,210,77,.35)" :
+                               kind==="bad" ? "rgba(255,77,90,.35)" : "var(--stroke)";
+      pill.style.background = kind==="ok" ? "rgba(77,255,181,.10)" :
+                             kind==="warn" ? "rgba(255,210,77,.10)" :
+                             kind==="bad" ? "rgba(255,77,90,.10)" : "rgba(255,255,255,.06)";
+    }
+
+    function markDirty(isDirty){
+      $("dirtyBadge").style.display = isDirty ? "inline-flex" : "none";
+    }
+
+    // ---------- Theme Model ----------
+    const SECTION_KEYS = ["Launcher","Main","Options","Scripthub"];
+    let theme = null;          // current theme object
+    let themeBase = null;      // last loaded theme (for reload)
+    let activeSection = "Launcher";
+    let dirty = false;
+
+    // ---------- Loading ----------
+    async function fetchJSON(path){
+      const res = await fetch(path, { cache:"no-store" });
+      if(!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+      return await res.json();
+    }
+
+    async function loadDefault(){
+      setPill("Loading defaultTheme.json…");
+      try{
+        const t = await fetchJSON("./defaultTheme.json");
+        applyTheme(t, "defaultTheme.json");
+        setPill("Loaded defaultTheme.json", "ok");
+        toast("Default loaded");
+      }catch(e){
+        setPill("Could not load defaultTheme.json (use local server)", "bad");
+        console.error(e);
+      }
+    }
+
+    async function loadExample(){
+      setPill("Loading zeroTwoTheme.json…");
+      try{
+        const t = await fetchJSON("./zeroTwoTheme.json");
+        applyTheme(t, "zeroTwoTheme.json");
+        setPill("Loaded zeroTwoTheme.json", "ok");
+        toast("Example loaded");
+      }catch(e){
+        setPill("Could not load zeroTwoTheme.json", "warn");
+        console.warn(e);
+      }
+    }
+
+    function normalizeTheme(t){
+      const out = deepClone(t || {});
+      if(typeof out.ExecutorName !== "string") out.ExecutorName = "Synapse X";
+      for(const k of SECTION_KEYS){
+        if(!isObj(out[k])) out[k] = {};
+        if(!isObj(out[k].Image)) out[k].Image = { Path:"", Online:true, Stretch:"UniformToFill" };
+        if(typeof out[k].Image.Path !== "string") out[k].Image.Path = "";
+        if(typeof out[k].Image.Online !== "boolean") out[k].Image.Online = true;
+        if(typeof out[k].Image.Stretch !== "string") out[k].Image.Stretch = "UniformToFill";
+
+        if(!isObj(out[k].Logo)) out[k].Logo = { Path:"" };
+        if(typeof out[k].Logo.Path !== "string") out[k].Logo.Path = "";
+
+        if(!isObj(out[k].BackColor)) out[k].BackColor = { A:0,R:0,G:0,B:0 };
+        for(const c of ["A","R","G","B"]){
+          if(typeof out[k].BackColor[c] !== "number") out[k].BackColor[c] = Number(out[k].BackColor[c] ?? 0) || 0;
+          out[k].BackColor[c] = clamp(out[k].BackColor[c], 0, 255);
+        }
+
+        if(typeof out[k].TopMost !== "boolean") out[k].TopMost = true;
+        if(typeof out[k].Opacity !== "number") out[k].Opacity = 0.85;
+        out[k].Opacity = clamp(out[k].Opacity, 0, 1);
+
+        if(typeof out[k].Background !== "string") out[k].Background = "";
+
+        // BaseStrings only exists on Launcher & Main in your examples
+        if(k === "Launcher" || k === "Main"){
+          if(!isObj(out[k].BaseStrings)) out[k].BaseStrings = {};
+        }
+      }
+      return out;
+    }
+
+    function applyTheme(t, sourceName="(import)"){
+      theme = normalizeTheme(t);
+      themeBase = deepClone(theme);
+      dirty = false;
+      markDirty(false);
+      fillUIFromTheme();
+      updatePreview();
+      console.log("Loaded:", sourceName, theme);
+    }
+
+    // ---------- UI Wiring ----------
+    function setSwitch(id, on){
+      const el = $(id);
+      el.classList.toggle("on", !!on);
+      el.dataset.on = on ? "1" : "0";
+    }
+    function getSwitch(id){
+      return $(id).dataset.on === "1";
+    }
+
+    function bindSwitch(id, getter, setter){
+      const el = $(id);
+      el.addEventListener("click", () => {
+        const next = !getSwitch(id);
+        setSwitch(id, next);
+        setter(next);
+        onEdit();
+      });
+      // initial render happens in fillUIFromTheme()
+    }
+
+    function bindInput(id, getter, setter, parser=(v)=>v){
+      const el = $(id);
+      el.addEventListener("input", () => {
+        setter(parser(el.value));
+        onEdit();
+      });
+    }
+
+    function bindSelect(id, getter, setter){
+      const el = $(id);
+      el.addEventListener("change", () => {
+        setter(el.value);
+        onEdit();
+      });
+    }
+
+    function onEdit(){
+      dirty = true;
+      markDirty(true);
+      updatePreview();
+    }
+
+    function fillUIFromTheme(){
+      if(!theme) return;
+
+      $("ExecutorName").value = theme.ExecutorName ?? "";
+
+      // Launcher
+      $("Launcher_Image_Path").value = theme.Launcher.Image.Path ?? "";
+      $("Launcher_Image_Stretch").value = theme.Launcher.Image.Stretch ?? "UniformToFill";
+      $("Launcher_Logo_Path").value = theme.Launcher.Logo.Path ?? "";
+      $("Launcher_Opacity").value = String(theme.Launcher.Opacity ?? 0.85);
+      $("Launcher_Background").value = theme.Launcher.Background ?? "";
+
+      $("Launcher_Back_A").value = String(theme.Launcher.BackColor.A ?? 0);
+      $("Launcher_Back_R").value = String(theme.Launcher.BackColor.R ?? 0);
+      $("Launcher_Back_G").value = String(theme.Launcher.BackColor.G ?? 0);
+      $("Launcher_Back_B").value = String(theme.Launcher.BackColor.B ?? 0);
+
+      setSwitch("Launcher_TopMost", !!theme.Launcher.TopMost);
+      setSwitch("Launcher_Image_Online", !!theme.Launcher.Image.Online);
+
+      $("Launcher_BaseStrings").value = JSON.stringify(theme.Launcher.BaseStrings ?? {}, null, 2);
+
+      // Main
+      $("Main_Image_Path").value = theme.Main.Image.Path ?? "";
+      $("Main_Image_Stretch").value = theme.Main.Image.Stretch ?? "UniformToFill";
+      $("Main_Logo_Path").value = theme.Main.Logo.Path ?? "";
+      $("Main_Opacity").value = String(theme.Main.Opacity ?? 0.72);
+      $("Main_Background").value = theme.Main.Background ?? "";
+
+      $("Main_Back_A").value = String(theme.Main.BackColor.A ?? 0);
+      $("Main_Back_R").value = String(theme.Main.BackColor.R ?? 0);
+      $("Main_Back_G").value = String(theme.Main.BackColor.G ?? 0);
+      $("Main_Back_B").value = String(theme.Main.BackColor.B ?? 0);
+
+      setSwitch("Main_TopMost", !!theme.Main.TopMost);
+      setSwitch("Main_Image_Online", !!theme.Main.Image.Online);
+
+      $("Main_BaseStrings").value = JSON.stringify(theme.Main.BaseStrings ?? {}, null, 2);
+
+      // Options
+      $("Options_Image_Path").value = theme.Options.Image.Path ?? "";
+      $("Options_Image_Stretch").value = theme.Options.Image.Stretch ?? "UniformToFill";
+      $("Options_Logo_Path").value = theme.Options.Logo.Path ?? "";
+      $("Options_Opacity").value = String(theme.Options.Opacity ?? 0.84);
+      $("Options_Background").value = theme.Options.Background ?? "";
+
+      $("Options_Back_A").value = String(theme.Options.BackColor.A ?? 0);
+      $("Options_Back_R").value = String(theme.Options.BackColor.R ?? 0);
+      $("Options_Back_G").value = String(theme.Options.BackColor.G ?? 0);
+      $("Options_Back_B").value = String(theme.Options.BackColor.B ?? 0);
+
+      setSwitch("Options_TopMost", !!theme.Options.TopMost);
+      setSwitch("Options_Image_Online", !!theme.Options.Image.Online);
+
+      // Scripthub
+      $("Scripthub_Image_Path").value = theme.Scripthub.Image.Path ?? "";
+      $("Scripthub_Image_Stretch").value = theme.Scripthub.Image.Stretch ?? "UniformToFill";
+      $("Scripthub_Logo_Path").value = theme.Scripthub.Logo.Path ?? "";
+      $("Scripthub_Opacity").value = String(theme.Scripthub.Opacity ?? 0.80);
+      $("Scripthub_Background").value = theme.Scripthub.Background ?? "";
+
+      $("Scripthub_Back_A").value = String(theme.Scripthub.BackColor.A ?? 0);
+      $("Scripthub_Back_R").value = String(theme.Scripthub.BackColor.R ?? 0);
+      $("Scripthub_Back_G").value = String(theme.Scripthub.BackColor.G ?? 0);
+      $("Scripthub_Back_B").value = String(theme.Scripthub.BackColor.B ?? 0);
+
+      setSwitch("Scripthub_TopMost", !!theme.Scripthub.TopMost);
+      setSwitch("Scripthub_Image_Online", !!theme.Scripthub.Image.Online);
+
+      // Pills
+      $("activeSectionBadge").textContent = activeSection;
+      $("previewSectionBadge").textContent = activeSection;
+      $("mockSection").textContent = activeSection;
+    }
+
+    // ---------- Preview ----------
+    function firstBaseString(section){
+      const base = theme?.[section]?.BaseStrings;
+      if(!base || !isObj(base)) return "Ready";
+      // Prefer "Ready" if present, else first key
+      if(typeof base.Ready === "string") return base.Ready;
+      const k = Object.keys(base)[0];
+      return k ? String(base[k]) : "Ready";
+    }
+
+    function updatePreview(){
+      if(!theme) return;
+
+      const sec = theme[activeSection];
+      const imgPath = sec?.Image?.Path || "";
+      const online = !!sec?.Image?.Online;
+      const stretch = sec?.Image?.Stretch || "UniformToFill";
+      const logoPath = sec?.Logo?.Path || "";
+      const topMost = !!sec?.TopMost;
+      const opacity = clamp(Number(sec?.Opacity ?? 0.85), 0, 1);
+      const bg = (sec?.Background ?? "");
+
+      const bc = rgbaFromBackColor(sec?.BackColor);
+      const glass = $("glassPanel");
+      glass.style.background = `rgba(255,255,255,${(0.06 + opacity*0.14).toFixed(3)})`;
+      glass.style.borderColor = `rgba(255,255,255,${(0.10 + opacity*0.12).toFixed(3)})`;
+
+      // wallpaper
+      const wall = $("wallpaper");
+      if(imgPath && online){
+        wall.style.backgroundImage = `url("${imgPath.replace(/"/g, "%22")}")`;
+        wall.style.opacity = "1";
+      }else{
+        wall.style.backgroundImage = "";
+        wall.style.opacity = ".95";
+      }
+      wall.style.backgroundSize = (stretch === "Fill") ? "100% 100%" : "cover";
+      wall.style.backgroundPosition = "center";
+
+      // overlay tint from BackColor
+      $("mockBody").style.background = `linear-gradient(180deg, ${bc.css}, transparent 55%)`;
+
+      // logo
+      const logoImg = $("logoImg");
+      const logoFallback = $("logoFallback");
+      if(logoPath){
+        logoImg.src = logoPath;
+        logoImg.onload = () => {
+          logoImg.style.display = "";
+          logoFallback.style.display = "none";
+        };
+        logoImg.onerror = () => {
+          logoImg.style.display = "none";
+          logoFallback.style.display = "";
+        };
+      }else{
+        logoImg.style.display = "none";
+        logoFallback.style.display = "";
+      }
+
+      $("mockExec").textContent = theme.ExecutorName || "Synapse X";
+      $("metaName").textContent = theme.ExecutorName || "Synapse X";
+      $("metaDesc").textContent = firstBaseString(activeSection);
+
+      $("mockStatus").textContent = dirty ? "Editing…" : "Ready";
+      $("mockStatus").style.borderColor = dirty ? "rgba(255,210,77,.35)" : "rgba(77,255,181,.35)";
+      $("mockStatus").style.background = dirty ? "rgba(255,210,77,.10)" : "rgba(77,255,181,.10)";
+
+      $("previewTopMost").textContent = `TopMost: ${topMost}`;
+      $("previewSectionBadge").textContent = activeSection;
+      $("mockSection").textContent = activeSection;
+
+      $("kvImage").textContent = imgPath ? (online ? "Online URL" : "Local path") : "—";
+      $("kvLogo").textContent = logoPath ? "Set" : "—";
+      $("kvColor").textContent = `A:${bc.A} R:${bc.R} G:${bc.G} B:${bc.B}`;
+      $("kvOpacity").textContent = String(opacity);
+
+      $("chipStretch").textContent = `Stretch: ${stretch}`;
+      $("chipOnline").textContent = `Online: ${online}`;
+      $("chipBg").textContent = `BG: ${bg || "—"}`;
+    }
+
+    // ---------- Actions ----------
+    function exportJSON(){
+      if(!theme) return;
+      const blob = new Blob([JSON.stringify(theme, null, 2)], { type:"application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (theme.ExecutorName ? theme.ExecutorName.replace(/[^\w\- ]+/g,"").trim() : "theme") + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      toast("Exported JSON");
+      dirty = false;
+      markDirty(false);
+    }
+
+    function saveLocal(){
+      if(!theme) return;
+      localStorage.setItem("sx_theme_editor_theme", JSON.stringify(theme));
+      localStorage.setItem("sx_theme_editor_section", activeSection);
+      localStorage.setItem("sx_theme_editor_savedAt", String(Date.now()));
+      toast("Saved locally");
+      dirty = false;
+      markDirty(false);
+    }
+
+    function resetLocal(){
+      localStorage.removeItem("sx_theme_editor_theme");
+      localStorage.removeItem("sx_theme_editor_section");
+      localStorage.removeItem("sx_theme_editor_savedAt");
+      toast("Local reset");
+      dirty = false;
+      markDirty(false);
+      if(themeBase) applyTheme(themeBase, "(reset)");
+    }
+
+    function tryLoadLocal(){
+      const raw = localStorage.getItem("sx_theme_editor_theme");
+      const sec = localStorage.getItem("sx_theme_editor_section");
+      if(raw){
+        const p = safeParseJSON(raw);
+        if(p.ok){
+          activeSection = SECTION_KEYS.includes(sec) ? sec : "Launcher";
+          applyTheme(p.value, "(local)");
+          setPill("Loaded saved theme (local)", "ok");
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // ---------- Bind Everything ----------
+    function wireTabs(){
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          const key = tab.dataset.tab;
+          if(!SECTION_KEYS.includes(key)) return;
+          activeSection = key;
+
+          document.querySelectorAll(".tab").forEach(t=>{
+            const on = (t.dataset.tab === key);
+            t.classList.toggle("active", on);
+            t.setAttribute("aria-selected", on ? "true" : "false");
+          });
+
+          document.querySelectorAll(".pane").forEach(p=> p.classList.remove("active"));
+          $("pane" + key).classList.add("active");
+
+          $("activeSectionBadge").textContent = key;
+          updatePreview();
+          toast(`${key} selected`);
+        });
+      });
+    }
+
+    function wireInputs(){
+      // top-level
+      bindInput("ExecutorName", ()=>theme.ExecutorName, (v)=> theme.ExecutorName = String(v||""));
+
+      // Launcher
+      bindInput("Launcher_Image_Path", null, (v)=> theme.Launcher.Image.Path = String(v||""));
+      bindSelect("Launcher_Image_Stretch", null, (v)=> theme.Launcher.Image.Stretch = String(v||"UniformToFill"));
+      bindInput("Launcher_Logo_Path", null, (v)=> theme.Launcher.Logo.Path = String(v||""));
+      bindInput("Launcher_Opacity", null, (v)=> theme.Launcher.Opacity = clamp(Number(v||0),0,1), (x)=>x);
+      bindInput("Launcher_Background", null, (v)=> theme.Launcher.Background = String(v||""));
+
+      bindInput("Launcher_Back_A", null, (v)=> theme.Launcher.BackColor.A = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Launcher_Back_R", null, (v)=> theme.Launcher.BackColor.R = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Launcher_Back_G", null, (v)=> theme.Launcher.BackColor.G = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Launcher_Back_B", null, (v)=> theme.Launcher.BackColor.B = clamp(Number(v||0),0,255), (x)=>x);
+
+      bindSwitch("Launcher_TopMost", null, (on)=> theme.Launcher.TopMost = !!on);
+      bindSwitch("Launcher_Image_Online", null, (on)=> theme.Launcher.Image.Online = !!on);
+
+      $("Launcher_BaseStrings").addEventListener("input", ()=>{
+        const p = safeParseJSON($("Launcher_BaseStrings").value || "{}");
+        if(p.ok && isObj(p.value)){
+          theme.Launcher.BaseStrings = p.value;
+          $("Launcher_BaseStrings").style.borderColor = "rgba(77,255,181,.35)";
+        }else{
+          $("Launcher_BaseStrings").style.borderColor = "rgba(255,77,90,.45)";
+        }
+        onEdit();
+      });
+
+      // Main
+      bindInput("Main_Image_Path", null, (v)=> theme.Main.Image.Path = String(v||""));
+      bindSelect("Main_Image_Stretch", null, (v)=> theme.Main.Image.Stretch = String(v||"UniformToFill"));
+      bindInput("Main_Logo_Path", null, (v)=> theme.Main.Logo.Path = String(v||""));
+      bindInput("Main_Opacity", null, (v)=> theme.Main.Opacity = clamp(Number(v||0),0,1), (x)=>x);
+      bindInput("Main_Background", null, (v)=> theme.Main.Background = String(v||""));
+
+      bindInput("Main_Back_A", null, (v)=> theme.Main.BackColor.A = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Main_Back_R", null, (v)=> theme.Main.BackColor.R = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Main_Back_G", null, (v)=> theme.Main.BackColor.G = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Main_Back_B", null, (v)=> theme.Main.BackColor.B = clamp(Number(v||0),0,255), (x)=>x);
+
+      bindSwitch("Main_TopMost", null, (on)=> theme.Main.TopMost = !!on);
+      bindSwitch("Main_Image_Online", null, (on)=> theme.Main.Image.Online = !!on);
+
+      $("Main_BaseStrings").addEventListener("input", ()=>{
+        const p = safeParseJSON($("Main_BaseStrings").value || "{}");
+        if(p.ok && isObj(p.value)){
+          theme.Main.BaseStrings = p.value;
+          $("Main_BaseStrings").style.borderColor = "rgba(77,255,181,.35)";
+        }else{
+          $("Main_BaseStrings").style.borderColor = "rgba(255,77,90,.45)";
+        }
+        onEdit();
+      });
+
+      // Options
+      bindInput("Options_Image_Path", null, (v)=> theme.Options.Image.Path = String(v||""));
+      bindSelect("Options_Image_Stretch", null, (v)=> theme.Options.Image.Stretch = String(v||"UniformToFill"));
+      bindInput("Options_Logo_Path", null, (v)=> theme.Options.Logo.Path = String(v||""));
+      bindInput("Options_Opacity", null, (v)=> theme.Options.Opacity = clamp(Number(v||0),0,1), (x)=>x);
+      bindInput("Options_Background", null, (v)=> theme.Options.Background = String(v||""));
+
+      bindInput("Options_Back_A", null, (v)=> theme.Options.BackColor.A = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Options_Back_R", null, (v)=> theme.Options.BackColor.R = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Options_Back_G", null, (v)=> theme.Options.BackColor.G = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Options_Back_B", null, (v)=> theme.Options.BackColor.B = clamp(Number(v||0),0,255), (x)=>x);
+
+      bindSwitch("Options_TopMost", null, (on)=> theme.Options.TopMost = !!on);
+      bindSwitch("Options_Image_Online", null, (on)=> theme.Options.Image.Online = !!on);
+
+      // Scripthub
+      bindInput("Scripthub_Image_Path", null, (v)=> theme.Scripthub.Image.Path = String(v||""));
+      bindSelect("Scripthub_Image_Stretch", null, (v)=> theme.Scripthub.Image.Stretch = String(v||"UniformToFill"));
+      bindInput("Scripthub_Logo_Path", null, (v)=> theme.Scripthub.Logo.Path = String(v||""));
+      bindInput("Scripthub_Opacity", null, (v)=> theme.Scripthub.Opacity = clamp(Number(v||0),0,1), (x)=>x);
+      bindInput("Scripthub_Background", null, (v)=> theme.Scripthub.Background = String(v||""));
+
+      bindInput("Scripthub_Back_A", null, (v)=> theme.Scripthub.BackColor.A = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Scripthub_Back_R", null, (v)=> theme.Scripthub.BackColor.R = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Scripthub_Back_G", null, (v)=> theme.Scripthub.BackColor.G = clamp(Number(v||0),0,255), (x)=>x);
+      bindInput("Scripthub_Back_B", null, (v)=> theme.Scripthub.BackColor.B = clamp(Number(v||0),0,255), (x)=>x);
+
+      bindSwitch("Scripthub_TopMost", null, (on)=> theme.Scripthub.TopMost = !!on);
+      bindSwitch("Scripthub_Image_Online", null, (on)=> theme.Scripthub.Image.Online = !!on);
+    }
+
+    function wireButtons(){
+      $("btnExport").addEventListener("click", exportJSON);
+      $("btnSave").addEventListener("click", saveLocal);
+      $("btnResetLocal").addEventListener("click", resetLocal);
+      $("btnLoadDefault").addEventListener("click", loadDefault);
+      $("btnLoadExample").addEventListener("click", loadExample);
+
+      $("fileImport").addEventListener("change", async (ev)=>{
+        const f = ev.target.files?.[0];
+        if(!f) return;
+        try{
+          const txt = await f.text();
+          const p = safeParseJSON(txt);
+          if(!p.ok) throw new Error(p.error);
+          applyTheme(p.value, f.name);
+          setPill(`Imported ${f.name}`, "ok");
+          toast("Imported JSON");
+        }catch(e){
+          setPill("Import failed (invalid JSON)", "bad");
+          toast("Import failed");
+          console.error(e);
+        }finally{
+          ev.target.value = "";
+        }
+      });
+    }
+
+    // pointer glow tracking
+    window.addEventListener("pointermove", (e)=>{
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      document.documentElement.style.setProperty("--mx", x.toFixed(2) + "%");
+      document.documentElement.style.setProperty("--my", y.toFixed(2) + "%");
+    }, { passive:true });
+
+    // ---------- Boot ----------
+    (async function init(){
+      wireTabs();
+      wireButtons();
+
+      // try local first
+      const loadedLocal = tryLoadLocal();
+
+      // if no local, load defaultTheme.json
+      if(!loadedLocal){
+        await loadDefault();
+      }
+
+      // If still not loaded (e.g., file:// without server), fall back to embedded minimal theme
+      if(!theme){
+        applyTheme({
+          ExecutorName:"Synapse X",
+          Launcher:{ Image:{Path:"",Online:true,Stretch:"UniformToFill"}, Logo:{Path:""}, BackColor:{A:0,R:0,G:0,B:0}, TopMost:true, Opacity:0.85, Background:"", BaseStrings:{ Ready:"Ready" }},
+          Main:{ Image:{Path:"",Online:true,Stretch:"UniformToFill"}, Logo:{Path:""}, BackColor:{A:0,R:0,G:0,B:0}, TopMost:true, Opacity:0.72, Background:"", BaseStrings:{ Ready:"Ready" }},
+          Options:{ Image:{Path:"",Online:true,Stretch:"UniformToFill"}, Logo:{Path:""}, BackColor:{A:0,R:0,G:0,B:0}, TopMost:true, Opacity:0.84, Background:"" },
+          Scripthub:{ Image:{Path:"",Online:true,Stretch:"UniformToFill"}, Logo:{Path:""}, BackColor:{A:0,R:0,G:0,B:0}, TopMost:true, Opacity:0.80, Background:"" }
+        }, "(fallback)");
+        setPill("Opened without server (using fallback theme)", "warn");
+      }
+
+      wireInputs();
+      fillUIFromTheme();
+      updatePreview();
+      setPill("Ready", "ok");
+    })();
+  </script>
+</body>
+</html>
