@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Synapse X Theme Studio</title>
     <style>
         :root {
@@ -15,37 +15,48 @@
             --accent-glow: rgba(10, 132, 255, 0.4);
             --text-primary: #ffffff;
             --text-secondary: #8e8e93;
-            
+
             /* Apple Motion Curves */
             --ease-fluid: cubic-bezier(0.25, 1, 0.5, 1);
             --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            
+
             /* UI Dimensions */
             --radius-pill: 100px;
             --radius-card: 18px;
-            
+
             /* Synapse UI Variables (Dynamic) */
             --syn-bg-color: #333333;
             --syn-top-bar: rgba(60,60,60,0.1);
             --syn-text: #ffffff;
+
+            /* Mobile-safe heights */
+            --header-h: 68px;
         }
 
         * { box-sizing: border-box; outline: none; -webkit-font-smoothing: antialiased; }
+        html, body { height: 100%; }
 
         body {
             margin: 0;
             background-color: var(--bg-body);
             color: var(--text-primary);
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
-            overflow: hidden;
+
+            /* IMPORTANT: Mobile fix
+               - Stop hard-locking to 100vh (breaks on iOS address bar)
+               - Allow scrolling when layout stacks */
+            min-height: 100svh;
+            overflow-x: hidden;
+            overflow-y: auto;
+
             display: flex;
             flex-direction: column;
         }
 
         /* --- Header (Glass Panel) --- */
         header {
-            height: 68px;
+            height: var(--header-h);
+            min-height: var(--header-h);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -54,6 +65,9 @@
             background: var(--bg-glass-heavy);
             backdrop-filter: blur(20px) saturate(180%);
             z-index: 100;
+
+            position: sticky;
+            top: 0;
         }
 
         .brand {
@@ -63,15 +77,16 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            white-space: nowrap;
         }
-        
-        .brand span { 
-            color: var(--accent); 
+
+        .brand span {
+            color: var(--accent);
             text-shadow: 0 0 15px var(--accent-glow);
         }
 
         /* --- Liquid Glass Buttons --- */
-        .actions { display: flex; gap: 12px; }
+        .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 
         button.apple-btn {
             position: relative;
@@ -87,6 +102,10 @@
             transition: all 0.4s var(--ease-spring);
             backdrop-filter: blur(10px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+
+            /* Mobile tap usability */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* Inner highlight effect */
@@ -105,10 +124,8 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.4);
             color: white;
         }
-        
-        button.apple-btn:hover::before {
-            left: 100%; /* Swipe sheen */
-        }
+
+        button.apple-btn:hover::before { left: 100%; }
 
         button.apple-btn:active {
             transform: scale(0.95);
@@ -132,7 +149,8 @@
         main {
             display: flex;
             flex: 1;
-            height: calc(100vh - 68px);
+            /* Don't force a fixed height; let content dictate on mobile */
+            min-height: calc(100svh - var(--header-h));
         }
 
         /* --- Preview Area --- */
@@ -145,6 +163,9 @@
             background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
             position: relative;
             overflow: hidden;
+
+            /* Give room so sticky tab bar doesn't overlap content on small screens */
+            padding: 84px 16px 24px;
         }
 
         /* --- Fluid Sliding Segmented Control (Tabs) --- */
@@ -152,6 +173,10 @@
             position: absolute;
             top: 24px;
             z-index: 50;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0 16px;
         }
 
         .window-selector {
@@ -163,29 +188,47 @@
             border-radius: var(--radius-pill);
             border: 1px solid var(--border-subtle);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+            /* Mobile fix: allow horizontal scroll instead of overflowing off-screen */
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            gap: 0px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+
+            /* Keep the glider positioning stable inside the scroll container */
+            white-space: nowrap;
         }
+
+        /* Hide scrollbar but keep it scrollable */
+        .window-selector::-webkit-scrollbar { height: 0px; }
+        .window-selector { scrollbar-width: none; }
 
         /* The sliding background blob */
         .tab-glider {
             position: absolute;
             top: 4px;
             left: 4px;
-            height: 32px; /* Set explicitly to match tab height */
+            height: 32px;
             background: rgba(120, 120, 120, 0.4);
             border-radius: var(--radius-pill);
-            transition: all 0.5s var(--ease-fluid); /* Fluid motion */
+            transition: all 0.35s var(--ease-fluid);
             z-index: 1;
             border: 1px solid rgba(255,255,255,0.1);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+
+            /* Mobile fix: ensure glider doesn't capture taps */
+            pointer-events: none;
         }
 
         /* The clickable tabs */
         .tab {
             position: relative;
-            z-index: 2; /* Above glider */
+            z-index: 2;
             padding: 0 20px;
             height: 32px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 13px;
@@ -195,6 +238,11 @@
             transition: color 0.3s ease;
             user-select: none;
             white-space: nowrap;
+
+            /* Mobile: larger tap target */
+            min-width: 92px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .tab.active {
@@ -202,31 +250,31 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
 
-        .tab:hover:not(.active) {
-            color: rgba(255,255,255,0.8);
-        }
+        .tab:hover:not(.active) { color: rgba(255,255,255,0.8); }
 
         /* --- Windows (Keep Structure, Update Animations) --- */
         .synapse-window {
             position: relative;
             background-color: var(--syn-bg-color);
             box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-            border-radius: 4px; /* Default Synapse sharp-ish corners, or update if desired */
-            display: none; 
+            border-radius: 4px;
+            display: none;
             flex-direction: column;
             overflow: hidden;
-            transition: opacity 0.4s ease, transform 0.5s var(--ease-spring); /* Bouncier enter */
+            transition: opacity 0.35s ease, transform 0.45s var(--ease-spring);
             opacity: 0;
-            transform: scale(0.9) translateY(20px);
+            transform: scale(0.96) translateY(14px);
+
+            /* Mobile fix: prevent huge fixed pixel widths from overflowing */
+            max-width: min(92vw, 920px);
         }
 
         .synapse-window.active {
-            display: grid; 
+            display: grid;
             opacity: 1;
             transform: scale(1) translateY(0);
         }
 
-        /* Reuse existing internal window styles but make them cleaner */
         .syn-bg-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
@@ -244,13 +292,18 @@
         .syn-progress::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 60%; background: linear-gradient(90deg, #444, #666); }
 
         /* > Main Window Specifics */
-        #main-window { width: 801px; height: 355px; grid-template-rows: 30px 1fr 42px; grid-template-columns: 1fr 130px; }
+        #main-window {
+            width: 801px;
+            height: 355px;
+            grid-template-rows: 30px 1fr 42px;
+            grid-template-columns: 1fr 130px;
+        }
         #main-window .top-box { height: 30px; grid-column: span 2; justify-content: space-between; padding-right: 10px; }
         .win-controls { display: flex; gap: 15px; font-family: monospace; font-size: 14px; cursor: pointer; color: #ddd;}
         .editor-area { grid-row: 2; grid-column: 1; margin: 4px 2px 0 4px; background: rgba(30,30,30,0); position: relative; z-index: 2; }
         .script-list { grid-row: 2; grid-column: 2; margin: 5px 0 0 2px; background: rgba(30,30,30,0.2); width: 122px; z-index: 2; padding: 5px; font-size: 12px; color: #ddd; }
-        .bottom-bar { grid-row: 3; grid-column: 1 / span 2; display: flex; align-items: center; padding: 0 5px; gap: 5px; z-index: 2; }
-        .syn-btn { height: 33px; min-width: 90px; background: transparent; border: 1px solid transparent; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s;}
+        .bottom-bar { grid-row: 3; grid-column: 1 / span 2; display: flex; align-items: center; padding: 0 5px; gap: 5px; z-index: 2; flex-wrap: wrap; }
+        .syn-btn { height: 33px; min-width: 90px; background: transparent; border: 1px solid transparent; color: white; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: 0.2s; touch-action: manipulation; }
         .syn-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
 
         /* > Options Window Specifics */
@@ -270,6 +323,7 @@
             overflow-y: auto;
             padding: 32px;
             gap: 24px;
+            min-width: 280px;
         }
 
         .control-group {
@@ -294,6 +348,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 16px;
+            gap: 12px;
         }
 
         .control-row label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
@@ -318,6 +373,7 @@
             border-radius: 2px;
             background: rgba(255,255,255,0.2);
             outline: none;
+            flex-shrink: 0;
         }
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -330,6 +386,91 @@
         }
         .slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
 
+        /* -----------------------------
+           MOBILE UI FIXES (no code removed)
+           ----------------------------- */
+        @media (max-width: 980px) {
+            header { padding: 0 16px; }
+            .brand { font-size: 16px; }
+            main { flex-direction: column; }
+
+            /* Put preview above controls */
+            .preview-container {
+                min-height: 56svh;
+                padding: 84px 12px 18px;
+            }
+
+            /* Sidebar becomes full width */
+            aside {
+                width: 100%;
+                min-width: 0;
+                border-left: none;
+                border-top: 1px solid var(--border-subtle);
+                padding: 18px 16px 24px;
+                max-height: none;
+            }
+
+            /* Buttons fit */
+            .actions button.apple-btn { padding: 10px 14px; }
+
+            /* Make Synapse windows scale to phone */
+            #loader-window,
+            #main-window,
+            #options-window,
+            #scripthub-window {
+                width: 100% !important;
+                max-width: 100%;
+            }
+
+            /* Prevent fixed heights from overflowing on short screens */
+            #loader-window { height: auto; }
+            #options-window { height: auto; }
+
+            /* MAIN window: collapse right script panel below editor */
+            #main-window {
+                height: auto !important;
+                grid-template-columns: 1fr !important;
+                grid-template-rows: 30px auto auto auto !important;
+            }
+            #main-window .top-box { grid-column: 1 !important; }
+            .editor-area { grid-row: 2 !important; grid-column: 1 !important; margin: 6px 6px 0 6px; min-height: 180px; }
+            .script-list { grid-row: 3 !important; grid-column: 1 !important; width: auto !important; margin: 8px 6px 0 6px; }
+            .bottom-bar { grid-row: 4 !important; grid-column: 1 !important; padding: 8px 6px; }
+
+            /* ScriptHub: stack list and details */
+            #scripthub-window { height: auto !important; }
+            #scripthub-window > div[style*="display: flex;"] {
+                flex-direction: column !important;
+                gap: 10px;
+            }
+            #scripthub-window > div[style*="display: flex;"] > div[style*="width: 115px;"] {
+                width: 100% !important;
+                margin-right: 0 !important;
+            }
+
+            /* Controls spacing */
+            .control-row { flex-direction: column; align-items: stretch; }
+            .slider { width: 100%; }
+        }
+
+        @media (max-width: 420px) {
+            header {
+                height: auto;
+                padding: 10px 12px;
+                gap: 10px;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .actions {
+                width: 100%;
+                justify-content: flex-start;
+                gap: 10px;
+            }
+            .actions button.apple-btn { width: 100%; }
+
+            .window-selector-container { top: 12px; }
+            .preview-container { padding-top: 74px; }
+        }
     </style>
 </head>
 <body>
@@ -340,17 +481,18 @@
         </div>
         <div class="actions">
             <button class="apple-btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
-            <input type="file" id="importFile" style="display: none" accept=".json">
+            <input type="file" id="importFile" style="display: none" accept=".json" />
             <button class="apple-btn primary" onclick="exportTheme()">Export Theme</button>
         </div>
     </header>
 
     <main>
         <div class="preview-container">
-            
+
             <div class="window-selector-container">
-                <div class="window-selector">
-                    <div class="tab-glider" id="glider"></div> <div class="tab active" data-target="Launcher" onclick="switchTab(this)">Launcher</div>
+                <div class="window-selector" id="tabScroller">
+                    <div class="tab-glider" id="glider"></div>
+                    <div class="tab active" data-target="Launcher" onclick="switchTab(this)">Launcher</div>
                     <div class="tab" data-target="Main" onclick="switchTab(this)">Main UI</div>
                     <div class="tab" data-target="Options" onclick="switchTab(this)">Options</div>
                     <div class="tab" data-target="Scripthub" onclick="switchTab(this)">Script Hub</div>
@@ -435,19 +577,17 @@
                 <div class="control-row">
                     <label>Executor Name</label>
                 </div>
-                <input type="text" class="input-text" id="executorName" value="Synapse X">
+                <input type="text" class="input-text" id="executorName" value="Synapse X" />
             </div>
 
             <div class="control-group">
                 <h3>Active Window Settings</h3>
-                <div id="dynamic-controls">
-                    </div>
+                <div id="dynamic-controls"></div>
             </div>
-            
+
             <div class="control-group" id="text-editor-group">
                 <h3>Custom Text (BaseStrings)</h3>
-                <div id="text-controls" style="display: flex; flex-direction: column; gap: 10px;">
-                    </div>
+                <div id="text-controls" style="display: flex; flex-direction: column; gap: 10px;"></div>
             </div>
         </aside>
     </main>
@@ -490,18 +630,25 @@
         };
 
         // --- State Management ---
-        let activeSection = "Launcher"; 
+        let activeSection = "Launcher";
         const windows = document.querySelectorAll('.synapse-window');
         const dynamicControls = document.getElementById('dynamic-controls');
         const textControls = document.getElementById('text-controls');
         const executorNameInput = document.getElementById('executorName');
         const glider = document.getElementById('glider');
+        const tabScroller = document.getElementById('tabScroller');
 
         // --- Initialization ---
         function init() {
-            // Initialize Glider Position
+            // Initialize Glider Position (after layout)
             const initialTab = document.querySelector('.tab.active');
-            updateGlider(initialTab);
+            updateGlider(initialTab, true);
+
+            // Keep glider aligned on resize / orientation change
+            window.addEventListener('resize', () => {
+                const activeTab = document.querySelector('.tab.active');
+                if (activeTab) updateGlider(activeTab, true);
+            });
 
             // Global Inputs
             executorNameInput.addEventListener('input', (e) => {
@@ -520,19 +667,19 @@
             // Update UI Tabs
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             clickedTab.classList.add('active');
-            
-            // Move Glider Animation
-            updateGlider(clickedTab);
+
+            // Move Glider Animation + ensure tab is visible on mobile scroller
+            updateGlider(clickedTab, true);
 
             // Update Active Window Preview
             activeSection = clickedTab.dataset.target;
             windows.forEach(win => {
                 win.classList.remove('active');
-                win.style.display = 'none'; 
+                win.style.display = 'none';
                 if (win.dataset.section === activeSection) {
-                    win.style.display = (activeSection === 'Launcher') ? 'grid' : 
-                                        (activeSection === 'Main') ? 'grid' : 
-                                        'flex'; 
+                    win.style.display = (activeSection === 'Launcher') ? 'grid' :
+                                        (activeSection === 'Main') ? 'grid' :
+                                        'flex';
                     setTimeout(() => win.classList.add('active'), 10);
                 }
             });
@@ -540,9 +687,22 @@
             renderControls();
         }
 
-        function updateGlider(element) {
+        function updateGlider(element, ensureVisible) {
+            if (!element) return;
+
+            // Because .window-selector can scroll on mobile, we need the left position relative to scroller
+            const scrollerRect = tabScroller.getBoundingClientRect();
+            const elRect = element.getBoundingClientRect();
+
+            const leftWithinScroller = (elRect.left - scrollerRect.left) + tabScroller.scrollLeft;
+
             glider.style.width = element.offsetWidth + 'px';
-            glider.style.left = element.offsetLeft + 'px';
+            glider.style.left = leftWithinScroller + 'px';
+
+            // Ensure selected tab stays visible in the horizontal scroller (mobile)
+            if (ensureVisible && typeof element.scrollIntoView === "function") {
+                element.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
         }
 
         // --- Render Side Panel Controls ---
@@ -604,7 +764,7 @@
 
         window.updateBaseString = (section, key, val) => {
             currentTheme[section].BaseStrings[key] = val;
-            updatePreview(); 
+            updatePreview();
         };
 
         // --- Preview Renderer ---
@@ -616,7 +776,7 @@
                     // Try to preserve suffix ( - Loader etc)
                     let suffix = "";
                     if(originalText.includes(" - ")) suffix = " - " + originalText.split(" - ")[1];
-                    
+
                     // Simple replacement logic
                     el.innerText = currentTheme.ExecutorName + suffix;
                 }
@@ -628,7 +788,7 @@
                 if(win && currentTheme[sec]) {
                     const bgDiv = win.querySelector('.syn-bg-image');
                     const imgUrl = currentTheme[sec].Image?.Path;
-                    
+
                     if(imgUrl) {
                         bgDiv.style.backgroundImage = `url('${imgUrl}')`;
                     } else {
@@ -658,7 +818,7 @@
         function handleImport(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -667,6 +827,11 @@
                     executorNameInput.value = currentTheme.ExecutorName || "Synapse X";
                     renderControls();
                     updatePreview();
+
+                    // Re-align glider after imports (in case labels changed widths)
+                    const activeTab = document.querySelector('.tab.active');
+                    if (activeTab) updateGlider(activeTab, true);
+
                     alert("Theme imported successfully!");
                 } catch (err) {
                     alert("Invalid JSON file.");
@@ -678,7 +843,6 @@
 
         // Start
         init();
-
     </script>
 </body>
 </html>
