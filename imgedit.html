@@ -11,7 +11,7 @@
         :root {
             --bg-color: #000000;
             --panel-bg: #1c1c1e;
-            --accent: #ff2a5f; /* Picsart-ish pink/red */
+            --accent: #ff2a5f;
             --text: #ffffff;
             --text-muted: #8e8e93;
         }
@@ -23,7 +23,7 @@
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overscroll-behavior-y: none;
-            padding-bottom: 80px; /* Space for bottom nav */
+            padding-bottom: 80px;
         }
 
         /* Top Bar */
@@ -36,163 +36,76 @@
             border-bottom: 1px solid #333;
         }
 
-        .top-bar h1 {
-            font-size: 18px;
-            margin: 0;
-            color: var(--text);
-        }
+        .top-bar h1 { font-size: 18px; margin: 0; }
+        .btn-text { color: var(--accent); background: none; border: none; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px; }
 
-        .btn-text {
-            color: var(--accent);
-            background: none;
-            border: none;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        /* Upload State */
-        .upload-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 70vh;
-        }
-
-        .upload-screen label {
-            background-color: var(--accent);
-            color: #fff;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .upload-screen input[type="file"] {
-            display: none;
-        }
+        /* Upload Screen */
+        .upload-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; }
+        .upload-screen label { background-color: var(--accent); color: #fff; padding: 15px 30px; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .upload-screen input[type="file"] { display: none; }
 
         /* Workspace */
-        .workspace {
-            display: none;
-            width: 100%;
-            height: calc(100vh - 140px);
-            background-color: #000;
-            position: relative;
-        }
+        .workspace { display: none; width: 100%; height: calc(100vh - 140px); background-color: #000; position: relative; }
+        img { display: block; max-width: 100%; }
 
-        img {
-            display: block;
-            max-width: 100%;
-        }
-
-        /* Menus (Hidden by default) */
+        /* Menus */
         .menu-panel {
             display: none;
             padding: 15px;
-            background-color: var(--panel-bg);
+            background-color: rgba(28, 28, 30, 0.95); /* Slightly transparent */
+            backdrop-filter: blur(10px);
             border-top-left-radius: 15px;
             border-top-right-radius: 15px;
             position: fixed;
-            bottom: 60px; /* Sits above nav */
+            bottom: 60px;
             left: 0;
             width: 100%;
             box-sizing: border-box;
             z-index: 10;
+            max-height: 50vh;
+            overflow-y: auto;
         }
 
-        .active-menu {
-            display: block;
-        }
-
-        .menu-title {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-top: 0;
-            margin-bottom: 15px;
-            text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-        }
-
-        /* Controls inside menus */
-        .tool-row {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 10px;
-        }
-
-        .tool-btn {
-            background: #333;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            width: 30%;
-        }
-
-        .slider-group {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 15px;
-        }
-
-        .slider-group label {
-            font-size: 12px;
+        .active-menu { display: block; }
+        
+        /* Menu Header with Close Button */
+        .menu-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .menu-title { font-size: 14px; color: var(--text-muted); margin: 0; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 20px; padding: 0 10px; cursor: pointer; }
+
+        /* Controls */
+        .tool-row { display: flex; justify-content: space-around; margin-bottom: 10px; }
+        .tool-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; width: 30%; }
+        
+        .slider-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .slider-group label { font-size: 12px; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+        .input-group { display: flex; flex-direction: column; margin-bottom: 10px;}
+        .input-group label { font-size: 12px; margin-bottom: 4px; }
+        .input-group input[type="text"], .input-group input[type="number"], .input-group input[type="color"] {
+            padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; font-size: 16px;
         }
 
-        input[type="range"] {
-            width: 100%;
-            accent-color: var(--accent);
-        }
-
-        /* Bottom Navigation Bar */
+        /* Bottom Nav */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
+            bottom: 0; left: 0; width: 100%;
             background-color: var(--bg-color);
-            display: flex;
-            overflow-x: auto;
-            border-top: 1px solid #333;
-            padding: 10px 0;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-            z-index: 20;
+            display: flex; overflow-x: auto;
+            border-top: 1px solid #333; padding: 10px 0;
+            white-space: nowrap; z-index: 20;
         }
-
-        .nav-item {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-muted);
-            min-width: 70px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .nav-item.active {
-            color: var(--text);
-        }
-
-        .nav-icon {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-
-        /* Resize Grid */
-        .resize-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .input-group { display: flex; flex-direction: column; }
-        .input-group label { font-size: 12px; margin-bottom: 4px; }
-        .input-group input { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; font-size: 16px; }
+        .nav-item { display: inline-flex; flex-direction: column; align-items: center; color: var(--text-muted); min-width: 70px; cursor: pointer; font-size: 11px; }
+        .nav-item.active { color: var(--accent); }
+        .nav-icon { font-size: 20px; margin-bottom: 4px; }
 
     </style>
 </head>
@@ -201,7 +114,7 @@
 <div class="top-bar" id="topBar" style="display:none;">
     <button class="btn-text" style="color:var(--text-muted)" onclick="location.reload()">Cancel</button>
     <h1>PixEdit</h1>
-    <button class="btn-text" id="downloadBtn">Apply</button>
+    <button class="btn-text" id="downloadBtn">Save</button>
 </div>
 
 <div class="upload-screen" id="uploadScreen">
@@ -215,98 +128,122 @@
 </div>
 
 <div class="menu-panel" id="menu-tools">
-    <p class="menu-title">Crop & Rotate</p>
+    <div class="menu-header">
+        <p class="menu-title">Crop & Rotate</p>
+        <button class="close-btn" onclick="closeAllMenus()">✕</button>
+    </div>
     <div class="tool-row">
         <button class="tool-btn" id="rotateLeft">↺ Rotate Left</button>
         <button class="tool-btn" id="rotateRight">↻ Rotate Right</button>
         <button class="tool-btn" id="flipHorizontal">↔ Flip X</button>
     </div>
     
-    <p class="menu-title" style="margin-top: 15px;">Resize Image</p>
-    <label style="font-size: 12px; display: block; margin-bottom: 10px; color: var(--accent);">
-        <input type="checkbox" id="lockRatio" checked> 🔗 Lock Aspect Ratio
-    </label>
-    <div class="resize-grid">
-        <div class="input-group">
-            <label>Width (px)</label>
-            <input type="number" id="resizeW">
+    <p class="menu-title" style="margin-top: 15px; border-bottom: 1px solid #333; padding-bottom:10px;">Resize Image</p>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <div class="input-group" style="flex: 1;">
+            <label>Width</label><input type="number" id="resizeW">
         </div>
-        <div class="input-group">
-            <label>Height (px)</label>
-            <input type="number" id="resizeH">
+        <div class="input-group" style="flex: 1;">
+            <label>Height</label><input type="number" id="resizeH">
         </div>
     </div>
 </div>
 
 <div class="menu-panel" id="menu-effects">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px; margin-bottom:15px;">
-        <p class="menu-title" style="border:none; margin:0; padding:0;">Adjustments</p>
-        <button id="resetFiltersBtn" style="background:none; border:none; color:var(--accent); font-size:12px;">Reset</button>
+    <div class="menu-header">
+        <p class="menu-title">Adjustments</p>
+        <button class="close-btn" onclick="closeAllMenus()">✕</button>
     </div>
-    
     <div class="slider-group"><label><span>Brightness</span> <span id="val-brightness">100%</span></label><input type="range" id="brightness" min="0" max="200" value="100"></div>
     <div class="slider-group"><label><span>Contrast</span> <span id="val-contrast">100%</span></label><input type="range" id="contrast" min="0" max="200" value="100"></div>
     <div class="slider-group"><label><span>Saturation</span> <span id="val-saturation">100%</span></label><input type="range" id="saturation" min="0" max="200" value="100"></div>
     <div class="slider-group"><label><span>Hue</span> <span id="val-hue">0°</span></label><input type="range" id="hue" min="0" max="360" value="0"></div>
-    <div class="slider-group"><label><span>Sepia</span> <span id="val-sepia">0%</span></label><input type="range" id="sepia" min="0" max="100" value="0"></div>
+</div>
+
+<div class="menu-panel" id="menu-text">
+    <div class="menu-header">
+        <p class="menu-title">Add Text</p>
+        <button class="close-btn" onclick="closeAllMenus()">✕</button>
+    </div>
+    <div class="input-group">
+        <label>Your Text</label>
+        <input type="text" id="textInput" placeholder="Type something...">
+    </div>
+    <div class="input-group">
+        <label>Color</label>
+        <input type="color" id="textColor" value="#ffffff" style="height: 40px;">
+    </div>
+    <button class="tool-btn" style="width: 100%; background: var(--accent); font-weight: bold;">Stamp Text</button>
+</div>
+
+<div class="menu-panel" id="menu-draw">
+    <div class="menu-header">
+        <p class="menu-title">Draw</p>
+        <button class="close-btn" onclick="closeAllMenus()">✕</button>
+    </div>
+    <div class="input-group">
+        <label>Brush Color</label>
+        <input type="color" id="drawColor" value="#ff2a5f" style="height: 40px;">
+    </div>
+    <div class="slider-group">
+        <label><span>Brush Size</span></label>
+        <input type="range" id="drawSize" min="1" max="50" value="5">
+    </div>
+    <button class="tool-btn" style="width: 100%; background: var(--accent); font-weight: bold;">Start Drawing</button>
 </div>
 
 <div class="bottom-nav" id="bottomNav" style="display:none;">
-    <div class="nav-item" onclick="openMenu('tools', this)">
-        <span class="nav-icon">✂️</span>
-        <span>Tools</span>
+    <div class="nav-item" onclick="toggleMenu('tools', this)">
+        <span class="nav-icon">✂️</span><span>Tools</span>
     </div>
-    <div class="nav-item" onclick="openMenu('effects', this)">
-        <span class="nav-icon">🎛️</span>
-        <span>Effects</span>
+    <div class="nav-item" onclick="toggleMenu('effects', this)">
+        <span class="nav-icon">🎛️</span><span>Effects</span>
     </div>
-    <div class="nav-item" onclick="alert('Text feature coming next!')">
-        <span class="nav-icon">Aa</span>
-        <span>Text</span>
+    <div class="nav-item" onclick="toggleMenu('text', this)">
+        <span class="nav-icon">Aa</span><span>Text</span>
     </div>
-    <div class="nav-item" onclick="alert('Draw feature coming next!')">
-        <span class="nav-icon">🖌️</span>
-        <span>Draw</span>
+    <div class="nav-item" onclick="toggleMenu('draw', this)">
+        <span class="nav-icon">🖌️</span><span>Draw</span>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <script>
-    // --- UI Elements ---
     var uploadInput = document.getElementById('upload');
     var uploadScreen = document.getElementById('uploadScreen');
     var workspace = document.getElementById('workspace');
     var topBar = document.getElementById('topBar');
     var bottomNav = document.getElementById('bottomNav');
     var image = document.getElementById('image');
-    var downloadBtn = document.getElementById('downloadBtn');
     
-    // --- Variables ---
     var cropper;
     var currentAspectRatio = 1;
-    var resizeW = document.getElementById('resizeW');
-    var resizeH = document.getElementById('resizeH');
-    var lockRatio = document.getElementById('lockRatio');
-    var flipX = 1; // Tracks flip state
+    var flipX = 1; 
 
-    // --- Menu Logic ---
-    function openMenu(menuName, element) {
-        // Hide all menus
+    // --- Menu Toggle Logic (The "I Can't See!" Fix) ---
+    function closeAllMenus() {
         var menus = document.querySelectorAll('.menu-panel');
         for (var i = 0; i < menus.length; i++) {
             menus[i].classList.remove('active-menu');
         }
-        
-        // Remove active class from nav items
         var navItems = document.querySelectorAll('.nav-item');
         for (var j = 0; j < navItems.length; j++) {
             navItems[j].classList.remove('active');
         }
+    }
 
-        // Show selected menu
-        document.getElementById('menu-' + menuName).classList.add('active-menu');
-        element.classList.add('active');
+    function toggleMenu(menuName, element) {
+        var targetMenu = document.getElementById('menu-' + menuName);
+        var isActive = targetMenu.classList.contains('active-menu');
+        
+        closeAllMenus(); // Close everything first
+
+        // If it wasn't active before, open it. (If it was active, it just stays closed!)
+        if (!isActive) {
+            targetMenu.classList.add('active-menu');
+            element.classList.add('active');
+        }
     }
 
     // --- Upload Logic ---
@@ -325,128 +262,42 @@
             if (cropper) cropper.destroy();
 
             cropper = new Cropper(image, {
-                viewMode: 2,
-                dragMode: 'move',
-                autoCropArea: 0.9,
-                responsive: true,
-                restore: false,
-                guides: true,
-                center: true,
-                highlight: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
-                toggleDragModeOnDblclick: false,
+                viewMode: 2, dragMode: 'move', autoCropArea: 0.9, responsive: true,
                 ready: function () {
                     var data = cropper.getData(true);
-                    resizeW.value = data.width;
-                    resizeH.value = data.height;
-                    currentAspectRatio = data.width / data.height;
-                },
-                cropend: function () {
-                    var data = cropper.getData(true);
-                    resizeW.value = data.width;
-                    resizeH.value = data.height;
-                    currentAspectRatio = data.width / data.height;
+                    document.getElementById('resizeW').value = data.width;
+                    document.getElementById('resizeH').value = data.height;
                 }
             });
-            
-            resetAllFilters();
-            // Open Tools menu by default
-            openMenu('tools', document.querySelector('.nav-item'));
         };
         reader.readAsDataURL(file);
     });
 
-    // --- New Tools: Rotate & Flip ---
-    document.getElementById('rotateLeft').addEventListener('click', function() {
-        if (cropper) cropper.rotate(-90);
-    });
-    document.getElementById('rotateRight').addEventListener('click', function() {
-        if (cropper) cropper.rotate(90);
-    });
+    // --- Tools & Filters ---
+    document.getElementById('rotateLeft').addEventListener('click', function() { if (cropper) cropper.rotate(-90); });
+    document.getElementById('rotateRight').addEventListener('click', function() { if (cropper) cropper.rotate(90); });
     document.getElementById('flipHorizontal').addEventListener('click', function() {
-        if (cropper) {
-            flipX = flipX === 1 ? -1 : 1;
-            cropper.scaleX(flipX);
-        }
+        if (cropper) { flipX = flipX === 1 ? -1 : 1; cropper.scaleX(flipX); }
     });
 
-    // --- Resize Logic ---
-    resizeW.addEventListener('input', function() {
-        if (lockRatio.checked && this.value) {
-            resizeH.value = Math.round(parseInt(this.value, 10) / currentAspectRatio);
-        }
-    });
-    resizeH.addEventListener('input', function() {
-        if (lockRatio.checked && this.value) {
-            resizeW.value = Math.round(parseInt(this.value, 10) * currentAspectRatio);
-        }
-    });
-
-    // --- Filters Logic ---
-    var ranges = document.querySelectorAll('input[type="range"]');
+    var ranges = document.querySelectorAll('#menu-effects input[type="range"]');
     for (var j = 0; j < ranges.length; j++) {
-        ranges[j].addEventListener('input', applyFilters);
+        ranges[j].addEventListener('input', function() {
+            var displayUnit = this.id === 'hue' ? '°' : '%';
+            document.getElementById('val-' + this.id).innerText = this.value + displayUnit;
+
+            var filterStr = 'brightness(' + document.getElementById('brightness').value + '%) ' +
+                            'contrast(' + document.getElementById('contrast').value + '%) ' +
+                            'saturate(' + document.getElementById('saturation').value + '%) ' +
+                            'hue-rotate(' + document.getElementById('hue').value + 'deg)';
+            
+            var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
+            for (var k = 0; k < viewBoxes.length; k++) {
+                viewBoxes[k].style.filter = filterStr;
+                viewBoxes[k].style.WebkitFilter = filterStr; 
+            }
+        });
     }
-
-    function applyFilters() {
-        for (var i = 0; i < ranges.length; i++) {
-            var el = ranges[i];
-            var displayUnit = el.id === 'hue' ? '°' : '%';
-            document.getElementById('val-' + el.id).innerText = el.value + displayUnit;
-        }
-
-        var filterStr = 'brightness(' + document.getElementById('brightness').value + '%) ' +
-                        'contrast(' + document.getElementById('contrast').value + '%) ' +
-                        'saturate(' + document.getElementById('saturation').value + '%) ' +
-                        'hue-rotate(' + document.getElementById('hue').value + 'deg) ' +
-                        'sepia(' + document.getElementById('sepia').value + '%)';
-        
-        var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
-        for (var k = 0; k < viewBoxes.length; k++) {
-            viewBoxes[k].style.filter = filterStr;
-            viewBoxes[k].style.WebkitFilter = filterStr; 
-        }
-    }
-
-    function resetAllFilters() {
-        for (var i = 0; i < ranges.length; i++) {
-            ranges[i].value = ranges[i].getAttribute('value');
-        }
-        applyFilters();
-    }
-    document.getElementById('resetFiltersBtn').addEventListener('click', resetAllFilters);
-
-    // --- Download Logic ---
-    downloadBtn.addEventListener('click', function () {
-        if (!cropper) return;
-
-        var croppedCanvas = cropper.getCroppedCanvas();
-        var finalWidth = parseInt(resizeW.value, 10) || croppedCanvas.width;
-        var finalHeight = parseInt(resizeH.value, 10) || croppedCanvas.height;
-
-        var finalCanvas = document.createElement('canvas');
-        finalCanvas.width = finalWidth;
-        finalCanvas.height = finalHeight;
-        var ctx = finalCanvas.getContext('2d');
-
-        ctx.filter = 'brightness(' + document.getElementById('brightness').value + '%) ' +
-                     'contrast(' + document.getElementById('contrast').value + '%) ' +
-                     'saturate(' + document.getElementById('saturation').value + '%) ' +
-                     'hue-rotate(' + document.getElementById('hue').value + 'deg) ' +
-                     'sepia(' + document.getElementById('sepia').value + '%)';
-
-        ctx.drawImage(croppedCanvas, 0, 0, finalWidth, finalHeight);
-
-        var dataURL = finalCanvas.toDataURL('image/jpeg', 0.9);
-        var link = document.createElement('a');
-        link.href = dataURL;
-        link.download = 'edited_photo.jpg';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
 </script>
 
 </body>
