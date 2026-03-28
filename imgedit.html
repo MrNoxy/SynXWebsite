@@ -213,35 +213,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <script>
-    const uploadInput = document.getElementById('upload');
-    const image = document.getElementById('image');
-    const imageContainer = document.getElementById('imageContainer');
-    const controls = document.getElementById('controls');
-    const downloadBtn = document.getElementById('downloadBtn');
+    var uploadInput = document.getElementById('upload');
+    var image = document.getElementById('image');
+    var imageContainer = document.getElementById('imageContainer');
+    var controls = document.getElementById('controls');
+    var downloadBtn = document.getElementById('downloadBtn');
 
-    let cropper;
+    var cropper;
 
     // Handle Image Upload
     uploadInput.addEventListener('change', function (e) {
-        const file = e.target.files[0];
+        var file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
+        var reader = new FileReader();
         reader.onload = function (event) {
-            // Show UI elements
             imageContainer.style.display = 'block';
             controls.style.display = 'block';
             image.src = event.target.result;
 
-            // Destroy old cropper instance if uploading a new image
             if (cropper) {
                 cropper.destroy();
             }
 
-            // Initialize Cropper
             cropper = new Cropper(image, {
-                viewMode: 2, // Restrict crop box to not exceed the canvas
-                dragMode: 'move', // Better for mobile
+                viewMode: 2,
+                dragMode: 'move',
                 autoCropArea: 0.8,
                 responsive: true,
                 restore: false,
@@ -253,88 +250,83 @@
                 toggleDragModeOnDblclick: false,
             });
             
-            // Reset filters on new upload
-            document.querySelectorAll('input[type="range"]').forEach(slider => {
-                slider.value = slider.getAttribute('value');
-                slider.dispatchEvent(new Event('input'));
-            });
+            // Old-school loop (iPhone 5 Safari hates .forEach)
+            var sliders = document.querySelectorAll('input[type="range"]');
+            for (var i = 0; i < sliders.length; i++) {
+                sliders[i].value = sliders[i].getAttribute('value');
+                // Manually trigger the input event for old browsers
+                var evt = document.createEvent('HTMLEvents');
+                evt.initEvent('input', false, true);
+                sliders[i].dispatchEvent(evt);
+            }
             document.getElementById('resizeW').value = '';
             document.getElementById('resizeH').value = '';
         };
         reader.readAsDataURL(file);
     });
 
-    // Handle Real-time Filters (Preview)
-    const ranges = document.querySelectorAll('input[type="range"]');
-    ranges.forEach(range => {
-        range.addEventListener('input', function() {
-            // Update labels
-            const unit = this.id === 'hue' ? '°' : '%';
-            document.getElementById(`val-${this.id}`).innerText = this.value + unit;
+    // Handle Real-time Filters
+    var ranges = document.querySelectorAll('input[type="range"]');
+    for (var j = 0; j < ranges.length; j++) {
+        ranges[j].addEventListener('input', function() {
+            var unit = this.id === 'hue' ? 'deg' : '%';
+            var displayUnit = this.id === 'hue' ? '°' : '%';
+            document.getElementById('val-' + this.id).innerText = this.value + displayUnit;
 
-            // Apply filter string to the cropper preview elements
-            const br = document.getElementById('brightness').value;
-            const co = document.getElementById('contrast').value;
-            const sa = document.getElementById('saturation').value;
-            const hu = document.getElementById('hue').value;
-            const se = document.getElementById('sepia').value;
+            var br = document.getElementById('brightness').value;
+            var co = document.getElementById('contrast').value;
+            var sa = document.getElementById('saturation').value;
+            var hu = document.getElementById('hue').value;
+            var se = document.getElementById('sepia').value;
 
-            const filterStr = `brightness(${br}%) contrast(${co}%) saturate(${sa}%) hue-rotate(${hu}deg) sepia(${se}%)`;
+            var filterStr = 'brightness(' + br + '%) contrast(' + co + '%) saturate(' + sa + '%) hue-rotate(' + hu + 'deg) sepia(' + se + '%)';
             
-            // Apply to both the visible image and the cropper overlay
-            const viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
-            viewBoxes.forEach(img => {
-                img.style.filter = filterStr;
-            });
+            var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
+            for (var k = 0; k < viewBoxes.length; k++) {
+                viewBoxes[k].style.filter = filterStr;
+                viewBoxes[k].style.WebkitFilter = filterStr; // Extra line required for old iOS Safari!
+            }
         });
-    });
+    }
 
     // Handle Processing and Download
     downloadBtn.addEventListener('click', function () {
         if (!cropper) return;
 
-        // 1. Get the cropped section as a canvas
-        const croppedCanvas = cropper.getCroppedCanvas();
+        var croppedCanvas = cropper.getCroppedCanvas();
+        var finalWidth = parseInt(document.getElementById('resizeW').value, 10);
+        var finalHeight = parseInt(document.getElementById('resizeH').value, 10);
 
-        // 2. Determine final resize dimensions (fallback to cropped size if empty)
-        let finalWidth = parseInt(document.getElementById('resizeW').value);
-        let finalHeight = parseInt(document.getElementById('resizeH').value);
-
-        if (!finalWidth || !finalHeight) {
+        if (!finalWidth || isNaN(finalWidth) || !finalHeight || isNaN(finalHeight)) {
             finalWidth = croppedCanvas.width;
             finalHeight = croppedCanvas.height;
         }
 
-        // 3. Create a new canvas to apply resizing and filters permanently
-        const finalCanvas = document.createElement('canvas');
+        var finalCanvas = document.createElement('canvas');
         finalCanvas.width = finalWidth;
         finalCanvas.height = finalHeight;
-        const ctx = finalCanvas.getContext('2d');
+        var ctx = finalCanvas.getContext('2d');
 
-        // 4. Get filter values
-        const br = document.getElementById('brightness').value;
-        const co = document.getElementById('contrast').value;
-        const sa = document.getElementById('saturation').value;
-        const hu = document.getElementById('hue').value;
-        const se = document.getElementById('sepia').value;
+        var br = document.getElementById('brightness').value;
+        var co = document.getElementById('contrast').value;
+        var sa = document.getElementById('saturation').value;
+        var hu = document.getElementById('hue').value;
+        var se = document.getElementById('sepia').value;
 
-        // Apply filters to the drawing context
-        ctx.filter = `brightness(${br}%) contrast(${co}%) saturate(${sa}%) hue-rotate(${hu}deg) sepia(${se}%)`;
+        ctx.filter = 'brightness(' + br + '%) contrast(' + co + '%) saturate(' + sa + '%) hue-rotate(' + hu + 'deg) sepia(' + se + '%)';
 
-        // 5. Draw the cropped image onto the final canvas (this handles the resize natively)
         ctx.drawImage(croppedCanvas, 0, 0, finalWidth, finalHeight);
 
-        // 6. Trigger Download
-        finalCanvas.toBlob(function (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'edited_photo.jpg'; // Downloads as JPG
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }, 'image/jpeg', 0.9); // High quality JPG
+        // Older iOS doesn't support .toBlob(), so we use .toDataURL() instead
+        var dataURL = finalCanvas.toDataURL('image/jpeg', 0.9);
+        var link = document.createElement('a');
+        link.href = dataURL;
+        link.download = 'edited_photo.jpg';
+        
+        // Simulating a click to download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 </script>
 
