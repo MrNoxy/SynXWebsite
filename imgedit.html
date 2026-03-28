@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PixEdit Pro</title>
+    <title>PixEdit Ultimate</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     
@@ -11,6 +11,7 @@
         :root { --bg-color: #000; --panel-bg: #1c1c1e; --accent: #ff2a5f; --text: #fff; --text-muted: #8e8e93; }
         body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text); font-family: sans-serif; overscroll-behavior-y: none; padding-bottom: 80px; }
         
+        /* Layout */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #333; }
         .top-bar h1 { font-size: 18px; margin: 0; }
         .btn-text { color: var(--accent); background: none; border: none; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px; }
@@ -19,42 +20,55 @@
         .upload-screen label { background-color: var(--accent); color: #fff; padding: 15px 30px; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .upload-screen input[type="file"] { display: none; }
 
-        .workspace { display: none; width: 100%; height: calc(100vh - 140px); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        /* The Ultimate Workspace */
+        .workspace { display: none; width: 100%; height: calc(100vh - 140px); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #111;}
         
-        /* The Canvas Overlays the Cropper */
-        #mainCanvas { display: none; max-width: 100%; max-height: 100%; touch-action: none; position: absolute; z-index: 5; }
-        .cropper-wrapper { width: 100%; height: 100%; position: absolute; z-index: 1; display: none; }
-        img { display: block; max-width: 100%; }
+        #editorBox { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        
+        /* Cropper sits at the bottom */
+        .cropper-wrapper { position: absolute; width: 100%; height: 100%; z-index: 1; }
+        
+        /* Layers sit on top of the base image */
+        #layerContainer { position: absolute; z-index: 5; pointer-events: none; }
+        .layer-item { position: absolute; pointer-events: auto; }
+        .text-layer { font-weight: bold; white-space: nowrap; user-select: none; }
+        .canvas-layer { touch-action: none; } /* For drawing and erasable images */
 
-        .menu-panel { display: none; padding: 15px; background-color: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); border-radius: 15px 15px 0 0; position: fixed; bottom: 60px; left: 0; width: 100%; box-sizing: border-box; z-index: 10; max-height: 50vh; overflow-y: auto; }
+        /* Menus */
+        .menu-panel { display: none; padding: 15px; background-color: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); border-radius: 15px 15px 0 0; position: fixed; bottom: 60px; left: 0; width: 100%; box-sizing: border-box; z-index: 100; max-height: 60vh; overflow-y: auto; }
         .active-menu { display: block; }
         .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
         .menu-title { font-size: 14px; color: var(--text-muted); margin: 0; }
         .close-btn { background: none; border: none; color: #fff; font-size: 20px; padding: 0 10px; cursor: pointer; }
 
-        .tool-row { display: flex; justify-content: space-around; margin-bottom: 10px; }
-        .tool-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; width: 30%; cursor: pointer;}
+        .tool-row { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 5px; }
+        .tool-btn { background: #333; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; flex: 1; text-align: center; cursor: pointer;}
         
         .slider-group { display: flex; flex-direction: column; margin-bottom: 15px; }
         .slider-group label { font-size: 12px; display: flex; justify-content: space-between; margin-bottom: 5px; }
         input[type="range"] { width: 100%; accent-color: var(--accent); }
 
-        .input-group { display: flex; flex-direction: column; margin-bottom: 10px;}
+        .input-group { display: flex; flex-direction: column; margin-bottom: 10px; flex: 1;}
         .input-group label { font-size: 12px; margin-bottom: 4px; }
-        .input-group input { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; font-size: 16px; }
+        .input-group input, .input-group select { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; font-size: 16px; width: 100%; box-sizing: border-box;}
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--bg-color); display: flex; overflow-x: auto; border-top: 1px solid #333; padding: 10px 0; z-index: 20; }
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--bg-color); display: flex; overflow-x: auto; border-top: 1px solid #333; padding: 10px 0; z-index: 120; }
         .nav-item { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); min-width: 65px; cursor: pointer; font-size: 10px; }
         .nav-item.active { color: var(--accent); }
         .nav-icon { font-size: 20px; margin-bottom: 4px; }
         
-        /* Toast notification */
-        #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-size: 12px; display: none; z-index: 100; font-weight: bold; }
+        /* Layer List UI */
+        .layer-list-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px; border-radius: 5px; margin-bottom: 5px; font-size: 12px;}
+        .layer-controls button { background: #444; color: white; border: none; padding: 5px 8px; border-radius: 3px; margin-left: 5px; }
+        .layer-controls button.del { background: #ff2a5f; }
+
+        #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 10px 20px; border-radius: 20px; font-size: 12px; display: none; z-index: 200; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="toast">Message here</div>
+<div id="toast">Message</div>
 
 <div class="top-bar" id="topBar" style="display:none;">
     <button class="btn-text" style="color:var(--text-muted)" onclick="location.reload()">Reset</button>
@@ -64,96 +78,104 @@
 
 <div class="upload-screen" id="uploadScreen">
     <h1 style="margin-bottom: 30px; font-size: 32px; letter-spacing: 2px;">PixEdit</h1>
-    <label for="upload">+ Select Photo</label>
+    <label for="upload">+ Select Base Photo</label>
     <input type="file" id="upload" accept="image/*">
 </div>
 
 <div class="workspace" id="workspace">
-    <div class="cropper-wrapper" id="cropperWrapper">
-        <img id="image" src="">
+    <div id="editorBox">
+        <div class="cropper-wrapper" id="cropperWrapper">
+            <img id="image" src="">
+        </div>
+        <div id="layerContainer"></div>
     </div>
-    <canvas id="mainCanvas"></canvas>
+</div>
+
+<div class="menu-panel" id="menu-layers">
+    <div class="menu-header"><p class="menu-title">Layers Panel</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
+    <div id="layerList"><i>No extra layers added yet.</i></div>
 </div>
 
 <div class="menu-panel" id="menu-tools">
-    <div class="menu-header"><p class="menu-title">Crop & Rotate</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
+    <div class="menu-header"><p class="menu-title">Base Crop & Rotate</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
     <div class="tool-row">
-        <button class="tool-btn" id="rotateLeft">↺ Left</button>
-        <button class="tool-btn" id="rotateRight">↻ Right</button>
-        <button class="tool-btn" id="flipHorizontal">↔ Flip X</button>
+        <button class="tool-btn" onclick="if(cropper) cropper.rotate(-90)">↺ Left</button>
+        <button class="tool-btn" onclick="if(cropper) cropper.rotate(90)">↻ Right</button>
     </div>
-</div>
-
-<div class="menu-panel" id="menu-effects">
-    <div class="menu-header"><p class="menu-title">Adjustments</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
-    <div class="slider-group"><label><span>Brightness</span><span id="val-brightness">100%</span></label><input type="range" id="brightness" min="0" max="200" value="100"></div>
-    <div class="slider-group"><label><span>Contrast</span><span id="val-contrast">100%</span></label><input type="range" id="contrast" min="0" max="200" value="100"></div>
-    <div class="slider-group"><label><span>Saturation</span><span id="val-saturation">100%</span></label><input type="range" id="saturation" min="0" max="200" value="100"></div>
-    <div class="slider-group"><label><span>Hue</span><span id="val-hue">0°</span></label><input type="range" id="hue" min="0" max="360" value="0"></div>
 </div>
 
 <div class="menu-panel" id="menu-text">
-    <div class="menu-header"><p class="menu-title">Stamp Text</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
-    <p style="font-size: 11px; color:#aaa; margin-top:0;">1. Type text below.<br>2. Tap anywhere on your photo to stamp it!</p>
+    <div class="menu-header"><p class="menu-title">Add Text Layer</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
     <div class="input-group"><input type="text" id="textInput" placeholder="Enter text..."></div>
-    <div class="tool-row" style="justify-content: space-between;">
-        <input type="color" id="textColor" value="#ffffff" style="height: 40px; width: 45%;">
-        <input type="number" id="textSize" value="40" placeholder="Size (px)" style="width: 45%;">
+    <div class="tool-row">
+        <div class="input-group"><label>Color</label><input type="color" id="textColor" value="#ffffff" style="height:40px;"></div>
+        <div class="input-group"><label>Size</label><input type="number" id="textSize" value="40"></div>
     </div>
-</div>
-
-<div class="menu-panel" id="menu-draw">
-    <div class="menu-header"><p class="menu-title">Draw / Paint</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
-    <div class="tool-row" style="justify-content: space-between;">
-        <div class="input-group" style="width: 45%;"><label>Color</label><input type="color" id="drawColor" value="#ff2a5f" style="height: 40px; width: 100%;"></div>
-        <div class="input-group" style="width: 45%;"><label>Brush Size</label><input type="number" id="drawSize" value="5" style="width: 100%;"></div>
-    </div>
-    <button class="tool-btn" id="eraserBtn" style="width: 100%; background: #444;">Toggle Eraser</button>
+    <button class="tool-btn" style="background:var(--accent); width:100%;" onclick="addTextLayer()">+ Add Text</button>
 </div>
 
 <div class="menu-panel" id="menu-addphoto">
-    <div class="menu-header"><p class="menu-title">Add Photo</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
-    <p style="font-size: 11px; color:#aaa; margin-top:0;">1. Select an image.<br>2. Tap your photo to stamp the new image!</p>
-    <label for="overlayUpload" style="background:var(--accent); padding:10px; display:block; text-align:center; border-radius:5px; margin-bottom:10px;">Select Overlay Image</label>
+    <div class="menu-header"><p class="menu-title">Add Photo Layer</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
+    <label for="overlayUpload" style="background:var(--accent); padding:10px; display:block; text-align:center; border-radius:5px; margin-bottom:10px;">Select Extra Image</label>
     <input type="file" id="overlayUpload" accept="image/*" style="display:none;">
-    <div class="input-group"><label>Stamp Width (px)</label><input type="number" id="overlaySize" value="200"></div>
+    <p style="font-size: 11px; color:#aaa;">Loads as a draggable layer. You can use the Draw tool's Eraser on it!</p>
+</div>
+
+<div class="menu-panel" id="menu-draw">
+    <div class="menu-header"><p class="menu-title">Draw / Erase Engine</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
+    
+    <div class="input-group">
+        <label>Active Target (What are you drawing on?)</label>
+        <select id="drawTarget">
+            <option value="new">Create New Draw Layer</option>
+            </select>
+    </div>
+
+    <div class="tool-row">
+        <div class="input-group"><label>Color</label><input type="color" id="drawColor" value="#ff2a5f" style="height:40px;"></div>
+        <div class="input-group"><label>Size</label><input type="number" id="drawSize" value="10"></div>
+    </div>
+    
+    <div class="tool-row">
+        <button class="tool-btn" id="modeDraw" style="background:var(--accent);">🖌️ Brush</button>
+        <button class="tool-btn" id="modeBlend">✨ Blend</button>
+        <button class="tool-btn" id="modeErase">🧽 Erase</button>
+    </div>
 </div>
 
 <div class="bottom-nav" id="bottomNav" style="display:none;">
-    <div class="nav-item" onclick="toggleMenu('tools', this)"><span class="nav-icon">✂️</span><span>Crop</span></div>
-    <div class="nav-item" onclick="toggleMenu('effects', this)"><span class="nav-icon">🎛️</span><span>Effects</span></div>
+    <div class="nav-item" onclick="toggleMenu('layers', this)"><span class="nav-icon">📚</span><span>Layers</span></div>
+    <div class="nav-item" onclick="toggleMenu('tools', this)"><span class="nav-icon">✂️</span><span>Base Crop</span></div>
     <div class="nav-item" onclick="toggleMenu('text', this)"><span class="nav-icon">Aa</span><span>Text</span></div>
-    <div class="nav-item" onclick="toggleMenu('draw', this)"><span class="nav-icon">🖌️</span><span>Draw</span></div>
     <div class="nav-item" onclick="toggleMenu('addphoto', this)"><span class="nav-icon">🖼️</span><span>Add Pic</span></div>
+    <div class="nav-item" onclick="toggleMenu('draw', this)"><span class="nav-icon">🖌️</span><span>Draw</span></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <script>
+    // --- Core Variables ---
     var uploadInput = document.getElementById('upload');
-    var uploadScreen = document.getElementById('uploadScreen');
-    var workspace = document.getElementById('workspace');
-    var topBar = document.getElementById('topBar');
-    var bottomNav = document.getElementById('bottomNav');
     var image = document.getElementById('image');
+    var layerContainer = document.getElementById('layerContainer');
+    var layerListUI = document.getElementById('layerList');
     var cropperWrapper = document.getElementById('cropperWrapper');
     
-    // Canvas vars
-    var canvas = document.getElementById('mainCanvas');
-    var ctx = canvas.getContext('2d');
-    var currentMode = 'crop'; // 'crop', 'draw', 'text', 'addphoto'
-    var isDrawing = false;
-    var isEraser = false;
-    var overlayImageObj = null;
-
     var cropper;
-    var flipX = 1; 
+    var layers = []; // Array to track all added DOM elements
+    var layerCounter = 0;
+    
+    // Draw Engine Vars
+    var isDrawing = false;
+    var currentDrawCtx = null;
+    var drawMode = 'source-over'; // 'source-over' (normal), 'destination-out' (erase), 'screen' (blend)
 
+    // --- UI Helpers ---
     function showToast(msg) {
         var t = document.getElementById('toast');
         t.innerText = msg;
         t.style.display = 'block';
-        setTimeout(function() { t.style.display = 'none'; }, 2500);
+        setTimeout(function() { t.style.display = 'none'; }, 2000);
     }
 
     function closeAllMenus() {
@@ -163,189 +185,369 @@
         for (var j = 0; j < navItems.length; j++) navItems[j].classList.remove('active');
     }
 
-    function flattenCropperToCanvas() {
-        if (cropper && currentMode === 'crop') {
-            var cropped = cropper.getCroppedCanvas();
-            canvas.width = cropped.width;
-            canvas.height = cropped.height;
-            
-            // Apply filters during flatten
-            var br = document.getElementById('brightness').value;
-            var co = document.getElementById('contrast').value;
-            var sa = document.getElementById('saturation').value;
-            var hu = document.getElementById('hue').value;
-            ctx.filter = 'brightness(' + br + '%) contrast(' + co + '%) saturate(' + sa + '%) hue-rotate(' + hu + 'deg)';
-            
-            ctx.drawImage(cropped, 0, 0);
-            ctx.filter = 'none'; // reset
-            
-            cropperWrapper.style.display = 'none';
-            canvas.style.display = 'block';
-        }
-    }
-
     function toggleMenu(menuName, element) {
         var targetMenu = document.getElementById('menu-' + menuName);
         var isActive = targetMenu.classList.contains('active-menu');
         closeAllMenus();
-
         if (!isActive) {
             targetMenu.classList.add('active-menu');
             element.classList.add('active');
-            
-            // Switch Modes
-            if (menuName === 'tools' || menuName === 'effects') {
-                currentMode = 'crop';
-                canvas.style.display = 'none';
-                cropperWrapper.style.display = 'block';
-            } else {
-                flattenCropperToCanvas();
-                currentMode = menuName;
-                if (menuName === 'text') showToast("Tap canvas to stamp text!");
-                if (menuName === 'addphoto' && !overlayImageObj) showToast("Select an image first!");
-            }
+            if(menuName === 'layers') updateLayersUI();
+            if(menuName === 'draw') populateDrawTargets();
         }
     }
 
-    // --- Upload Logic ---
+    // --- Boot up Base Image ---
     uploadInput.addEventListener('change', function (e) {
         var file = e.target.files[0];
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function (event) {
-            uploadScreen.style.display = 'none';
-            topBar.style.display = 'flex';
-            workspace.style.display = 'flex';
-            cropperWrapper.style.display = 'block';
-            bottomNav.style.display = 'flex';
+            document.getElementById('uploadScreen').style.display = 'none';
+            document.getElementById('topBar').style.display = 'flex';
+            document.getElementById('workspace').style.display = 'flex';
+            document.getElementById('bottomNav').style.display = 'flex';
             image.src = event.target.result;
-
-            if (cropper) cropper.destroy();
-            cropper = new Cropper(image, { viewMode: 2, dragMode: 'move', autoCropArea: 1, responsive: true });
+            
+            cropper = new Cropper(image, { 
+                viewMode: 1, dragMode: 'move', autoCropArea: 1, responsive: true,
+                ready: function() {
+                    // Match layer container size to crop box to keep layers aligned
+                    var boxData = cropper.getCropBoxData();
+                    layerContainer.style.width = boxData.width + 'px';
+                    layerContainer.style.height = boxData.height + 'px';
+                    layerContainer.style.left = boxData.left + 'px';
+                    layerContainer.style.top = boxData.top + 'px';
+                },
+                crop: function() {
+                    var boxData = cropper.getCropBoxData();
+                    layerContainer.style.width = boxData.width + 'px';
+                    layerContainer.style.height = boxData.height + 'px';
+                    layerContainer.style.left = boxData.left + 'px';
+                    layerContainer.style.top = boxData.top + 'px';
+                }
+            });
         };
         reader.readAsDataURL(file);
     });
 
-    // --- Overlay Photo Upload ---
+    // --- LAYER SYSTEM ENGINE ---
+    
+    function registerLayer(element, name, type) {
+        layerCounter++;
+        var id = 'layer_' + layerCounter;
+        element.id = id;
+        element.className += ' layer-item';
+        element.style.zIndex = layerCounter;
+        
+        // Initial Center Pos
+        element.style.left = '50%';
+        element.style.top = '50%';
+        element.style.transform = 'translate(-50%, -50%)';
+        
+        layerContainer.appendChild(element);
+        
+        layers.push({ id: id, name: name + ' ' + layerCounter, el: element, type: type });
+        makeDraggable(element);
+        showToast(name + " Added!");
+        updateLayersUI();
+    }
+
+    function updateLayersUI() {
+        if(layers.length === 0) {
+            layerListUI.innerHTML = "<i>No extra layers added yet.</i>";
+            return;
+        }
+        
+        layerListUI.innerHTML = '';
+        // Loop backwards so top layers show at the top of the list
+        for (var i = layers.length - 1; i >= 0; i--) {
+            var l = layers[i];
+            var div = document.createElement('div');
+            div.className = 'layer-list-item';
+            div.innerHTML = '<span>' + l.name + '</span>' +
+                            '<div class="layer-controls">' +
+                            '<button onclick="moveLayer(' + i + ', 1)">▲</button>' +
+                            '<button onclick="moveLayer(' + i + ', -1)">▼</button>' +
+                            '<button class="del" onclick="deleteLayer(' + i + ')">X</button>' +
+                            '</div>';
+            layerListUI.appendChild(div);
+        }
+    }
+
+    function moveLayer(index, direction) {
+        var targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= layers.length) return;
+        
+        // Swap in array
+        var temp = layers[index];
+        layers[index] = layers[targetIndex];
+        layers[targetIndex] = temp;
+        
+        // Update z-indexes
+        for (var i = 0; i < layers.length; i++) {
+            layers[i].el.style.zIndex = i + 1;
+        }
+        updateLayersUI();
+    }
+
+    function deleteLayer(index) {
+        var l = layers[index];
+        layerContainer.removeChild(l.el);
+        layers.splice(index, 1);
+        updateLayersUI();
+    }
+
+    // --- DRAG LOGIC (Old School Touch Events) ---
+    function makeDraggable(el) {
+        var isDragging = false, startX, startY, initialX, initialY;
+        
+        function startDrag(e) {
+            if(e.target.tagName.toLowerCase() === 'canvas' && document.getElementById('drawTarget').value === el.id) {
+                return; // Don't drag if we are trying to draw on it!
+            }
+            isDragging = true;
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // Get current transform translate values
+            var style = window.getComputedStyle(el);
+            var matrix = new WebKitCSSMatrix(style.transform);
+            initialX = matrix.m41;
+            initialY = matrix.m42;
+            
+            startX = clientX;
+            startY = clientY;
+            e.preventDefault();
+        }
+        
+        function doDrag(e) {
+            if (!isDragging) return;
+            var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            var dx = clientX - startX;
+            var dy = clientY - startY;
+            el.style.transform = 'translate(' + (initialX + dx) + 'px, ' + (initialY + dy) + 'px)';
+            e.preventDefault();
+        }
+        
+        function stopDrag() { isDragging = false; }
+        
+        el.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+        
+        el.addEventListener('touchstart', startDrag, {passive: false});
+        document.addEventListener('touchmove', doDrag, {passive: false});
+        document.addEventListener('touchend', stopDrag);
+    }
+
+    // --- TOOLS ---
+
+    // Add Text
+    function addTextLayer() {
+        var txt = document.getElementById('textInput').value;
+        if(!txt) return;
+        var div = document.createElement('div');
+        div.innerText = txt;
+        div.className = 'text-layer';
+        div.style.color = document.getElementById('textColor').value;
+        div.style.fontSize = document.getElementById('textSize').value + 'px';
+        registerLayer(div, "Text", "text");
+        closeAllMenus();
+    }
+
+    // Add Photo Layer
     document.getElementById('overlayUpload').addEventListener('change', function(e) {
         var file = e.target.files[0];
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function(event) {
-            overlayImageObj = new Image();
-            overlayImageObj.src = event.target.result;
-            showToast("Image loaded! Tap canvas to stamp.");
+            var img = new Image();
+            img.onload = function() {
+                // Draw to a canvas so it can be erased later
+                var c = document.createElement('canvas');
+                c.className = 'canvas-layer';
+                // Scale down if huge
+                var maxW = layerContainer.offsetWidth * 0.8;
+                var scale = maxW / img.width;
+                if(scale > 1) scale = 1;
+                c.width = img.width * scale;
+                c.height = img.height * scale;
+                var ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, c.width, c.height);
+                
+                registerLayer(c, "Image", "canvas");
+                closeAllMenus();
+            };
+            img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     });
 
-    // --- Tools & Filters ---
-    document.getElementById('rotateLeft').addEventListener('click', function() { if (cropper) cropper.rotate(-90); });
-    document.getElementById('rotateRight').addEventListener('click', function() { if (cropper) cropper.rotate(90); });
-    document.getElementById('flipHorizontal').addEventListener('click', function() {
-        if (cropper) { flipX = flipX === 1 ? -1 : 1; cropper.scaleX(flipX); }
-    });
+    // --- DRAW ENGINE ---
     
-    document.getElementById('eraserBtn').addEventListener('click', function() {
-        isEraser = !isEraser;
-        this.style.background = isEraser ? "var(--accent)" : "#444";
-        this.innerText = isEraser ? "Eraser: ON" : "Toggle Eraser";
-    });
-
-    var ranges = document.querySelectorAll('#menu-effects input[type="range"]');
-    for (var j = 0; j < ranges.length; j++) {
-        ranges[j].addEventListener('input', function() {
-            var displayUnit = this.id === 'hue' ? '°' : '%';
-            document.getElementById('val-' + this.id).innerText = this.value + displayUnit;
-            var filterStr = 'brightness(' + document.getElementById('brightness').value + '%) contrast(' + document.getElementById('contrast').value + '%) saturate(' + document.getElementById('saturation').value + '%) hue-rotate(' + document.getElementById('hue').value + 'deg)';
-            var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
-            for (var k = 0; k < viewBoxes.length; k++) { viewBoxes[k].style.filter = filterStr; viewBoxes[k].style.WebkitFilter = filterStr; }
-        });
+    function populateDrawTargets() {
+        var select = document.getElementById('drawTarget');
+        select.innerHTML = '<option value="new">Create New Draw Layer</option>';
+        for(var i=0; i<layers.length; i++) {
+            if(layers[i].type === 'canvas') {
+                var opt = document.createElement('option');
+                opt.value = layers[i].id;
+                opt.innerText = "Draw/Erase on: " + layers[i].name;
+                select.appendChild(opt);
+            }
+        }
     }
 
-    // --- Canvas Interaction (Touch/Mouse) ---
-    function getCanvasPos(e) {
-        var rect = canvas.getBoundingClientRect();
+    // Mode toggles
+    var btnBrush = document.getElementById('modeDraw');
+    var btnBlend = document.getElementById('modeBlend');
+    var btnErase = document.getElementById('modeErase');
+    
+    function resetDrawBtns() { btnBrush.style.background='#333'; btnBlend.style.background='#333'; btnErase.style.background='#333'; }
+    
+    btnBrush.onclick = function() { drawMode = 'source-over'; resetDrawBtns(); this.style.background='var(--accent)'; showToast("Brush Active"); }
+    btnBlend.onclick = function() { drawMode = 'screen'; resetDrawBtns(); this.style.background='var(--accent)'; showToast("Blend Active"); }
+    btnErase.onclick = function() { drawMode = 'destination-out'; resetDrawBtns(); this.style.background='var(--accent)'; showToast("Eraser Active"); }
+
+    // Start drawing
+    function getEventPos(e, canvasEl) {
+        var rect = canvasEl.getBoundingClientRect();
         var clientX = e.touches ? e.touches[0].clientX : e.clientX;
         var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        // Scale coordinates based on visual size vs actual size
-        var scaleX = canvas.width / rect.width;
-        var scaleY = canvas.height / rect.height;
-        return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
-        };
+        return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
-    function startInteract(e) {
-        if (currentMode === 'crop') return;
-        var pos = getCanvasPos(e);
+    layerContainer.addEventListener('mousedown', startDrawLogic);
+    layerContainer.addEventListener('touchstart', startDrawLogic, {passive: false});
 
-        if (currentMode === 'draw') {
-            isDrawing = true;
-            ctx.beginPath();
-            ctx.moveTo(pos.x, pos.y);
-        } else if (currentMode === 'text') {
-            var txt = document.getElementById('textInput').value;
-            var col = document.getElementById('textColor').value;
-            var siz = document.getElementById('textSize').value;
-            if (txt) {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.font = siz + "px sans-serif";
-                ctx.fillStyle = col;
-                ctx.fillText(txt, pos.x, pos.y);
-            }
-        } else if (currentMode === 'addphoto' && overlayImageObj) {
-            var w = parseInt(document.getElementById('overlaySize').value);
-            var ratio = overlayImageObj.height / overlayImageObj.width;
-            var h = w * ratio;
-            ctx.globalCompositeOperation = 'source-over';
-            // Draw centered on touch
-            ctx.drawImage(overlayImageObj, pos.x - (w/2), pos.y - (h/2), w, h);
-        }
-    }
-
-    function moveInteract(e) {
-        if (!isDrawing || currentMode !== 'draw') return;
-        e.preventDefault(); // Stop scrolling while drawing
-        var pos = getCanvasPos(e);
+    function startDrawLogic(e) {
+        // Only draw if the Draw menu is open
+        if(!document.getElementById('menu-draw').classList.contains('active-menu')) return;
         
-        ctx.lineWidth = document.getElementById('drawSize').value;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        var targetVal = document.getElementById('drawTarget').value;
+        var canvasEl;
         
-        if (isEraser) {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.strokeStyle = "rgba(0,0,0,1)";
+        if(targetVal === 'new') {
+            // Create a new full-size transparent canvas
+            canvasEl = document.createElement('canvas');
+            canvasEl.className = 'canvas-layer';
+            canvasEl.width = layerContainer.offsetWidth;
+            canvasEl.height = layerContainer.offsetHeight;
+            registerLayer(canvasEl, "Drawing", "canvas");
+            
+            // Auto switch target to this new canvas
+            document.getElementById('drawTarget').value = canvasEl.id;
+            populateDrawTargets(); 
+            document.getElementById('drawTarget').value = canvasEl.id;
         } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = document.getElementById('drawColor').value;
+            canvasEl = document.getElementById(targetVal);
         }
         
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
+        if(!canvasEl || canvasEl.tagName.toLowerCase() !== 'canvas') return;
+        
+        currentDrawCtx = canvasEl.getContext('2d');
+        isDrawing = true;
+        
+        var pos = getEventPos(e, canvasEl);
+        currentDrawCtx.beginPath();
+        currentDrawCtx.moveTo(pos.x, pos.y);
+        e.preventDefault();
     }
 
-    function endInteract() { isDrawing = false; }
+    function doDrawLogic(e) {
+        if(!isDrawing || !currentDrawCtx) return;
+        
+        var canvasEl = currentDrawCtx.canvas;
+        var pos = getEventPos(e, canvasEl);
+        
+        currentDrawCtx.lineWidth = document.getElementById('drawSize').value;
+        currentDrawCtx.lineCap = 'round';
+        currentDrawCtx.lineJoin = 'round';
+        currentDrawCtx.globalCompositeOperation = drawMode;
+        
+        if(drawMode === 'destination-out') {
+            currentDrawCtx.strokeStyle = "rgba(0,0,0,1)";
+        } else {
+            currentDrawCtx.strokeStyle = document.getElementById('drawColor').value;
+        }
+        
+        currentDrawCtx.lineTo(pos.x, pos.y);
+        currentDrawCtx.stroke();
+        e.preventDefault();
+    }
 
-    canvas.addEventListener('mousedown', startInteract);
-    canvas.addEventListener('mousemove', moveInteract);
-    canvas.addEventListener('mouseup', endInteract);
-    canvas.addEventListener('touchstart', startInteract, {passive: false});
-    canvas.addEventListener('touchmove', moveInteract, {passive: false});
-    canvas.addEventListener('touchend', endInteract);
+    function stopDrawLogic() { isDrawing = false; currentDrawCtx = null; }
 
-    // --- Save Logic ---
+    document.addEventListener('mousemove', doDrawLogic);
+    document.addEventListener('mouseup', stopDrawLogic);
+    document.addEventListener('touchmove', doDrawLogic, {passive: false});
+    document.addEventListener('touchend', stopDrawLogic);
+
+
+    // --- THE MASTER SAVER ---
     document.getElementById('downloadBtn').addEventListener('click', function () {
-        if (currentMode === 'crop') flattenCropperToCanvas(); // Ensure we have the final canvas
-        var dataURL = canvas.toDataURL('image/jpeg', 0.9);
-        var link = document.createElement('a');
-        link.href = dataURL;
-        link.download = 'PixEdit_Masterpiece.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (!cropper) return;
+        showToast("Flattening Image...");
+        
+        // 1. Get Base Crop
+        var finalCanvas = cropper.getCroppedCanvas();
+        var ctx = finalCanvas.getContext('2d');
+        
+        // 2. We must draw each layer onto the final canvas based on exact coordinates
+        // This math converts DOM CSS positions back to Canvas pixels
+        var containerRect = layerContainer.getBoundingClientRect();
+        
+        // Sort layers by z-index explicitly just in case
+        var sortedLayers = layers.slice().sort(function(a, b) {
+            return parseInt(a.el.style.zIndex) - parseInt(b.el.style.zIndex);
+        });
+
+        for(var i=0; i<sortedLayers.length; i++) {
+            var el = sortedLayers[i].el;
+            var elRect = el.getBoundingClientRect();
+            
+            // Calculate relative offset from the container's top left
+            var relX = elRect.left - containerRect.left;
+            var relY = elRect.top - containerRect.top;
+            
+            // Scale if the visual container is smaller than the actual cropped pixels
+            var scaleX = finalCanvas.width / containerRect.width;
+            var scaleY = finalCanvas.height / containerRect.height;
+            
+            var targetX = relX * scaleX;
+            var targetY = relY * scaleY;
+            var targetW = elRect.width * scaleX;
+            var targetH = elRect.height * scaleY;
+
+            if(sortedLayers[i].type === 'canvas') {
+                ctx.drawImage(el, targetX, targetY, targetW, targetH);
+            } else if (sortedLayers[i].type === 'text') {
+                // Drawing HTML text to canvas is tricky in old JS.
+                // We fake it by writing text natively to canvas.
+                var fontSize = parseInt(el.style.fontSize) * scaleY;
+                ctx.font = "bold " + fontSize + "px sans-serif";
+                ctx.fillStyle = el.style.color;
+                ctx.textBaseline = "top";
+                ctx.fillText(el.innerText, targetX, targetY);
+            }
+        }
+
+        // 3. Download
+        setTimeout(function() {
+            var dataURL = finalCanvas.toDataURL('image/jpeg', 0.9);
+            var link = document.createElement('a');
+            link.href = dataURL;
+            link.download = 'PixEdit_Ultimate.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Saved!");
+        }, 500);
     });
+
 </script>
 
 </body>
