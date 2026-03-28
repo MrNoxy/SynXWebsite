@@ -21,11 +21,11 @@
             background-color: var(--bg-color);
             color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
         }
 
         .container {
-            max-width: 600px; /* Limits size on desktop */
+            max-width: 600px;
             margin: 0 auto;
             padding: 15px;
             box-sizing: border-box;
@@ -73,13 +73,26 @@
             touch-action: manipulation;
         }
 
+        .btn-secondary {
+            background-color: #444;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
         /* Canvas Area */
         .image-container {
             width: 100%;
-            max-height: 50vh; /* Keeps it visible on small screens */
+            max-height: 50vh;
             background-color: #000;
             margin-bottom: 15px;
-            display: none; /* Hidden until image is uploaded */
+            display: none;
             border-radius: 8px;
             overflow: hidden;
         }
@@ -94,7 +107,7 @@
             background-color: var(--panel-bg);
             padding: 15px;
             border-radius: 8px;
-            display: none; /* Hidden until image is uploaded */
+            display: none;
         }
 
         h3 {
@@ -103,6 +116,9 @@
             color: #aaa;
             border-bottom: 1px solid #333;
             padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .resize-grid {
@@ -127,7 +143,7 @@
             border: 1px solid #333;
             background: #2a2a2a;
             color: white;
-            font-size: 16px; /* 16px prevents iOS from zooming in on input focus */
+            font-size: 16px; /* Prevents iOS zoom */
         }
 
         /* Sliders */
@@ -171,20 +187,29 @@
     </div>
 
     <div class="controls" id="controls">
-        <h3>1. Resize (Final Pixels)</h3>
-        <p style="font-size: 11px; color:#888; margin-top:0;">Leave blank to keep the cropped size.</p>
+        <h3>
+            <span>1. Resize (Final Pixels)</span>
+        </h3>
+        
+        <label style="font-size: 14px; margin-bottom: 12px; display: inline-block; cursor: pointer; color: var(--accent);">
+            <input type="checkbox" id="lockRatio" checked style="transform: scale(1.2);"> 🔗 Lock Aspect Ratio
+        </label>
+
         <div class="resize-grid">
             <div class="input-group">
                 <label>Width (px)</label>
-                <input type="number" id="resizeW" placeholder="Auto">
+                <input type="number" id="resizeW">
             </div>
             <div class="input-group">
                 <label>Height (px)</label>
-                <input type="number" id="resizeH" placeholder="Auto">
+                <input type="number" id="resizeH">
             </div>
         </div>
 
         <h3>2. Cool Adjustments</h3>
+        
+        <button class="btn-secondary" id="resetFiltersBtn">🔄 Reset Filters</button>
+
         <div class="slider-group">
             <label><span>Brightness</span> <span id="val-brightness">100%</span></label>
             <input type="range" id="brightness" min="0" max="200" value="100">
@@ -218,6 +243,12 @@
     var imageContainer = document.getElementById('imageContainer');
     var controls = document.getElementById('controls');
     var downloadBtn = document.getElementById('downloadBtn');
+    var resetFiltersBtn = document.getElementById('resetFiltersBtn');
+    
+    var resizeW = document.getElementById('resizeW');
+    var resizeH = document.getElementById('resizeH');
+    var lockRatio = document.getElementById('lockRatio');
+    var currentAspectRatio = 1;
 
     var cropper;
 
@@ -248,54 +279,88 @@
                 cropBoxMovable: true,
                 cropBoxResizable: true,
                 toggleDragModeOnDblclick: false,
+                
+                ready: function () {
+                    var data = cropper.getData(true);
+                    resizeW.value = data.width;
+                    resizeH.value = data.height;
+                    currentAspectRatio = data.width / data.height;
+                },
+                cropend: function () {
+                    var data = cropper.getData(true);
+                    resizeW.value = data.width;
+                    resizeH.value = data.height;
+                    currentAspectRatio = data.width / data.height;
+                }
             });
             
-            // Old-school loop (iPhone 5 Safari hates .forEach)
-            var sliders = document.querySelectorAll('input[type="range"]');
-            for (var i = 0; i < sliders.length; i++) {
-                sliders[i].value = sliders[i].getAttribute('value');
-                // Manually trigger the input event for old browsers
-                var evt = document.createEvent('HTMLEvents');
-                evt.initEvent('input', false, true);
-                sliders[i].dispatchEvent(evt);
-            }
-            document.getElementById('resizeW').value = '';
-            document.getElementById('resizeH').value = '';
+            // Reset sliders on new upload
+            resetAllFilters();
         };
         reader.readAsDataURL(file);
+    });
+
+    // Handle Aspect Ratio Linking
+    resizeW.addEventListener('input', function() {
+        if (lockRatio.checked && this.value) {
+            resizeH.value = Math.round(parseInt(this.value, 10) / currentAspectRatio);
+        }
+    });
+
+    resizeH.addEventListener('input', function() {
+        if (lockRatio.checked && this.value) {
+            resizeW.value = Math.round(parseInt(this.value, 10) * currentAspectRatio);
+        }
     });
 
     // Handle Real-time Filters
     var ranges = document.querySelectorAll('input[type="range"]');
     for (var j = 0; j < ranges.length; j++) {
-        ranges[j].addEventListener('input', function() {
-            var unit = this.id === 'hue' ? 'deg' : '%';
-            var displayUnit = this.id === 'hue' ? '°' : '%';
-            document.getElementById('val-' + this.id).innerText = this.value + displayUnit;
-
-            var br = document.getElementById('brightness').value;
-            var co = document.getElementById('contrast').value;
-            var sa = document.getElementById('saturation').value;
-            var hu = document.getElementById('hue').value;
-            var se = document.getElementById('sepia').value;
-
-            var filterStr = 'brightness(' + br + '%) contrast(' + co + '%) saturate(' + sa + '%) hue-rotate(' + hu + 'deg) sepia(' + se + '%)';
-            
-            var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
-            for (var k = 0; k < viewBoxes.length; k++) {
-                viewBoxes[k].style.filter = filterStr;
-                viewBoxes[k].style.WebkitFilter = filterStr; // Extra line required for old iOS Safari!
-            }
-        });
+        ranges[j].addEventListener('input', applyFilters);
     }
+
+    // Function to apply filters
+    function applyFilters() {
+        var rangesForDisplay = document.querySelectorAll('input[type="range"]');
+        for (var i = 0; i < rangesForDisplay.length; i++) {
+            var el = rangesForDisplay[i];
+            var displayUnit = el.id === 'hue' ? '°' : '%';
+            document.getElementById('val-' + el.id).innerText = el.value + displayUnit;
+        }
+
+        var br = document.getElementById('brightness').value;
+        var co = document.getElementById('contrast').value;
+        var sa = document.getElementById('saturation').value;
+        var hu = document.getElementById('hue').value;
+        var se = document.getElementById('sepia').value;
+
+        var filterStr = 'brightness(' + br + '%) contrast(' + co + '%) saturate(' + sa + '%) hue-rotate(' + hu + 'deg) sepia(' + se + '%)';
+        
+        var viewBoxes = document.querySelectorAll('.cropper-view-box img, .cropper-canvas img');
+        for (var k = 0; k < viewBoxes.length; k++) {
+            viewBoxes[k].style.filter = filterStr;
+            viewBoxes[k].style.WebkitFilter = filterStr; 
+        }
+    }
+
+    // Reset Filters Button
+    function resetAllFilters() {
+        var sliders = document.querySelectorAll('input[type="range"]');
+        for (var i = 0; i < sliders.length; i++) {
+            sliders[i].value = sliders[i].getAttribute('value');
+        }
+        applyFilters();
+    }
+    
+    resetFiltersBtn.addEventListener('click', resetAllFilters);
 
     // Handle Processing and Download
     downloadBtn.addEventListener('click', function () {
         if (!cropper) return;
 
         var croppedCanvas = cropper.getCroppedCanvas();
-        var finalWidth = parseInt(document.getElementById('resizeW').value, 10);
-        var finalHeight = parseInt(document.getElementById('resizeH').value, 10);
+        var finalWidth = parseInt(resizeW.value, 10);
+        var finalHeight = parseInt(resizeH.value, 10);
 
         if (!finalWidth || isNaN(finalWidth) || !finalHeight || isNaN(finalHeight)) {
             finalWidth = croppedCanvas.width;
@@ -317,13 +382,11 @@
 
         ctx.drawImage(croppedCanvas, 0, 0, finalWidth, finalHeight);
 
-        // Older iOS doesn't support .toBlob(), so we use .toDataURL() instead
         var dataURL = finalCanvas.toDataURL('image/jpeg', 0.9);
         var link = document.createElement('a');
         link.href = dataURL;
         link.download = 'edited_photo.jpg';
         
-        // Simulating a click to download
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
