@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PixEdit Ultimate v2</title>
+    <title>PixEdit Ultimate v3</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     
@@ -11,7 +11,6 @@
         :root { --bg-color: #000; --panel-bg: #1c1c1e; --accent: #ff2a5f; --text: #fff; --text-muted: #8e8e93; }
         body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text); font-family: sans-serif; overscroll-behavior-y: none; padding-bottom: 80px; }
         
-        /* Layout */
         .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #333; }
         .top-bar h1 { font-size: 18px; margin: 0; }
         .btn-text { color: var(--accent); background: none; border: none; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px; }
@@ -20,32 +19,17 @@
         .upload-screen label { background-color: var(--accent); color: #fff; padding: 15px 30px; border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .upload-screen input[type="file"] { display: none; }
 
-        /* The Ultimate Workspace - Fixed for iPhone 5 sizes */
-        .workspace { 
-            display: none; 
-            width: 100vw; 
-            height: calc(100vh - 140px); /* Strictly prevents overflow off screen */
-            position: relative; 
-            overflow: hidden; 
-            background: #111;
-        }
-        
+        .workspace { display: none; width: 100vw; height: calc(100vh - 140px); position: relative; overflow: hidden; background: #111;}
         #editorBox { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
-        
-        /* Cropper sits at the bottom */
         .cropper-wrapper { position: absolute; width: 100%; height: 100%; z-index: 1; }
         img { display: block; max-width: 100%; max-height: 100%; }
         
-        /* Layers container - perfectly syncs with Cropper's zoom/pan */
         #layerContainer { position: absolute; z-index: 5; pointer-events: none; transform-origin: 0 0; }
         .layer-item { position: absolute; pointer-events: auto; }
         .text-layer { font-weight: bold; white-space: nowrap; user-select: none; }
-        
-        /* Canvases cover the full native size of the layerContainer */
-        .canvas-layer { width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; } 
+        .canvas-layer { position: absolute; top: 0; left: 0; pointer-events: auto; } 
 
-        /* Menus */
-        .menu-panel { display: none; padding: 15px; background-color: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); border-radius: 15px 15px 0 0; position: fixed; bottom: 60px; left: 0; width: 100%; box-sizing: border-box; z-index: 100; max-height: 60vh; overflow-y: auto; }
+        .menu-panel { display: none; padding: 15px; background-color: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px); border-radius: 15px 15px 0 0; position: fixed; bottom: 60px; left: 0; width: 100%; box-sizing: border-box; z-index: 100; max-height: 65vh; overflow-y: auto; }
         .active-menu { display: block; }
         .menu-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
         .menu-title { font-size: 14px; color: var(--text-muted); margin: 0; }
@@ -62,13 +46,11 @@
         .input-group label { font-size: 12px; margin-bottom: 4px; }
         .input-group input, .input-group select { padding: 10px; border-radius: 4px; border: 1px solid #333; background: #2a2a2a; color: white; font-size: 16px; width: 100%; box-sizing: border-box;}
 
-        /* Bottom Nav */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: var(--bg-color); display: flex; overflow-x: auto; border-top: 1px solid #333; padding: 10px 0; z-index: 120; }
         .nav-item { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); min-width: 65px; cursor: pointer; font-size: 10px; }
         .nav-item.active { color: var(--accent); }
         .nav-icon { font-size: 20px; margin-bottom: 4px; }
         
-        /* Layer List UI */
         .layer-list-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 10px; border-radius: 5px; margin-bottom: 5px; font-size: 12px;}
         .layer-controls button { background: #444; color: white; border: none; padding: 5px 8px; border-radius: 3px; margin-left: 5px; }
         .layer-controls button.del { background: #ff2a5f; }
@@ -107,13 +89,21 @@
 </div>
 
 <div class="menu-panel" id="menu-tools">
-    <div class="menu-header"><p class="menu-title">Crop Tool</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
-    <p style="font-size: 11px; color:#aaa;">Drag the box to frame your picture. Click apply to commit.</p>
-    <div class="tool-row">
+    <div class="menu-header"><p class="menu-title">Crop & Resize</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
+    
+    <label style="font-size: 12px; margin-bottom: 10px; display: block; color: var(--accent);">
+        <input type="checkbox" id="lockRatio" checked> 🔗 Lock Aspect Ratio
+    </label>
+    <div class="tool-row" style="gap:10px;">
+        <div class="input-group"><label>Width (px)</label><input type="number" id="resizeW"></div>
+        <div class="input-group"><label>Height (px)</label><input type="number" id="resizeH"></div>
+    </div>
+
+    <div class="tool-row" style="margin-top: 15px;">
         <button class="tool-btn" onclick="if(cropper) cropper.rotate(-90)">↺ Left</button>
         <button class="tool-btn" onclick="if(cropper) cropper.rotate(90)">↻ Right</button>
     </div>
-    <button class="tool-btn" style="width: 100%; background: #00e676; color: #000; font-weight: bold; margin-top: 10px;" onclick="applyBaseCrop()">✅ Apply Crop</button>
+    <button class="tool-btn" style="width: 100%; background: #00e676; color: #000; font-weight: bold; margin-top: 10px;" onclick="applyBaseCrop()">✅ Apply Crop & Resize</button>
 </div>
 
 <div class="menu-panel" id="menu-text">
@@ -124,21 +114,23 @@
         <div class="input-group"><label>Size</label><input type="number" id="textSize" value="100"></div>
     </div>
     <button class="tool-btn" style="background:var(--accent); width:100%;" onclick="addTextLayer()">+ Add Text</button>
+    <p style="font-size: 10px; color:#aaa; text-align:center; margin-top:10px;">Double-tap added text to edit/resize it!</p>
 </div>
 
 <div class="menu-panel" id="menu-addphoto">
     <div class="menu-header"><p class="menu-title">Add Photo Layer</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
     <label for="overlayUpload" style="background:var(--accent); padding:10px; display:block; text-align:center; border-radius:5px; margin-bottom:10px;">Select Extra Image</label>
     <input type="file" id="overlayUpload" accept="image/*" style="display:none;">
-    <p style="font-size: 11px; color:#aaa;">Loads as a draggable layer. You can use the Draw tool's Eraser on it!</p>
+    <p style="font-size: 10px; color:#aaa; text-align:center;">Double-tap the added image to scale it!</p>
 </div>
 
 <div class="menu-panel" id="menu-draw">
     <div class="menu-header"><p class="menu-title">Draw / Erase Engine</p><button class="close-btn" onclick="closeAllMenus()">✕</button></div>
     
     <div class="input-group">
-        <label>Active Target (What are you drawing on?)</label>
-        <select id="drawTarget">
+        <label>Active Target</label>
+        <select id="drawTarget" onchange="setupDrawTarget()">
+            <option value="none">-- Select Layer to Draw On --</option>
             <option value="new">Create New Draw Layer</option>
         </select>
     </div>
@@ -157,7 +149,7 @@
 
 <div class="bottom-nav" id="bottomNav" style="display:none;">
     <div class="nav-item" onclick="toggleMenu('layers', this)"><span class="nav-icon">📚</span><span>Layers</span></div>
-    <div class="nav-item" onclick="toggleMenu('tools', this)"><span class="nav-icon">✂️</span><span>Crop Tool</span></div>
+    <div class="nav-item" onclick="toggleMenu('tools', this)"><span class="nav-icon">✂️</span><span>Crop/Size</span></div>
     <div class="nav-item" onclick="toggleMenu('text', this)"><span class="nav-icon">Aa</span><span>Text</span></div>
     <div class="nav-item" onclick="toggleMenu('addphoto', this)"><span class="nav-icon">🖼️</span><span>Add Pic</span></div>
     <div class="nav-item" onclick="toggleMenu('draw', this)"><span class="nav-icon">🖌️</span><span>Draw</span></div>
@@ -175,9 +167,17 @@
     var layers = []; 
     var layerCounter = 0;
     
+    // Resize Vars
+    var resizeW = document.getElementById('resizeW');
+    var resizeH = document.getElementById('resizeH');
+    var lockRatio = document.getElementById('lockRatio');
+    var currentAspectRatio = 1;
+
+    // Draw Vars
     var isDrawing = false;
     var currentDrawCtx = null;
     var drawMode = 'source-over'; 
+    var activeDrawCanvas = null;
 
     function showToast(msg) {
         var t = document.getElementById('toast');
@@ -186,38 +186,39 @@
         setTimeout(function() { t.style.display = 'none'; }, 2000);
     }
 
-    // --- Core Engine: Syncing Layers with Zoom & Pan ---
-    // This makes sure your layers follow the image exactly when you pinch to zoom
     function syncLayers() {
         if(!cropper) return;
         var cData = cropper.getCanvasData();
         if(!cData || !cData.naturalWidth) return;
-        
         var scale = cData.width / cData.naturalWidth;
-        
-        // Lock the container to the native pixels of the image
         layerContainer.style.width = cData.naturalWidth + 'px';
         layerContainer.style.height = cData.naturalHeight + 'px';
-        
-        // Transform it to match your current zoom/pan view
         layerContainer.style.transform = 'translate(' + cData.left + 'px, ' + cData.top + 'px) scale(' + scale + ')';
     }
 
-    // --- Init Cropper ---
     function initCropper() {
         if (cropper) cropper.destroy();
         cropper = new Cropper(image, { 
-            viewMode: 1, // Restricts image to always fit on screen
-            dragMode: 'move', // Default to panning
-            autoCropArea: 0.8,
-            responsive: true,
-            background: false,
+            viewMode: 1, dragMode: 'move', autoCropArea: 0.8, responsive: true, background: false,
             ready: function() {
-                cropper.clear(); // HIDES THE CROP BOX BY DEFAULT
+                cropper.clear(); 
                 syncLayers();
+                // Setup Resize inputs
+                var data = cropper.getImageData();
+                resizeW.value = Math.round(data.naturalWidth);
+                resizeH.value = Math.round(data.naturalHeight);
+                currentAspectRatio = data.naturalWidth / data.naturalHeight;
             },
             crop: function() { syncLayers(); },
-            zoom: function() { setTimeout(syncLayers, 10); } // Sync after zoom finishes
+            zoom: function() { setTimeout(syncLayers, 10); },
+            cropend: function() {
+                var data = cropper.getCropBoxData();
+                // Estimate pixel size based on crop box vs canvas scale
+                var scale = cropper.getImageData().naturalWidth / cropper.getCanvasData().width;
+                resizeW.value = Math.round(data.width * scale);
+                resizeH.value = Math.round(data.height * scale);
+                currentAspectRatio = data.width / data.height;
+            }
         });
     }
 
@@ -232,7 +233,6 @@
             document.getElementById('bottomNav').style.display = 'flex';
             image.src = event.target.result;
             initCropper();
-            showToast("Pinch to zoom, drag to pan!");
         };
         reader.readAsDataURL(file);
     });
@@ -244,15 +244,11 @@
         var navItems = document.querySelectorAll('.nav-item');
         for (var j = 0; j < navItems.length; j++) navItems[j].classList.remove('active');
         
-        // When menus close, restore View Mode
-        if(cropper) {
-            cropper.clear(); // Hide crop box
-            cropper.setDragMode('move'); // Allow panning
-        }
+        if(cropper) { cropper.clear(); cropper.setDragMode('move'); }
         
-        // Lock canvases so they don't block panning
-        var canvases = document.querySelectorAll('.canvas-layer');
-        for (var k = 0; k < canvases.length; k++) canvases[k].style.pointerEvents = 'none';
+        // Disable drawing state when menus close
+        activeDrawCanvas = null;
+        currentDrawCtx = null;
     }
 
     function toggleMenu(menuName, element) {
@@ -264,14 +260,10 @@
             targetMenu.classList.add('active-menu');
             element.classList.add('active');
             
-            // Mode Triggers
             if (menuName === 'tools') {
-                cropper.crop(); // Show crop box
-                cropper.setDragMode('crop'); // Let user adjust box
+                cropper.crop(); cropper.setDragMode('crop');
             } else if (menuName === 'draw') {
-                cropper.setDragMode('none'); // Disable panning so we can draw
-                var canvases = document.querySelectorAll('.canvas-layer');
-                for (var i = 0; i < canvases.length; i++) canvases[i].style.pointerEvents = 'auto';
+                cropper.setDragMode('none'); 
                 populateDrawTargets();
             } else if (menuName === 'layers') {
                 updateLayersUI();
@@ -279,20 +271,37 @@
         }
     }
 
+    // --- Resize Math ---
+    resizeW.addEventListener('input', function() {
+        if (lockRatio.checked && this.value) resizeH.value = Math.round(parseInt(this.value, 10) / currentAspectRatio);
+    });
+    resizeH.addEventListener('input', function() {
+        if (lockRatio.checked && this.value) resizeW.value = Math.round(parseInt(this.value, 10) * currentAspectRatio);
+    });
+
     function applyBaseCrop() {
         if(!cropper) return;
         var cropped = cropper.getCroppedCanvas();
-        var dataURL = cropped.toDataURL('image/png');
+        
+        // Apply pixel resize
+        var finalW = parseInt(resizeW.value) || cropped.width;
+        var finalH = parseInt(resizeH.value) || cropped.height;
+        var resizedCanvas = document.createElement('canvas');
+        resizedCanvas.width = finalW;
+        resizedCanvas.height = finalH;
+        resizedCanvas.getContext('2d').drawImage(cropped, 0, 0, finalW, finalH);
+
+        var dataURL = resizedCanvas.toDataURL('image/png');
         cropper.destroy();
         image.src = dataURL;
         image.onload = function() {
             initCropper();
             closeAllMenus();
-            showToast("Crop Applied! Returned to Pan Mode.");
+            showToast("Cropped & Resized!");
         };
     }
 
-    // --- LAYER SYSTEM ---
+    // --- LAYER SYSTEM & DOUBLE TAP EDIT ---
     function registerLayer(element, name, type) {
         layerCounter++;
         var id = 'layer_' + layerCounter;
@@ -303,20 +312,18 @@
         var cData = cropper.getCanvasData();
         element.style.left = (cData.naturalWidth / 2) + 'px';
         element.style.top = (cData.naturalHeight / 2) + 'px';
-        element.style.transform = 'translate(-50%, -50%)';
+        element.style.transform = 'translate(-50%, -50%) scale(1)';
+        element.setAttribute('data-scale', '1');
         
         layerContainer.appendChild(element);
         layers.push({ id: id, name: name + ' ' + layerCounter, el: element, type: type });
-        makeDraggable(element);
+        makeDraggableAndEditable(element);
         showToast(name + " Added!");
         updateLayersUI();
     }
 
     function updateLayersUI() {
-        if(layers.length === 0) {
-            layerListUI.innerHTML = "<i>No extra layers added yet.</i>";
-            return;
-        }
+        if(layers.length === 0) { layerListUI.innerHTML = "<i>No extra layers added yet.</i>"; return; }
         layerListUI.innerHTML = '';
         for (var i = layers.length - 1; i >= 0; i--) {
             var l = layers[i];
@@ -348,11 +355,13 @@
         updateLayersUI();
     }
 
-    function makeDraggable(el) {
+    function makeDraggableAndEditable(el) {
         var isDragging = false, startX, startY, initialX, initialY;
+        var lastTap = 0;
+
         function startDrag(e) {
-            // Stop drag if we are trying to draw on this specific canvas
-            if(e.target.tagName.toLowerCase() === 'canvas' && document.getElementById('drawTarget').value === el.id) return;
+            // Block drag if we are actively drawing on THIS canvas
+            if(activeDrawCanvas && activeDrawCanvas.id === el.id) return;
             
             isDragging = true;
             var clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -365,8 +374,18 @@
             
             startX = clientX;
             startY = clientY;
-            e.preventDefault();
+            
+            // Double Tap Detection
+            var currentTime = new Date().getTime();
+            var tapLength = currentTime - lastTap;
+            if (tapLength < 400 && tapLength > 0) {
+                isDragging = false;
+                handleDoubleTapEdit(el);
+                e.preventDefault();
+            }
+            lastTap = currentTime;
         }
+
         function doDrag(e) {
             if (!isDragging) return;
             var clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -377,7 +396,9 @@
             
             var dx = (clientX - startX) / scale;
             var dy = (clientY - startY) / scale;
-            el.style.transform = 'translate(' + (initialX + dx) + 'px, ' + (initialY + dy) + 'px)';
+            
+            var currentScale = el.getAttribute('data-scale') || 1;
+            el.style.transform = 'translate(' + (initialX + dx) + 'px, ' + (initialY + dy) + 'px) scale(' + currentScale + ')';
             e.preventDefault();
         }
         function stopDrag() { isDragging = false; }
@@ -388,6 +409,28 @@
         el.addEventListener('touchstart', startDrag, {passive: false});
         document.addEventListener('touchmove', doDrag, {passive: false});
         document.addEventListener('touchend', stopDrag);
+    }
+
+    function handleDoubleTapEdit(el) {
+        if (el.classList.contains('text-layer')) {
+            var newText = prompt("Edit your text:", el.innerText);
+            if (newText !== null) el.innerText = newText;
+            
+            var currentSize = parseInt(el.style.fontSize);
+            var newSize = prompt("Enter text size number:", currentSize);
+            if (newSize && !isNaN(newSize)) el.style.fontSize = newSize + "px";
+            
+        } else if (el.tagName.toLowerCase() === 'canvas') {
+            var currentScale = parseFloat(el.getAttribute('data-scale')) || 1;
+            var newScale = prompt("Scale Image (e.g. 0.5 for half, 2 for double size):", currentScale);
+            if (newScale && !isNaN(newScale)) {
+                el.setAttribute('data-scale', newScale);
+                var style = window.getComputedStyle(el);
+                var matrix = new WebKitCSSMatrix(style.transform);
+                // Preserve translate but update scale
+                el.style.transform = 'translate(' + matrix.m41 + 'px, ' + matrix.m42 + 'px) scale(' + newScale + ')';
+            }
+        }
     }
 
     // --- ADD TOOLS ---
@@ -429,10 +472,10 @@
         reader.readAsDataURL(file);
     });
 
-    // --- DRAW ENGINE ---
+    // --- DRAW ENGINE (FIXED) ---
     function populateDrawTargets() {
         var select = document.getElementById('drawTarget');
-        select.innerHTML = '<option value="new">Create New Draw Layer</option>';
+        select.innerHTML = '<option value="none">-- Select Layer to Draw On --</option><option value="new">Create New Full Draw Layer</option>';
         for(var i=0; i<layers.length; i++) {
             if(layers[i].type === 'canvas') {
                 var opt = document.createElement('option');
@@ -440,6 +483,33 @@
                 opt.innerText = "Draw/Erase on: " + layers[i].name;
                 select.appendChild(opt);
             }
+        }
+    }
+
+    function setupDrawTarget() {
+        var targetVal = document.getElementById('drawTarget').value;
+        if (targetVal === 'none') {
+            activeDrawCanvas = null;
+            return;
+        }
+        
+        if (targetVal === 'new') {
+            var canvasEl = document.createElement('canvas');
+            canvasEl.className = 'canvas-layer';
+            canvasEl.width = cropper.getCanvasData().naturalWidth;
+            canvasEl.height = cropper.getCanvasData().naturalHeight;
+            canvasEl.style.left = '50%'; 
+            canvasEl.style.top = '50%';
+            canvasEl.style.transform = 'translate(-50%, -50%) scale(1)';
+            canvasEl.setAttribute('data-scale', '1');
+            registerLayer(canvasEl, "Drawing", "canvas");
+            
+            document.getElementById('drawTarget').value = canvasEl.id;
+            populateDrawTargets(); 
+            document.getElementById('drawTarget').value = canvasEl.id;
+            activeDrawCanvas = canvasEl;
+        } else {
+            activeDrawCanvas = document.getElementById(targetVal);
         }
     }
 
@@ -451,70 +521,40 @@
     btnBlend.onclick = function() { drawMode = 'screen'; resetDrawBtns(); this.style.background='var(--accent)'; showToast("Blend Active"); }
     btnErase.onclick = function() { drawMode = 'destination-out'; resetDrawBtns(); this.style.background='var(--accent)'; showToast("Eraser Active"); }
 
-    function getEventPos(e) {
-        var rect = layerContainer.getBoundingClientRect();
+    function getEventPosForDraw(e, canvasEl) {
+        var rect = canvasEl.getBoundingClientRect();
         var clientX = e.touches ? e.touches[0].clientX : e.clientX;
         var clientY = e.touches ? e.touches[0].clientY : e.clientY;
         
-        var cData = cropper.getCanvasData();
-        var scale = cData.width / cData.naturalWidth;
+        // Map screen pixels to internal canvas pixels perfectly
+        var scaleX = canvasEl.width / rect.width;
+        var scaleY = canvasEl.height / rect.height;
         
-        return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+        return { 
+            x: (clientX - rect.left) * scaleX, 
+            y: (clientY - rect.top) * scaleY 
+        };
     }
 
-    layerContainer.addEventListener('mousedown', startDrawLogic);
-    layerContainer.addEventListener('touchstart', startDrawLogic, {passive: false});
-
     function startDrawLogic(e) {
-        if(!document.getElementById('menu-draw').classList.contains('active-menu')) return;
-        var targetVal = document.getElementById('drawTarget').value;
-        var canvasEl;
+        if(!activeDrawCanvas || !document.getElementById('menu-draw').classList.contains('active-menu')) return;
         
-        if(targetVal === 'new') {
-            canvasEl = document.createElement('canvas');
-            canvasEl.className = 'canvas-layer';
-            canvasEl.width = cropper.getCanvasData().naturalWidth;
-            canvasEl.height = cropper.getCanvasData().naturalHeight;
-            canvasEl.style.left = '0px'; 
-            canvasEl.style.top = '0px';
-            canvasEl.style.transform = 'translate(0,0)';
-            registerLayer(canvasEl, "Drawing", "canvas");
-            
-            document.getElementById('drawTarget').value = canvasEl.id;
-            populateDrawTargets(); 
-            document.getElementById('drawTarget').value = canvasEl.id;
-            canvasEl.style.pointerEvents = 'auto'; // Re-enable since menu is open
-        } else {
-            canvasEl = document.getElementById(targetVal);
-        }
-        
-        if(!canvasEl || canvasEl.tagName.toLowerCase() !== 'canvas') return;
-        
-        currentDrawCtx = canvasEl.getContext('2d');
+        // Ensure touch is actually on the active canvas
+        if(e.target !== activeDrawCanvas) return;
+
+        currentDrawCtx = activeDrawCanvas.getContext('2d');
         isDrawing = true;
         
-        var pos = getEventPos(e);
-        
-        // Offset mapping if the canvas itself was dragged around
-        var style = window.getComputedStyle(canvasEl);
-        var matrix = new WebKitCSSMatrix(style.transform);
-        var localX = pos.x - matrix.m41;
-        var localY = pos.y - matrix.m42;
-        
+        var pos = getEventPosForDraw(e, activeDrawCanvas);
         currentDrawCtx.beginPath();
-        currentDrawCtx.moveTo(localX, localY);
-        e.preventDefault();
+        currentDrawCtx.moveTo(pos.x, pos.y);
+        e.preventDefault(); // Stop scrolling while drawing
     }
 
     function doDrawLogic(e) {
-        if(!isDrawing || !currentDrawCtx) return;
-        var canvasEl = currentDrawCtx.canvas;
-        var pos = getEventPos(e);
+        if(!isDrawing || !currentDrawCtx || !activeDrawCanvas) return;
         
-        var style = window.getComputedStyle(canvasEl);
-        var matrix = new WebKitCSSMatrix(style.transform);
-        var localX = pos.x - matrix.m41;
-        var localY = pos.y - matrix.m42;
+        var pos = getEventPosForDraw(e, activeDrawCanvas);
         
         currentDrawCtx.lineWidth = document.getElementById('drawSize').value;
         currentDrawCtx.lineCap = 'round';
@@ -522,15 +562,18 @@
         currentDrawCtx.globalCompositeOperation = drawMode;
         currentDrawCtx.strokeStyle = drawMode === 'destination-out' ? "rgba(0,0,0,1)" : document.getElementById('drawColor').value;
         
-        currentDrawCtx.lineTo(localX, localY);
+        currentDrawCtx.lineTo(pos.x, pos.y);
         currentDrawCtx.stroke();
         e.preventDefault();
     }
 
     function stopDrawLogic() { isDrawing = false; currentDrawCtx = null; }
 
+    // Bind draw events to the main window but validate target inside
+    document.addEventListener('mousedown', startDrawLogic);
     document.addEventListener('mousemove', doDrawLogic);
     document.addEventListener('mouseup', stopDrawLogic);
+    document.addEventListener('touchstart', startDrawLogic, {passive: false});
     document.addEventListener('touchmove', doDrawLogic, {passive: false});
     document.addEventListener('touchend', stopDrawLogic);
 
@@ -539,7 +582,6 @@
         if (!cropper) return;
         showToast("Flattening Image...");
         
-        // Hide crop box to ensure we capture full base image
         cropper.clear(); 
         var finalCanvas = cropper.getCroppedCanvas();
         var ctx = finalCanvas.getContext('2d');
@@ -556,7 +598,6 @@
             var el = sortedLayers[i].el;
             var elRect = el.getBoundingClientRect();
             
-            // Map the screen pixels back to the native image pixels exactly
             var nativeX = (elRect.left - containerRect.left) / scale;
             var nativeY = (elRect.top - containerRect.top) / scale;
             var nativeW = elRect.width / scale;
@@ -577,7 +618,7 @@
             var dataURL = finalCanvas.toDataURL('image/jpeg', 0.9);
             var link = document.createElement('a');
             link.href = dataURL;
-            link.download = 'PixEdit_Ultimate.jpg';
+            link.download = 'PixEdit_Masterpiece.jpg';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
