@@ -59,9 +59,14 @@
         #hud-rpm { color: #ff4444; font-variant-numeric: tabular-nums; }
         #hud-gforce { color: #00ffff; font-variant-numeric: tabular-nums; }
         
-        #map { height: 100%; width: 100%; z-index: 1; }
+        /* Bulletproof mobile map setup */
+        #map { 
+            height: 100%; width: 100%; z-index: 1; 
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+        }
         
-        /* New Dual Control Layout */
+        /* Master Control HUD layout */
         .controls {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
             display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px;
@@ -75,9 +80,7 @@
         .stat-val { font-size: 1.2rem; font-weight: bold; color: #00ff88; }
         .stat-lbl { font-size: 0.65rem; color: #aaa; letter-spacing: 1px; margin-top: 2px; }
 
-        .action-row {
-            display: flex; gap: 10px;
-        }
+        .action-row { display: flex; gap: 10px; }
         .btn-action {
             flex: 1; padding: 16px; font-size: 1rem; font-weight: bold; color: #111;
             background: #00ff88; border: none; border-radius: 16px; cursor: pointer;
@@ -87,6 +90,24 @@
         .btn-action.stop { background: #ff4444; color: white; box-shadow: 0 4px 20px rgba(255, 68, 68, 0.2); }
         .btn-launch { background: #ffaa00; color: #111; display: none; box-shadow: 0 4px 20px rgba(255, 170, 0, 0.2); }
 
+        /* Sleek Maps-Style Live Navigation Card */
+        #nav-summary-card {
+            background: rgba(20, 20, 20, 0.95); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px; padding: 16px; display: none; flex-direction: column; gap: 12px;
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        .nav-meta-info { display: flex; justify-content: space-around; align-items: center; text-align: center; }
+        .nav-meta-block { flex: 1; }
+        .nav-meta-val { font-size: 1.6rem; font-weight: 800; color: #0078ff; }
+        .nav-meta-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 2px; letter-spacing: 0.5px; }
+        .nav-meta-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
+        
+        .nav-btn-row { display: flex; gap: 10px; }
+        .btn-nav-go { background: #0078ff; color: white; box-shadow: 0 4px 15px rgba(0, 120, 255, 0.3); }
+        .btn-nav-cancel { background: #333; color: #eee; }
+
+        /* History & Storage View */
         #history-view { padding: 20px; overflow-y: auto; background: #111; box-sizing: border-box; }
         .drive-card { background: #1a1a1a; padding: 16px; border-radius: 16px; margin-bottom: 15px; border: 1px solid #292929; }
         .drive-card.is-ghost { border-color: #ffaa00; box-shadow: 0 4px 15px rgba(255, 170, 0, 0.1); }
@@ -100,6 +121,7 @@
         .btn-ghost-toggle.active { background: rgba(255, 170, 0, 0.2); color: #ffaa00; border: 1px solid #ffaa00; }
         .empty-state { text-align: center; color: #555; margin-top: 60px; font-size: 1.1rem; }
 
+        /* Control Panel Configuration Overlay */
         #settings-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 4000;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none;
@@ -118,13 +140,21 @@
         .btn-close-settings { width: 100%; padding: 12px; background: #333; color: white; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; }
 
         #debug-banner { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(255, 170, 0, 0.9); color: #111; font-weight: bold; padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; display: none; }
-        #toast { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 3000; background: rgba(0,0,0,0.85); color: #fff; border: 1px solid #333; padding: 10px 20px; border-radius: 30px; font-size: 0.85rem; display: none; text-align: center; width: max-content; }
+        #toast { position: absolute; bottom: 260px; left: 50%; transform: translateX(-50%); z-index: 3000; background: rgba(0,0,0,0.85); color: #fff; border: 1px solid #333; padding: 10px 20px; border-radius: 30px; font-size: 0.85rem; display: none; text-align: center; width: max-content; }
         
         .leaflet-popup-content-wrapper { background: #111; color: #ffaa00; border: 1px solid #ffaa00; font-weight: bold; border-radius: 8px; }
         .leaflet-popup-tip { background: #111; }
         
-        /* Dark mode overrides for routing UI */
-        .leaflet-routing-container { background-color: rgba(20,20,20,0.9) !important; color: white !important; filter: invert(1) hue-rotate(180deg); }
+        /* Dark-Mode Maps Styling For Geocoder and Routing Elements */
+        .leaflet-control-geocoder { background: #1a1a1a !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 12px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; margin-top: 65px !important; margin-left: 15px !important;}
+        .leaflet-control-geocoder-icon { filter: invert(1); opacity: 0.8; }
+        .leaflet-control-geocoder-form input { background: #222 !important; color: white !important; border: 1px solid #333 !important; border-radius: 6px !important; padding: 6px !important; }
+        .leaflet-control-geocoder-results { background: #1a1a1a !important; color: white !important; border: 1px solid #333 !important; border-radius: 8px !important; margin-top: 5px !important; }
+        .leaflet-control-geocoder-suggestion { padding: 10px 14px !important; border-bottom: 1px solid #292929; cursor: pointer; font-size: 0.9rem; }
+        .leaflet-control-geocoder-suggestion:hover { background: #2a2a2a !important; color: #00ff88 !important; }
+        
+        /* Completely hide the bulky textual turn-by-turn list overlay container */
+        .leaflet-routing-container { display: none !important; }
     </style>
 </head>
 <body>
@@ -167,6 +197,24 @@
         <div id="map"></div>
 
         <div class="controls">
+            <div id="nav-summary-card">
+                <div class="nav-meta-info">
+                    <div class="nav-meta-block">
+                        <div id="nav-val-time" class="nav-meta-val">--</div>
+                        <div class="nav-meta-lbl">Duration</div>
+                    </div>
+                    <div class="nav-meta-divider"></div>
+                    <div class="nav-meta-block">
+                        <div id="nav-val-dist" class="nav-meta-val">--</div>
+                        <div class="nav-meta-lbl">Distance</div>
+                    </div>
+                </div>
+                <div class="nav-btn-row">
+                    <button id="nav-cancel-btn" class="btn-action btn-nav-cancel" onclick="window.clearActiveRoute()">CANCEL</button>
+                    <button id="nav-go-btn" class="btn-action btn-nav-go" onclick="window.acceptActiveRoute()">GO</button>
+                </div>
+            </div>
+
             <div class="stats-row">
                 <div class="stat-item"><div class="stat-val" id="ui-max">0</div><div class="stat-lbl">MAX (km/h)</div></div>
                 <div class="stat-item"><div class="stat-val" id="ui-dist">0.0</div><div class="stat-lbl">DIST (km)</div></div>
@@ -195,8 +243,6 @@
         window.toggleLaunchMode = function(checkbox) {
             settings.launchMode = checkbox.checked ? 'manual' : 'auto';
             document.getElementById('launch-mode-lbl').innerText = settings.launchMode.toUpperCase();
-            
-            // Adjust UI if mid-drive
             if (isDriving) {
                 document.getElementById('manual-launch-btn').style.display = (settings.launchMode === 'manual' && !pullStartMs) ? 'block' : 'none';
             }
@@ -212,41 +258,79 @@
             else if (tab === 'tracker') setTimeout(() => { map.invalidateSize(); }, 100);
         };
 
+        // Standard position initialization mapping center of Bucharest region
         const map = L.map('map', { zoomControl: false }).setView([44.4782, 26.1481], 15);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
         
-        // Navigation / Routing Logic
-        L.Control.geocoder({ defaultMarkGeocode: false, position: 'topleft' })
+        let routingControl = null;
+        let selectedDestination = null;
+        let isNavigationActive = false;
+
+        // Custom Geocoder Search Configuration
+        L.Control.geocoder({ defaultMarkGeocode: false, position: 'topleft', placeholder: 'Search destination...' })
             .on('markgeocode', function(e) {
-                const bbox = e.geocode.bbox;
-                const center = bbox.getCenter();
-                if (lastPos) startRouting(center);
-                else map.fitBounds(bbox);
+                const targetCoord = e.geocode.bbox.getCenter();
+                window.buildNavigationRoute(targetCoord);
             }).addTo(map);
 
-        let routingControl = null;
-        map.on('contextmenu', function(e) { 
-            // Long press or right click to route
-            startRouting(e.latlng); 
+        // Click on map replaces problematic touch-hold selection architecture
+        map.on('click', function(e) {
+            if (isNavigationActive) return; // Prevent path adjustments during mid-route execution
+            window.buildNavigationRoute(e.latlng);
         });
 
-        function startRouting(destination) {
-            if (!lastPos) { window.showToast("Waiting for GPS lock..."); return; }
+        window.buildNavigationRoute = function(destinationLatLng) {
+            if (!lastPos) {
+                window.showToast("Waiting for GPS lock... Move closer to window/outdoors");
+                return;
+            }
             if (routingControl) map.removeControl(routingControl);
             
-            window.showToast("Calculating route...");
+            selectedDestination = destinationLatLng;
+            
             routingControl = L.Routing.control({
-                waypoints: [ L.latLng(lastPos.lat, lastPos.lng), destination ],
-                routeWhileDragging: true,
-                show: false, // Hides the bulky text directions panel
-                lineOptions: { styles: [{ color: '#0078ff', weight: 6, opacity: 0.8 }] }
+                waypoints: [ L.latLng(lastPos.lat, lastPos.lng), selectedDestination ],
+                routeWhileDragging: false,
+                addWaypoints: false,
+                show: false, 
+                lineOptions: { styles: [{ color: '#0078ff', weight: 6, opacity: 0.85 }] }
             }).addTo(map);
-        }
+
+            // Harvest spatial telemetry calculations from engine
+            routingControl.on('routesfound', function(e) {
+                const summary = e.routes[0].summary;
+                const distKm = (summary.totalDistance / 1000).toFixed(1);
+                const timeMins = Math.round(summary.totalTime / 60);
+
+                document.getElementById('nav-val-time').innerText = timeMins + " min";
+                document.getElementById('nav-val-dist').innerText = distKm + " km";
+                
+                // Show metadata hud sheet
+                document.getElementById('nav-summary-card').style.display = 'flex';
+            });
+        };
+
+        window.clearActiveRoute = function() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            selectedDestination = null;
+            isNavigationActive = false;
+            document.getElementById('nav-summary-card').style.display = 'none';
+            window.showToast("Navigation Cancelled");
+        };
+
+        window.acceptActiveRoute = function() {
+            if (!selectedDestination) return;
+            isNavigationActive = true;
+            document.getElementById('nav-go-btn').style.display = 'none'; // Lock navigation choice
+            window.showToast("Route Loaded. Tap START DRIVE when ready.");
+        };
 
         const marker = L.circleMarker([44.4782, 26.1481], { radius: 8, color: '#00ff88', fillColor: '#00ff88', fillOpacity: 1, zIndexOffset: 1000 }).addTo(map);
         let pathLine = L.polyline([], { color: '#00ff88', weight: 5, opacity: 0.8 }).addTo(map);
         
-        // Auto-Ghost Elements
         const ghostStartZone = L.circle([0, 0], { radius: 50, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.2 });
         const ghostMarker = L.circleMarker([0, 0], { radius: 8, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.8, dashArray: '5, 5' });
         let activeGhostLap = null; 
@@ -257,7 +341,7 @@
         let isDriving = false;
         let driveStartTime = 0;
         let driveTimerInterval;
-        let lastPos = null;
+        let lastPos = null; // System Global Position Cache
         let radarsLoaded = false; 
 
         let currentDrive = { id: null, isGhost: false, date: null, duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
@@ -285,7 +369,6 @@
             setTimeout(() => { el.style.display = 'none'; }, 2500);
         };
 
-        // --- HARDWARE LISTENERS ---
         if (typeof DeviceMotionEvent !== 'undefined') {
             window.addEventListener('devicemotion', (event) => {
                 if (!isDriving) return;
@@ -311,8 +394,6 @@
             hit100 = false;
             document.getElementById('manual-launch-btn').style.display = 'none';
             window.showToast(isAuto ? "🚀 Auto-Launch Engaged!" : "🚀 Manual Launch Engaged!");
-            
-            // Release the Ghost if staged
             if (ghostStaged && activeGhostLap) {
                 ghostMarker.addTo(map);
                 ghostStartZone.removeFrom(map);
@@ -320,12 +401,10 @@
         };
 
         window.scanForRadars = async function(lat, lng) {
-            window.showToast("Scanning for fixed radars...");
             const query = `[out:json];node["highway"="speed_camera"](around:10000, ${lat}, ${lng});out;`;
             try {
-                // Removed explicit CORS mode to prevent aggressive preflight blocks on local setups
                 const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                if (!response.ok) throw new Error("API Rejected");
+                if (!response.ok) throw new Error("Blocked");
                 const data = await response.json();
                 let cameraCount = 0;
                 data.elements.forEach(c => {
@@ -334,9 +413,8 @@
                 });
                 if (cameraCount > 0) setTimeout(() => window.showToast(`Loaded ${cameraCount} cameras.`), 2000);
             } catch (err) {
-                console.warn("Radar API Blocked (Run via localhost to fix CORS)", err);
+                console.warn("Radar framework restricted via network parameters.");
                 if (isDebugMode) {
-                    // Inject a mock radar in debug mode so you can see it working
                     L.circleMarker([44.4800, 26.1500], { radius: 7, color: '#ff4444', fillColor: '#ff0000', fillOpacity: 0.8 }).addTo(radarLayer).bindPopup("⚠️ Mock Camera (Debug)");
                 }
             }
@@ -355,7 +433,6 @@
             return `${m}:${s}`;
         };
 
-        // --- DRIVE STATE MANAGEMENT ---
         window.toggleDrive = function() {
             const btn = document.getElementById('toggle-drive-btn');
             const manualBtn = document.getElementById('manual-launch-btn');
@@ -368,7 +445,7 @@
                 driveStartTime = Date.now();
                 pathLine.setLatLngs([]);
                 radarLayer.clearLayers();
-                lastPos = null; pullStartMs = null; radarsLoaded = false; maxGForce = 0;
+                pullStartMs = null; radarsLoaded = false; maxGForce = 0;
                 document.getElementById('hud-gforce').innerText = "0.00 G";
                 
                 currentDrive = { id: Date.now(), isGhost: false, date: new Date().toLocaleString('ro-RO'), duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
@@ -376,7 +453,6 @@
                 
                 if (settings.launchMode === 'manual') manualBtn.style.display = 'block';
 
-                // AUTO-GHOST LOGIC: Find best ghost and draw start zone
                 let drives = JSON.parse(localStorage.getItem('drives') || '[]');
                 activeGhostLap = drives.find(d => d.isGhost && d.telemetry && d.telemetry.length > 0);
                 if (activeGhostLap) {
@@ -388,7 +464,6 @@
                 driveTimerInterval = setInterval(() => {
                     currentDrive.duration = Math.floor((Date.now() - driveStartTime) / 1000);
                     document.getElementById('ui-time').innerText = window.formatTime(currentDrive.duration);
-                    
                     if (ghostStaged && pullStartMs) updateGhostPosition();
                 }, 100); 
 
@@ -405,6 +480,10 @@
                 ghostMarker.removeFrom(map);
                 ghostStartZone.removeFrom(map);
                 
+                // Reset Navigation HUD card layout state upon termination
+                window.clearActiveRoute();
+                document.getElementById('nav-go-btn').style.display = 'block';
+
                 if (currentDrive.distance > 0 || currentDrive.maxSpeed > 0) {
                     window.saveDrive(currentDrive);
                     window.showToast("Drive saved.");
@@ -473,8 +552,6 @@
         window.previewPastRoute = function(idx) {
             let drives = JSON.parse(localStorage.getItem('drives') || '[]');
             let targetDrive = drives[idx];
-            
-            // Reverted map drawing fix: leafet uses the simple .route array
             if (!targetDrive || !targetDrive.route || targetDrive.route.length === 0) {
                 alert("No GPS path saved for this log."); return;
             }
@@ -485,23 +562,28 @@
         };
 
         window.processTelemetry = function(lat, lng, speedKmh) {
+            // FIX: Global Position update occurs outside tracking loop block to feed search algorithms instantly
+            lastPos = { lat, lng };
+
             document.getElementById('speed').innerText = speedKmh;
             const newLatLng = new L.LatLng(lat, lng);
             marker.setLatLng(newLatLng);
             map.panTo(newLatLng);
 
+            // Real-Time Turn-By-Turn Auto Recalculation engine processing logic
+            if (isNavigationActive && routingControl) {
+                routingControl.spliceWaypoints(0, 1, L.latLng(lat, lng));
+            }
+
             if (isDriving) {
                 if (!radarsLoaded) { radarsLoaded = true; window.scanForRadars(lat, lng); }
 
-                // Map standard line
                 currentDrive.route.push([lat, lng]);
                 
-                // Ghost Telemetry (Only records when launching)
                 if (pullStartMs) {
                     currentDrive.telemetry.push({ lat: lat, lng: lng, t: Date.now() - pullStartMs });
                 }
 
-                // Check if we entered the Ghost Start Zone
                 if (!ghostStaged && activeGhostLap && !pullStartMs) {
                     let startPoint = activeGhostLap.telemetry[0];
                     if (window.calculateDistance(lat, lng, startPoint.lat, startPoint.lng) < 30) {
@@ -513,12 +595,13 @@
                 
                 pathLine.addLatLng(newLatLng);
 
-                if (lastPos) {
-                    const distMeters = window.calculateDistance(lastPos.lat, lastPos.lng, lat, lng);
+                if (currentDrive.route.length > 1) {
+                    let prevIdx = currentDrive.route.length - 2;
+                    let prevPoint = currentDrive.route[prevIdx];
+                    const distMeters = window.calculateDistance(prevPoint[0], prevPoint[1], lat, lng);
                     currentDrive.distance += distMeters;
                     document.getElementById('ui-dist').innerText = (currentDrive.distance / 1000).toFixed(2);
                 }
-                lastPos = { lat, lng };
 
                 if (speedKmh > currentDrive.maxSpeed) {
                     currentDrive.maxSpeed = speedKmh;
@@ -558,7 +641,6 @@
             let timerTicks = 0; let simulatedSpeed = 0; currentSimIndex = 0;
             exactSimLat = a3HighwayRoutePoints[0][0]; exactSimLng = a3HighwayRoutePoints[0][1];
 
-            // Auto trigger launch in sim after 2 seconds
             setTimeout(() => { if(!pullStartMs) window.triggerManualLaunch(true); }, 2000);
 
             debugInterval = setInterval(() => {
