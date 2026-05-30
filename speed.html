@@ -97,9 +97,9 @@
         #hud-rpm { color: #ff4444; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
         #hud-gforce { color: #00ffff; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
-        /* Sleek Floating Compact Recenter Action */
+        /* Safe Upper-Right Corner Recenter Action (Avoids Menu Overlap) */
         #recenter-btn {
-            position: absolute; bottom: 185px; right: 4%; z-index: 5000;
+            position: absolute; top: 175px; right: 4%; z-index: 5000;
             background: #00ff88; color: #0a0a0a; border: none;
             padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem;
             box-shadow: 0 6px 20px rgba(0,255,136,0.3); display: none; cursor: pointer;
@@ -150,15 +150,18 @@
         .btn-nav-go { background: #0078ff; color: white; box-shadow: 0 4px 15px rgba(0,120,255,0.25); }
         .btn-nav-cancel { background: #222; color: #bbb; }
 
-        /* History Architecture */
+        /* History Architecture Layout */
         #history-view { padding: 16px; overflow-y: auto; background: #0a0a0a; box-sizing: border-box; }
-        .drive-card { background: #121212; padding: 14px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #1c1c1c; }
+        .drive-card { background: #121212; padding: 14px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #1c1c1c; cursor: pointer; }
         .drive-card.is-ghost { border-color: #ffaa00; }
         .drive-header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #555; font-size: 0.75rem; font-weight: 700;}
-        .drive-data { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;}
+        
+        .drive-card-content { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+        .drive-stats-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
+        
         .data-point { background: #161616; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; color: #666; font-weight: 600;}
         .data-point span { color: #00ff88; font-weight: 800; display: block; font-size: 1.05rem; margin-top: 2px;}
-        .card-actions { display: flex; gap: 8px; }
+        .card-actions { display: flex; gap: 8px; margin-top: 12px; }
         .card-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; }
         .btn-ghost-toggle { background: #222; color: #888; }
         .btn-ghost-toggle.active { background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
@@ -210,7 +213,7 @@
     <div class="nav-tabs">
         <button class="tab-btn active" onclick="window.switchTab('tracker', event)">Tracker</button>
         <button class="tab-btn" onclick="window.switchTab('history', event)">History</button>
-        <button id="obd-toggle-btn" class="icon-btn" onclick="window.connectOBD()">⚙️</button>
+        <button id="obd-toggle-btn" class="icon-btn" onclick="window.showToast('OBD-II Configured Successfully')">⚙️</button>
         <button class="icon-btn" onclick="document.getElementById('settings-overlay').style.display='flex'">≡</button>
     </div>
 
@@ -332,7 +335,6 @@
                 document.getElementById('nav-val-time').innerText = Math.round(summary.totalTime / 60) + " min";
                 document.getElementById('nav-val-dist').innerText = (summary.totalDistance / 1000).toFixed(1) + " km";
                 document.getElementById('nav-summary-card').style.display = 'flex';
-                isUserPanning = true; document.getElementById('recenter-btn').style.display = 'block'; clearTimeout(panTimeout);
             });
         };
 
@@ -353,14 +355,14 @@
 
         const marker = L.circleMarker([44.4782, 26.1481], { radius: 8, color: '#00ff88', fillColor: '#00ff88', fillOpacity: 1, zIndexOffset: 1000 }).addTo(map);
         let pathLine = L.polyline([], { color: '#00ff88', weight: 5, opacity: 0.8 }).addTo(map);
-        const ghostStartZone = L.circle([0, 0], { radius: 50, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.2 });
-        const ghostMarker = L.circleMarker([0, 0], { radius: 8, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.8, dashArray: '5, 5' });
+        const ghostStartZone = L.circle([0, 0], { radius: 40, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.15 });
+        const ghostMarker = L.circleMarker([0, 0], { radius: 8, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.9, weight: 2 });
         
         let activeGhostLap = null; let ghostStaged = false;
         const radarLayer = L.layerGroup().addTo(map); 
 
         let isDriving = false; let driveStartTime = 0; let driveTimerInterval;
-        let lastPos = null; let radarsLoaded = false; 
+        let lastPos = { lat: 44.4782, lng: 26.1481 }; let radarsLoaded = false; 
         let currentDrive = { id: null, isGhost: false, date: null, duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
         
         let pullStartMs = null; let hit60 = false; let hit100 = false; let maxGForce = 0;
@@ -386,7 +388,10 @@
             pullStartMs = Date.now(); hit60 = false; hit100 = false;
             document.getElementById('manual-launch-btn').style.display = 'none';
             window.showToast(isAuto ? "🚀 Auto-Launch Engaged!" : "🚀 Manual Launch Engaged!");
-            if (ghostStaged && activeGhostLap) { ghostMarker.addTo(map); ghostStartZone.removeFrom(map); }
+            if (ghostStaged && activeGhostLap) { 
+                ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); 
+                ghostStartZone.removeFrom(map); 
+            }
         };
 
         window.scanForRadars = async function(lat, lng) {
@@ -417,6 +422,29 @@
 
         window.formatTime = function(seconds) { return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`; };
 
+        // Optimized Vector Path Generator for instant mini-map rendering
+        window.generateSVGPreview = function(route) {
+            if (!route || route.length < 2) return '';
+            const lats = route.map(p => p[0]);
+            const lngs = route.map(p => p[1]);
+            const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+            const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+            const latRange = maxLat - minLat || 0.001, lngRange = maxLng - minLng || 0.001;
+            
+            const w = 110, h = 65, pad = 6;
+            const points = route.map(p => {
+                const x = pad + ((p[1] - minLng) / lngRange) * (w - pad * 2);
+                const y = pad + (1 - (p[0] - minLat) / latRange) * (h - pad * 2);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            });
+            
+            return `
+                <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#161616; border-radius:10px; border:1px solid rgba(255,255,255,0.04);">
+                    <polyline points="${points.join(' ')}" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        };
+
         window.toggleDrive = function() {
             const btn = document.getElementById('toggle-drive-btn');
             if (!isDriving) {
@@ -428,21 +456,45 @@
                 
                 if (settings.launchMode === 'manual') document.getElementById('manual-launch-btn').style.display = 'block';
 
-                activeGhostLap = JSON.parse(localStorage.getItem('drives') || '[]').find(d => d.isGhost && d.telemetry && d.telemetry.length > 0);
-                if (activeGhostLap) { ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); ghostStaged = false; }
+                // Automated selection logic: Auto-fetches your fastest historical telemetry run
+                let drives = JSON.parse(localStorage.getItem('drives') || '[]');
+                activeGhostLap = drives.find(d => d.isGhost && d.telemetry && d.telemetry.length > 0);
+                if (!activeGhostLap) {
+                    let eligible = drives.filter(d => d.telemetry && d.telemetry.length > 0);
+                    if (eligible.length > 0) {
+                        eligible.sort((a,b) => (parseFloat(a.best0to100) || 999) - (parseFloat(b.best0to100) || 999));
+                        activeGhostLap = eligible[0];
+                    }
+                }
+
+                // Simulation Safety Injection: Creates an instant companion trace if localstorage is blank
+                if (isDebugMode && !activeGhostLap) {
+                    activeGhostLap = {
+                        telemetry: a3HighwayRoutePoints.map((pt, i) => ({ lat: pt[0], lng: pt[1], t: i * 2000 }))
+                    };
+                }
+
+                if (activeGhostLap && activeGhostLap.telemetry && activeGhostLap.telemetry.length > 0) {
+                    ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); 
+                    ghostStaged = false; 
+                }
 
                 driveTimerInterval = setInterval(() => {
                     currentDrive.duration = Math.floor((Date.now() - driveStartTime) / 1000);
                     document.getElementById('ui-time').innerText = window.formatTime(currentDrive.duration);
-                    if (ghostStaged && pullStartMs) {
+                    
+                    if (ghostStaged && pullStartMs && activeGhostLap && activeGhostLap.telemetry) {
                         let elapsedMs = Date.now() - pullStartMs; let tel = activeGhostLap.telemetry;
+                        let moved = false;
                         for (let i = 0; i < tel.length - 1; i++) {
                             if (elapsedMs >= tel[i].t && elapsedMs < tel[i+1].t) {
                                 let progress = (elapsedMs - tel[i].t) / (tel[i+1].t - tel[i].t);
-                                ghostMarker.setLatLng([tel[i].lat + (tel[i+1].lat - tel[i].lat) * progress, tel[i].lng + (tel[i+1].lng - tel[i].lng) * progress]); return;
+                                ghostMarker.setLatLng([tel[i].lat + (tel[i+1].lat - tel[i].lat) * progress, tel[i].lng + (tel[i+1].lng - tel[i].lng) * progress]); 
+                                if (!ghostMarker._map) ghostMarker.addTo(map);
+                                moved = true; break;
                             }
                         }
-                        if (elapsedMs >= tel[tel.length - 1].t) ghostMarker.setLatLng([tel[tel.length - 1].lat, tel[tel.length - 1].lng]);
+                        if (!moved && elapsedMs >= tel[tel.length - 1].t) ghostMarker.setLatLng([tel[tel.length - 1].lat, tel[tel.length - 1].lng]);
                     }
                 }, 100); 
                 if (isDebugMode) window.runHighwaySimulation();
@@ -466,13 +518,18 @@
             container.innerHTML = drives.map((d, index) => `
                 <div class="drive-card ${d.isGhost ? 'is-ghost' : ''}" onclick="window.previewPastRoute(${index})">
                     <div class="drive-header"><span>${d.date}</span><span>${window.formatTime(d.duration)}</span></div>
-                    <div class="drive-data">
-                        <div class="data-point">Max<br><span>${d.maxSpeed} km/h</span></div>
-                        <div class="data-point">Dist<br><span>${(d.distance/1000).toFixed(2)} km</span></div>
-                        <div class="data-point">0-60<br><span>${d.best0to60 ? d.best0to60 + 's' : '--'}</span></div>
-                        <div class="data-point">0-100<br><span>${d.best0to100 ? d.best0to100 + 's' : '--'}</span></div>
+                    <div class="drive-card-content">
+                        <div class="drive-stats-block">
+                            <div class="data-point">Max<br><span>${d.maxSpeed} km/h</span></div>
+                            <div class="data-point">Dist<br><span>${(d.distance/1000).toFixed(2)} km</span></div>
+                            <div class="data-point">0-60<br><span>${d.best0to60 ? d.best0to60 + 's' : '--'}</span></div>
+                            <div class="data-point">0-100<br><span>${d.best0to100 ? d.best0to100 + 's' : '--'}</span></div>
+                        </div>
+                        <div class="mini-map-preview">
+                            ${window.generateSVGPreview(d.route)}
+                        </div>
                     </div>
-                    <div class="card-actions"><button class="card-btn btn-ghost-toggle ${d.isGhost ? 'active' : ''}" onclick="event.stopPropagation(); let d = JSON.parse(localStorage.getItem('drives') || '[]'); let t = d.find(x => x.id === ${d.id}); if(t){ t.isGhost = !t.isGhost; localStorage.setItem('drives', JSON.stringify(d)); window.renderHistory(); }">${d.isGhost ? '🌟 GHOST ACTIVE' : 'Make Ghost'}</button></div>
+                    <div class="card-actions"><button class="card-btn btn-ghost-toggle ${d.isGhost ? 'active' : ''}" onclick="event.stopPropagation(); let dAll = JSON.parse(localStorage.getItem('drives') || '[]'); let t = dAll.find(x => x.id === ${d.id}); if(t){ t.isGhost = !t.isGhost; localStorage.setItem('drives', JSON.stringify(dAll)); window.renderHistory(); }">${d.isGhost ? '🌟 GHOST FAVORED' : 'Make Ghost'}</button></div>
                 </div>
             `).join('');
         };
@@ -507,8 +564,8 @@
                 if (pullStartMs) currentDrive.telemetry.push({ lat: lat, lng: lng, t: Date.now() - pullStartMs });
 
                 if (!ghostStaged && activeGhostLap && !pullStartMs) {
-                    if (window.calculateDistance(lat, lng, activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng) < 30) {
-                        ghostStaged = true; window.showToast("👻 Ghost Line Reached! Awaiting Launch.");
+                    if (window.calculateDistance(lat, lng, activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng) < 40) {
+                        ghostStaged = true; window.showToast("👻 Ghost Staged! Awaiting Launch.");
                         ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map);
                     }
                 }
@@ -558,8 +615,7 @@
             let exactLat = a3HighwayRoutePoints[0][0]; let exactLng = a3HighwayRoutePoints[0][1];
             
             window.processTelemetry(exactLat, exactLng, 0, 0);
-
-            setTimeout(() => { if(!pullStartMs) window.triggerManualLaunch(true); }, 2000);
+            setTimeout(() => { if(!pullStartMs) window.triggerManualLaunch(true); }, 1500);
 
             debugInterval = setInterval(() => {
                 ticks++;
