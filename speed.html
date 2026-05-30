@@ -13,169 +13,181 @@
         body, html { 
             margin: 0; padding: 0; height: 100%; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #111; color: white; overflow: hidden;
+            background-color: #0a0a0a; color: white; overflow: hidden;
         }
         
+        /* Sleek Top Navigation Bar */
         .nav-tabs {
             position: absolute; top: 0; left: 0; width: 100%; z-index: 6000;
-            display: flex; background: rgba(10, 10, 10, 0.95);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            display: flex; background: rgba(10, 10, 10, 0.85);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         }
         .tab-btn {
-            flex: 1; padding: 15px; background: none; border: none; color: #888;
-            font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s;
-            -webkit-tap-highlight-color: transparent;
+            flex: 1; padding: 16px; background: none; border: none; color: #666;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: 0.2s ease;
+            -webkit-tap-highlight-color: transparent; letter-spacing: 0.5px;
         }
-        .tab-btn.active { color: #00ff88; border-bottom: 3px solid #00ff88; }
+        .tab-btn.active { color: #00ff88; }
         .icon-btn {
-            background: none; border: none; color: #888; font-size: 1.2rem;
-            cursor: pointer; padding: 0 20px; border-left: 1px solid rgba(255,255,255,0.1);
+            background: none; border: none; color: #666; font-size: 1.1rem;
+            cursor: pointer; padding: 0 16px; border-left: 1px solid rgba(255,255,255,0.05);
+            transition: color 0.2s;
         }
+        .icon-btn:hover { color: #fff; }
 
-        .view { display: none; height: calc(100% - 50px); margin-top: 50px; position: relative; }
+        .view { display: none; height: calc(100% - 53px); margin-top: 53px; position: relative; }
         .view.active { display: block; }
 
-        /* Oversized Map Wrapper for Smooth Rotation */
+        /* Oversized Map Wrapper for Rotation */
         #map-wrapper {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            overflow: hidden; z-index: 1; background: #111;
+            overflow: hidden; z-index: 1; background: #0a0a0a;
         }
         #map { 
             position: absolute; width: 150%; height: 150%; 
-            top: -25%; left: -25%; /* Center the oversized map */
+            top: -25%; left: -25%; 
             transform-origin: center center;
             transition: transform 0.3s linear;
             -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
         }
-        /* Counter-rotate popups so text is readable */
         .leaflet-popup { transition: transform 0.3s linear; }
 
-        /* Master Top-Level UI Elements */
+        /* Master Floating Top UI Panel */
         #top-ui-layer {
-            position: absolute; top: 70px; left: 0; width: 100%;
-            z-index: 5000; pointer-events: none;
-            display: flex; flex-direction: column; align-items: center; gap: 15px;
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 92%; max-width: 420px; z-index: 5000; pointer-events: none;
+            display: flex; flex-direction: column; gap: 10px;
         }
 
-        /* Dedicated Search Container */
-        #search-container {
-            width: 90%; max-width: 400px; pointer-events: auto;
-        }
-        
+        /* Minimalist Streamlined Search Bar */
+        #search-container { width: 100%; pointer-events: auto; }
         .leaflet-control-geocoder { 
-            width: 100% !important; background: rgba(20,20,20,0.95) !important; 
-            border: 1px solid rgba(255,255,255,0.2) !important; border-radius: 16px !important; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important; 
-            backdrop-filter: blur(10px);
+            width: 100% !important; background: rgba(15, 15, 15, 0.85) !important; 
+            border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px !important; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; backdrop-filter: blur(20px);
         }
-        .leaflet-control-geocoder-icon { filter: invert(1); opacity: 0.8; width: 30px; height: 30px; margin-top: 4px; }
+        .leaflet-control-geocoder-icon { filter: invert(1); opacity: 0.6; width: 26px; height: 26px; margin-top: 6px; margin-left: 6px; }
         .leaflet-control-geocoder-form input { 
             background: transparent !important; color: white !important; 
-            font-size: 1.15rem !important; padding: 14px 10px !important; 
+            font-size: 1rem !important; padding: 12px 10px !important; font-weight: 500;
         }
         .leaflet-control-geocoder-results { 
-            background: #1a1a1a !important; color: white !important; 
-            border: 1px solid #333 !important; border-radius: 12px !important; margin-top: 5px !important; 
-            max-height: 40vh; overflow-y: auto;
+            background: #121212 !important; color: white !important; 
+            border: 1px solid #222 !important; border-radius: 12px !important; margin-top: 6px !important; 
+            max-height: 35vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
         }
-        .leaflet-control-geocoder-suggestion { padding: 15px !important; border-bottom: 1px solid #292929; cursor: pointer; font-size: 1rem; }
+        .leaflet-control-geocoder-suggestion { padding: 14px !important; border-bottom: 1px solid #1c1c1c; cursor: pointer; font-size: 0.95rem; }
 
+        /* De-bloated Horizontal HUD */
         #speed-container { 
-            background: rgba(20, 20, 20, 0.85); padding: 20px 40px; border-radius: 24px; 
-            text-align: center; border: 1px solid rgba(255,255,255,0.1); 
-            backdrop-filter: blur(10px); pointer-events: auto;
-            min-width: 140px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(15, 15, 15, 0.8) ; padding: 10px 22px; border-radius: 16px; 
+            border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4); width: 100%; box-sizing: border-box;
         }
-        #speed { font-size: 4.5rem; font-weight: 800; margin: 0; line-height: 1; }
-        #unit { font-size: 1rem; color: #888; font-weight: 600; text-transform: uppercase; margin-top: 4px; }
+        .speed-metrics-wrapper { display: flex; align-items: baseline; gap: 4px; }
+        #speed { font-size: 3rem; font-weight: 900; margin: 0; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+        #unit { font-size: 0.8rem; color: #666; font-weight: 700; text-transform: uppercase; }
         
         #hud-telemetry {
-            display: flex; justify-content: center; gap: 14px; margin-top: 10px;
-            font-size: 0.8rem; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+            font-size: 0.8rem; font-weight: 700; text-align: right;
         }
-        #hud-rpm { color: #ff4444; font-variant-numeric: tabular-nums; }
-        #hud-gforce { color: #00ffff; font-variant-numeric: tabular-nums; }
+        #hud-rpm { color: #ff4444; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+        #hud-gforce { color: #00ffff; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
+        /* Sleek Floating Compact Recenter Action */
         #recenter-btn {
-            position: absolute; bottom: 250px; right: 20px; z-index: 5000;
-            background: rgba(0, 255, 136, 0.9); color: #111; border: 2px solid #00ff88;
-            padding: 12px 20px; border-radius: 30px; font-weight: 900;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.6); display: none; cursor: pointer;
-            backdrop-filter: blur(5px);
+            position: absolute; bottom: 185px; right: 4%; z-index: 5000;
+            background: #00ff88; color: #0a0a0a; border: none;
+            padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem;
+            box-shadow: 0 6px 20px rgba(0,255,136,0.3); display: none; cursor: pointer;
+            letter-spacing: 0.5px; transition: transform 0.2s active;
         }
+        #recenter-btn:active { transform: scale(0.95); }
 
+        /* Unified Bottom Dashboard Architecture */
         .controls {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 5000;
-            display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px;
+            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 5000;
+            display: flex; flex-direction: column; gap: 10px; width: 92%; max-width: 420px;
         }
+        
+        /* Stats Dashboard Panel */
         .stats-row {
-            display: flex; justify-content: space-between; background: rgba(20, 20, 20, 0.9); 
-            padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; background: rgba(15, 15, 15, 0.85); 
+            padding: 14px 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);
+            backdrop-filter: blur(20px); box-shadow: 0 10px 32px rgba(0,0,0,0.5);
         }
-        .stat-item { text-align: center; flex: 1; }
-        .stat-val { font-size: 1.2rem; font-weight: bold; color: #00ff88; }
-        .stat-lbl { font-size: 0.65rem; color: #aaa; letter-spacing: 1px; margin-top: 2px; }
+        .stat-item { text-align: center; flex: 1; border-right: 1px solid rgba(255,255,255,0.05); }
+        .stat-item:last-child { border-right: none; }
+        .stat-val { font-size: 1.15rem; font-weight: 800; color: #00ff88; font-variant-numeric: tabular-nums; }
+        .stat-lbl { font-size: 0.6rem; color: #666; letter-spacing: 0.8px; margin-top: 3px; font-weight: 700; }
 
-        .action-row { display: flex; gap: 10px; }
+        /* Actions Architecture */
+        .action-row { display: flex; gap: 10px; width: 100%; }
         .btn-action {
-            flex: 1; padding: 16px; font-size: 1rem; font-weight: bold; color: #111;
-            background: #00ff88; border: none; border-radius: 16px; cursor: pointer;
+            flex: 1; padding: 15px; font-size: 0.95rem; font-weight: 800; color: #0a0a0a;
+            background: #00ff88; border: none; border-radius: 14px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,255,136,0.15); transition: background 0.2s, color 0.2s;
+            letter-spacing: 0.5px;
         }
-        .btn-action.stop { background: #ff4444; color: white; }
-        .btn-launch { background: #ffaa00; display: none; }
+        .btn-action.stop { background: #ff4444; color: white; box-shadow: 0 4px 15px rgba(255,68,68,0.2); }
+        .btn-launch { background: #ffaa00; display: none; box-shadow: 0 4px 15px rgba(255,170,0,0.2); }
 
+        /* Integrated Sliding Navigation Card Layout */
         #nav-summary-card {
-            background: rgba(20, 20, 20, 0.95); border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 20px; padding: 16px; display: none; flex-direction: column; gap: 12px;
-            backdrop-filter: blur(15px); box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(0,120,255,0.3);
+            border-radius: 18px; padding: 14px; display: none; flex-direction: column; gap: 10px;
+            backdrop-filter: blur(20px); box-shadow: 0 10px 32px rgba(0,0,0,0.6);
         }
         .nav-meta-info { display: flex; justify-content: space-around; align-items: center; text-align: center; }
         .nav-meta-block { flex: 1; }
-        .nav-meta-val { font-size: 1.6rem; font-weight: 800; color: #0078ff; }
-        .nav-meta-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 2px;}
-        .nav-meta-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
-        .nav-btn-row { display: flex; gap: 10px; }
-        .btn-nav-go { background: #0078ff; color: white; }
-        .btn-nav-cancel { background: #333; color: #eee; }
+        .nav-meta-val { font-size: 1.4rem; font-weight: 800; color: #0078ff; }
+        .nav-meta-lbl { font-size: 0.65rem; color: #666; text-transform: uppercase; margin-top: 2px; font-weight: 700; letter-spacing: 0.5px;}
+        .nav-meta-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.08); }
+        .nav-btn-row { display: flex; gap: 8px; }
+        .btn-nav-go { background: #0078ff; color: white; box-shadow: 0 4px 15px rgba(0,120,255,0.25); }
+        .btn-nav-cancel { background: #222; color: #bbb; }
 
-        #history-view { padding: 20px; overflow-y: auto; background: #111; box-sizing: border-box; }
-        .drive-card { background: #1a1a1a; padding: 16px; border-radius: 16px; margin-bottom: 15px; border: 1px solid #292929; }
+        /* History Architecture */
+        #history-view { padding: 16px; overflow-y: auto; background: #0a0a0a; box-sizing: border-box; }
+        .drive-card { background: #121212; padding: 14px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #1c1c1c; }
         .drive-card.is-ghost { border-color: #ffaa00; }
-        .drive-header { display: flex; justify-content: space-between; margin-bottom: 12px; color: #888; font-size: 0.8rem;}
-        .drive-data { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;}
-        .data-point { background: #222; padding: 10px; border-radius: 10px; font-size: 0.85rem;}
-        .data-point span { color: #00ff88; font-weight: bold; display: block; font-size: 1.15rem; margin-top: 4px;}
-        .card-actions { display: flex; gap: 10px; }
-        .card-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; border: none; cursor: pointer; }
-        .btn-ghost-toggle { background: #333; color: #aaa; }
-        .btn-ghost-toggle.active { background: rgba(255, 170, 0, 0.2); color: #ffaa00; border: 1px solid #ffaa00; }
-        .empty-state { text-align: center; color: #555; margin-top: 60px; font-size: 1.1rem; }
+        .drive-header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #555; font-size: 0.75rem; font-weight: 700;}
+        .drive-data { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;}
+        .data-point { background: #161616; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; color: #666; font-weight: 600;}
+        .data-point span { color: #00ff88; font-weight: 800; display: block; font-size: 1.05rem; margin-top: 2px;}
+        .card-actions { display: flex; gap: 8px; }
+        .card-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; }
+        .btn-ghost-toggle { background: #222; color: #888; }
+        .btn-ghost-toggle.active { background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
+        .empty-state { text-align: center; color: #444; margin-top: 60px; font-size: 1rem; font-weight: 600; }
 
+        /* Settings Architecture Overlay */
         #settings-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 7000;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: none;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); display: none;
             justify-content: center; align-items: center;
         }
-        .settings-card { background: #1a1a1a; padding: 25px; border-radius: 20px; width: 85%; border: 1px solid #333; }
-        .settings-card h3 { margin: 0 0 20px 0; text-align: center; }
-        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .settings-card { background: #121212; padding: 22px; border-radius: 18px; width: 82%; max-width: 340px; border: 1px solid #222; }
+        .settings-card h3 { margin: 0 0 18px 0; text-align: center; font-size: 1.1rem; letter-spacing: 0.5px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ff4444; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ff4444; transition: .3s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: #00ff88; }
-        input:checked + .slider:before { transform: translateX(26px); }
-        .btn-close-settings { width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        input:checked + .slider:before { transform: translateX(22px); }
+        .btn-close-settings { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; }
 
-        #debug-banner { position: absolute; top: 60px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(255, 170, 0, 0.9); color: #111; font-weight: bold; padding: 6px 16px; border-radius: 20px; font-size: 0.75rem; display: none; }
-        #toast { position: absolute; bottom: 260px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(0,0,0,0.85); color: #fff; border: 1px solid #333; padding: 10px 20px; border-radius: 30px; display: none; text-align: center;}
+        #debug-banner { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(255, 170, 0, 0.95); color: #0a0a0a; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 0.65rem; display: none; letter-spacing: 0.5px; }
+        #toast { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(10,10,10,0.9); color: #fff; border: 1px solid #222; padding: 8px 18px; border-radius: 30px; display: none; text-align: center; font-size: 0.85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
         
         .leaflet-popup-content-wrapper { background: #111; color: #ffaa00; border: 1px solid #ffaa00; font-weight: bold; border-radius: 8px; }
         .leaflet-popup-tip { background: #111; }
         .leaflet-routing-container { display: none !important; }
-        .leaflet-control-zoom { display: none !important; } /* Hide zoom controls for clean UI */
+        .leaflet-control-zoom { display: none !important; }
     </style>
 </head>
 <body>
@@ -187,8 +199,8 @@
         <div class="settings-card">
             <h3>Control Panel</h3>
             <div class="setting-row">
-                <span style="font-weight: 500;">Launch Mode</span>
-                <span id="launch-mode-lbl" style="color:#888; font-size:0.8rem; margin-right: 10px;">MANUAL</span>
+                <span style="font-weight: 600; font-size: 0.95rem;">Launch Mode</span>
+                <span id="launch-mode-lbl" style="color:#666; font-size:0.8rem; margin-right: auto; margin-left: 10px; font-weight: 700;">MANUAL</span>
                 <label class="switch"><input type="checkbox" checked onchange="window.toggleLaunchMode(this)"><span class="slider"></span></label>
             </div>
             <button class="btn-close-settings" onclick="document.getElementById('settings-overlay').style.display='none'">Close</button>
@@ -207,8 +219,10 @@
         <div id="top-ui-layer">
             <div id="search-container"></div>
             <div id="speed-container" onclick="window.handleSpeedometerTap()">
-                <div id="speed">0</div>
-                <div id="unit">km/h</div>
+                <div class="speed-metrics-wrapper">
+                    <div id="speed">0</div>
+                    <div id="unit">km/h</div>
+                </div>
                 <div id="hud-telemetry">
                     <span id="hud-rpm">RPM: --</span>
                     <span id="hud-gforce">0.00 G</span>
@@ -278,7 +292,6 @@
         const map = L.map('map', { zoomControl: false }).setView([44.4782, 26.1481], 16);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
 
-        // Map Panning Logic
         map.on('dragstart', () => {
             isUserPanning = true;
             document.getElementById('recenter-btn').style.display = 'block';
@@ -294,7 +307,6 @@
             if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
         };
 
-        // Inject Geocoder into custom absolute DOM element to protect from Map Rotation
         const geocoder = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: 'Search destination...' }).addTo(map);
         document.getElementById('search-container').appendChild(geocoder.getContainer());
         
@@ -320,7 +332,6 @@
                 document.getElementById('nav-val-time').innerText = Math.round(summary.totalTime / 60) + " min";
                 document.getElementById('nav-val-dist').innerText = (summary.totalDistance / 1000).toFixed(1) + " km";
                 document.getElementById('nav-summary-card').style.display = 'flex';
-                // Snap to route overview
                 isUserPanning = true; document.getElementById('recenter-btn').style.display = 'block'; clearTimeout(panTimeout);
             });
         };
@@ -478,12 +489,9 @@
         window.processTelemetry = function(lat, lng, speedKmh, providedHeading) {
             document.getElementById('speed').innerText = speedKmh;
             
-            // Map Rotation Math
             if (lastPos && speedKmh > 3) {
                 currentMapHeading = providedHeading !== null && !isNaN(providedHeading) ? providedHeading : window.calculateBearing(lastPos.lat, lastPos.lng, lat, lng);
                 document.getElementById('map').style.transform = `rotate(${-currentMapHeading}deg)`;
-                
-                // Counter-rotate popups to stay upright
                 document.querySelectorAll('.leaflet-popup').forEach(p => p.style.transform = `rotate(${currentMapHeading}deg) translateY(-15px)`);
             }
 
@@ -549,7 +557,6 @@
             let ticks = 0; let simSpeed = 0; let sIdx = 0;
             let exactLat = a3HighwayRoutePoints[0][0]; let exactLng = a3HighwayRoutePoints[0][1];
             
-            // Set initial position to seed routing before driving starts
             window.processTelemetry(exactLat, exactLng, 0, 0);
 
             setTimeout(() => { if(!pullStartMs) window.triggerManualLaunch(true); }, 2000);
@@ -570,7 +577,6 @@
                     else { let p = mps / dist; exactLat += (next[0] - exactLat) * p; exactLng += (next[1] - exactLng) * p; }
                 }
                 
-                // Simulate heading based on standard trajectory to test map rotation
                 let simHeading = null;
                 if (sIdx < a3HighwayRoutePoints.length - 1) {
                     simHeading = window.calculateBearing(exactLat, exactLng, a3HighwayRoutePoints[sIdx+1][0], a3HighwayRoutePoints[sIdx+1][1]);
