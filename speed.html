@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Drive Tracker Pro</title>
+    <title>Drive Tracker Pro - BMW Live Cockpit</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
@@ -13,36 +13,14 @@
         body, html { 
             margin: 0; padding: 0; height: 100%; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #0a0a0a; color: white; overflow: hidden;
+            background-color: #050505; color: white; overflow: hidden;
+            -webkit-user-select: none; user-select: none; /* Prevents text selection on mobile hold */
         }
-        
-        /* Sleek Top Navigation Bar */
-        .nav-tabs {
-            position: absolute; top: 0; left: 0; width: 100%; z-index: 6000;
-            display: flex; background: rgba(10, 10, 10, 0.85);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        }
-        .tab-btn {
-            flex: 1; padding: 16px; background: none; border: none; color: #666;
-            font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: 0.2s ease;
-            -webkit-tap-highlight-color: transparent; letter-spacing: 0.5px;
-        }
-        .tab-btn.active { color: #00ff88; }
-        .icon-btn {
-            background: none; border: none; color: #666; font-size: 1.1rem;
-            cursor: pointer; padding: 0 16px; border-left: 1px solid rgba(255,255,255,0.05);
-            transition: color 0.2s;
-        }
-        .icon-btn:hover { color: #fff; }
 
-        .view { display: none; height: calc(100% - 53px); margin-top: 53px; position: relative; }
-        .view.active { display: block; }
-
-        /* Oversized Map Wrapper for Rotation */
+        /* --- GLOBAL MAP WRAPPER --- */
         #map-wrapper {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            overflow: hidden; z-index: 1; background: #0a0a0a;
+            overflow: hidden; z-index: 1; background: #050505;
         }
         #map { 
             position: absolute; width: 150%; height: 150%; 
@@ -52,129 +30,141 @@
             -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
         }
         .leaflet-popup { transition: transform 0.3s linear; }
+        .leaflet-routing-container, .leaflet-control-zoom { display: none !important; }
 
-        /* Master Floating Top UI Panel */
-        #top-ui-layer {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
-            width: 92%; max-width: 420px; z-index: 5000; pointer-events: none;
-            display: flex; flex-direction: column; gap: 10px;
+        /* =========================================
+           PORTRAIT UI (Standard App Mode)
+           ========================================= */
+        #portrait-ui {
+            display: flex; flex-direction: column; width: 100%; height: 100%; z-index: 5000; position: absolute; pointer-events: none;
         }
+        @media (orientation: landscape) { #portrait-ui { display: none !important; } }
 
-        /* Minimalist Streamlined Search Bar */
+        /* Top Nav */
+        .nav-tabs {
+            display: flex; background: rgba(10, 10, 10, 0.85); border-bottom: 1px solid rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px); pointer-events: auto;
+        }
+        .tab-btn { flex: 1; padding: 16px; background: none; border: none; color: #666; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+        .tab-btn.active { color: #00ff88; }
+        .icon-btn { background: none; border: none; color: #666; font-size: 1.1rem; cursor: pointer; padding: 0 16px; border-left: 1px solid rgba(255,255,255,0.05); }
+
+        .view { display: none; flex: 1; position: relative; pointer-events: none; }
+        .view.active { display: block; }
+
+        /* Search & HUD */
+        #p-top-layer { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 92%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         #search-container { width: 100%; pointer-events: auto; }
-        .leaflet-control-geocoder { 
-            width: 100% !important; background: rgba(15, 15, 15, 0.85) !important; 
-            border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px !important; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important; backdrop-filter: blur(20px);
-        }
-        .leaflet-control-geocoder-icon { filter: invert(1); opacity: 0.6; width: 26px; height: 26px; margin-top: 6px; margin-left: 6px; }
-        .leaflet-control-geocoder-form input { 
-            background: transparent !important; color: white !important; 
-            font-size: 1rem !important; padding: 12px 10px !important; font-weight: 500;
-        }
-        .leaflet-control-geocoder-results { 
-            background: #121212 !important; color: white !important; 
-            border: 1px solid #222 !important; border-radius: 12px !important; margin-top: 6px !important; 
-            max-height: 35vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-        }
-        .leaflet-control-geocoder-suggestion { padding: 14px !important; border-bottom: 1px solid #1c1c1c; cursor: pointer; font-size: 0.95rem; }
-
-        /* De-bloated Horizontal HUD */
-        #speed-container { 
-            display: flex; align-items: center; justify-content: space-between;
-            background: rgba(15, 15, 15, 0.8) ; padding: 10px 22px; border-radius: 16px; 
-            border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); pointer-events: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4); width: 100%; box-sizing: border-box;
-        }
-        .speed-metrics-wrapper { display: flex; align-items: baseline; gap: 4px; }
-        #speed { font-size: 3rem; font-weight: 900; margin: 0; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-        #unit { font-size: 0.8rem; color: #666; font-weight: 700; text-transform: uppercase; }
+        .leaflet-control-geocoder { width: 100% !important; background: rgba(15, 15, 15, 0.85) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 14px !important; backdrop-filter: blur(20px); }
+        .leaflet-control-geocoder-icon { filter: invert(1); opacity: 0.6; }
+        .leaflet-control-geocoder-form input { background: transparent !important; color: white !important; font-size: 1rem !important; padding: 12px 10px !important; font-weight: 500; }
         
-        #hud-telemetry {
-            display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-            font-size: 0.8rem; font-weight: 700; text-align: right;
+        #p-speed-container { 
+            display: flex; align-items: center; justify-content: space-between; background: rgba(15, 15, 15, 0.8) ; padding: 10px 22px; 
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); pointer-events: auto;
         }
-        #hud-rpm { color: #ff4444; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
-        #hud-gforce { color: #00ffff; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+        #p-speed { font-size: 3rem; font-weight: 900; margin: 0; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+        .p-unit { font-size: 0.8rem; color: #666; font-weight: 700; text-transform: uppercase; }
+        .p-telemetry { display: flex; flex-direction: column; align-items: flex-end; font-size: 0.8rem; font-weight: 700; }
+        #p-rpm { color: #ff4444; } #p-gforce { color: #00ffff; }
 
-        /* Safe Upper-Right Corner Recenter Action (Avoids Menu Overlap) */
-        #recenter-btn {
-            position: absolute; top: 175px; right: 4%; z-index: 5000;
-            background: #00ff88; color: #0a0a0a; border: none;
-            padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem;
-            box-shadow: 0 6px 20px rgba(0,255,136,0.3); display: none; cursor: pointer;
-            letter-spacing: 0.5px; transition: transform 0.2s active;
+        /* Recenter Martor */
+        #p-recenter-btn { position: absolute; top: 150px; right: 4%; background: #00ff88; color: #0a0a0a; border: none; padding: 10px 16px; border-radius: 20px; font-weight: 800; font-size: 0.75rem; display: none; cursor: pointer; pointer-events: auto; }
+
+        /* Bottom Controls */
+        .p-controls { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; width: 92%; max-width: 420px; pointer-events: auto; }
+        .p-stats-row { display: flex; justify-content: space-between; background: rgba(15, 15, 15, 0.85); padding: 14px 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(20px); }
+        .p-stat-item { text-align: center; flex: 1; border-right: 1px solid rgba(255,255,255,0.05); } .p-stat-item:last-child { border-right: none; }
+        .p-stat-val { font-size: 1.15rem; font-weight: 800; color: #00ff88; font-variant-numeric: tabular-nums; }
+        .p-stat-lbl { font-size: 0.6rem; color: #666; margin-top: 3px; font-weight: 700; text-transform: uppercase; }
+        
+        .p-action-row { display: flex; gap: 10px; width: 100%; }
+        .p-btn { flex: 1; padding: 15px; font-size: 0.95rem; font-weight: 800; color: #0a0a0a; background: #00ff88; border: none; border-radius: 14px; cursor: pointer; }
+        .p-btn.stop { background: #ff4444; color: white; }
+        #p-launch-btn { background: #ffaa00; display: none; }
+
+
+        /* =========================================
+           LANDSCAPE UI (BMW F90 CLUSTER)
+           ========================================= */
+        #landscape-ui {
+            display: none; width: 100%; height: 100%; z-index: 5000; position: absolute; pointer-events: none;
+            justify-content: space-between; font-family: "Eurostile", "Arial Black", sans-serif;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
         }
-        #recenter-btn:active { transform: scale(0.95); }
+        @media (orientation: landscape) { #landscape-ui { display: flex !important; } }
 
-        /* Unified Bottom Dashboard Architecture */
-        .controls {
-            position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 5000;
-            display: flex; flex-direction: column; gap: 10px; width: 92%; max-width: 420px;
+        /* The Sweeping Angular Gauges */
+        .bmw-gauge-container {
+            width: 32%; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; pointer-events: none;
         }
         
-        /* Stats Dashboard Panel */
-        .stats-row {
-            display: flex; justify-content: space-between; background: rgba(15, 15, 15, 0.85); 
-            padding: 14px 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);
-            backdrop-filter: blur(20px); box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+        .svg-gauge {
+            position: absolute; width: 90%; height: 90%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
         }
-        .stat-item { text-align: center; flex: 1; border-right: 1px solid rgba(255,255,255,0.05); }
-        .stat-item:last-child { border-right: none; }
-        .stat-val { font-size: 1.15rem; font-weight: 800; color: #00ff88; font-variant-numeric: tabular-nums; }
-        .stat-lbl { font-size: 0.6rem; color: #666; letter-spacing: 0.8px; margin-top: 3px; font-weight: 700; }
 
-        /* Actions Architecture */
-        .action-row { display: flex; gap: 10px; width: 100%; }
-        .btn-action {
-            flex: 1; padding: 15px; font-size: 0.95rem; font-weight: 800; color: #0a0a0a;
-            background: #00ff88; border: none; border-radius: 14px; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,255,136,0.15); transition: background 0.2s, color 0.2s;
-            letter-spacing: 0.5px;
+        /* Digital Data Inside the Gauges */
+        .bmw-cluster-data { position: absolute; text-align: center; pointer-events: auto; }
+        .bmw-val { font-size: 5rem; font-weight: 900; line-height: 1; text-shadow: 0 0 20px rgba(255,255,255,0.2); font-variant-numeric: tabular-nums; font-style: italic; }
+        .bmw-unit { font-size: 1rem; color: #666; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
+        .bmw-sub { font-size: 1.1rem; color: #aaa; margin-top: 10px; font-weight: 700; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 10px;}
+        .bmw-sub span { font-style: italic; }
+
+        /* Center Navigation & Status Stack */
+        .bmw-center-stack {
+            flex: 1; display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            padding: 15px 0; pointer-events: none;
         }
-        .btn-action.stop { background: #ff4444; color: white; box-shadow: 0 4px 15px rgba(255,68,68,0.2); }
-        .btn-launch { background: #ffaa00; display: none; box-shadow: 0 4px 15px rgba(255,170,0,0.2); }
 
-        /* Integrated Sliding Navigation Card Layout */
-        #nav-summary-card {
-            background: rgba(15, 15, 15, 0.9); border: 1px solid rgba(0,120,255,0.3);
-            border-radius: 18px; padding: 14px; display: none; flex-direction: column; gap: 10px;
-            backdrop-filter: blur(20px); box-shadow: 0 10px 32px rgba(0,0,0,0.6);
+        /* The Martor (Warning/Recenter Light) */
+        #l-martor-recenter {
+            pointer-events: auto; width: 45px; height: 45px; border-radius: 50%;
+            background: rgba(10,10,10,0.8); border: 2px solid #00ff88;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5rem; color: #00ff88; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+            cursor: pointer; transition: 0.3s;
         }
-        .nav-meta-info { display: flex; justify-content: space-around; align-items: center; text-align: center; }
-        .nav-meta-block { flex: 1; }
-        .nav-meta-val { font-size: 1.4rem; font-weight: 800; color: #0078ff; }
-        .nav-meta-lbl { font-size: 0.65rem; color: #666; text-transform: uppercase; margin-top: 2px; font-weight: 700; letter-spacing: 0.5px;}
-        .nav-meta-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.08); }
-        .nav-btn-row { display: flex; gap: 8px; }
-        .btn-nav-go { background: #0078ff; color: white; box-shadow: 0 4px 15px rgba(0,120,255,0.25); }
-        .btn-nav-cancel { background: #222; color: #bbb; }
+        #l-martor-recenter.warning { border-color: #ffaa00; color: #ffaa00; box-shadow: 0 0 20px rgba(255, 170, 0, 0.6); }
 
-        /* History Architecture Layout */
-        #history-view { padding: 16px; overflow-y: auto; background: #0a0a0a; box-sizing: border-box; }
+        /* Landscape Control Bar */
+        .bmw-bottom-bar {
+            width: 90%; background: rgba(10, 10, 15, 0.85); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between;
+            backdrop-filter: blur(15px); pointer-events: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        
+        .bmw-stat-block { display: flex; gap: 20px; }
+        .bmw-stat { text-align: center; }
+        .bmw-stat-val { font-size: 1.2rem; font-weight: 900; color: #0078ff; font-style: italic; font-variant-numeric: tabular-nums; }
+        .bmw-stat-lbl { font-size: 0.6rem; color: #666; text-transform: uppercase; font-weight: 800; }
+
+        .bmw-action-block { display: flex; gap: 10px; }
+        .l-btn { padding: 10px 20px; border-radius: 12px; font-weight: 900; border: none; cursor: pointer; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px;}
+        .l-btn-start { background: #00ff88; color: #000; box-shadow: 0 0 15px rgba(0,255,136,0.3); }
+        .l-btn-start.stop { background: #ff4444; color: #fff; box-shadow: 0 0 15px rgba(255,68,68,0.3); }
+        #l-launch-btn { background: #ffaa00; color: #000; display: none; box-shadow: 0 0 15px rgba(255,170,0,0.3);}
+
+
+        /* =========================================
+           GLOBAL COMPONENTS (History, Settings, Debug)
+           ========================================= */
+        #history-view { position:absolute; top:53px; width:100%; height:calc(100% - 53px); padding: 16px; overflow-y: auto; background: #0a0a0a; box-sizing: border-box; z-index: 5500; pointer-events:auto;}
         .drive-card { background: #121212; padding: 14px; border-radius: 14px; margin-bottom: 12px; border: 1px solid #1c1c1c; cursor: pointer; }
         .drive-card.is-ghost { border-color: #ffaa00; }
         .drive-header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #555; font-size: 0.75rem; font-weight: 700;}
-        
         .drive-card-content { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
         .drive-stats-block { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; }
-        
         .data-point { background: #161616; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; color: #666; font-weight: 600;}
         .data-point span { color: #00ff88; font-weight: 800; display: block; font-size: 1.05rem; margin-top: 2px;}
         .card-actions { display: flex; gap: 8px; margin-top: 12px; }
         .card-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; }
         .btn-ghost-toggle { background: #222; color: #888; }
         .btn-ghost-toggle.active { background: rgba(255, 170, 0, 0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
-        .empty-state { text-align: center; color: #444; margin-top: 60px; font-size: 1rem; font-weight: 600; }
 
-        /* Settings Architecture Overlay */
-        #settings-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 7000;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); display: none;
-            justify-content: center; align-items: center;
-        }
+        #settings-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 7000; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); display: none; justify-content: center; align-items: center; pointer-events:auto;}
         .settings-card { background: #121212; padding: 22px; border-radius: 18px; width: 82%; max-width: 340px; border: 1px solid #222; }
-        .settings-card h3 { margin: 0 0 18px 0; text-align: center; font-size: 1.1rem; letter-spacing: 0.5px; }
         .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -184,13 +174,8 @@
         input:checked + .slider:before { transform: translateX(22px); }
         .btn-close-settings { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; }
 
-        #debug-banner { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(255, 170, 0, 0.95); color: #0a0a0a; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 0.65rem; display: none; letter-spacing: 0.5px; }
-        #toast { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); z-index: 6000; background: rgba(10,10,10,0.9); color: #fff; border: 1px solid #222; padding: 8px 18px; border-radius: 30px; display: none; text-align: center; font-size: 0.85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
-        
-        .leaflet-popup-content-wrapper { background: #111; color: #ffaa00; border: 1px solid #ffaa00; font-weight: bold; border-radius: 8px; }
-        .leaflet-popup-tip { background: #111; }
-        .leaflet-routing-container { display: none !important; }
-        .leaflet-control-zoom { display: none !important; }
+        #debug-banner { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); z-index: 8000; background: #ffaa00; color: #0a0a0a; font-weight: 800; padding: 4px 14px; border-radius: 20px; font-size: 0.65rem; display: none; }
+        #toast { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); z-index: 8000; background: rgba(10,10,10,0.9); color: #fff; border: 1px solid #222; padding: 8px 18px; border-radius: 30px; display: none; text-align: center; font-size: 0.85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
@@ -200,157 +185,168 @@
 
     <div id="settings-overlay">
         <div class="settings-card">
-            <h3>Control Panel</h3>
+            <h3 style="margin: 0 0 18px 0; text-align: center; font-size: 1.1rem;">Control Panel</h3>
             <div class="setting-row">
-                <span style="font-weight: 600; font-size: 0.95rem;">Launch Mode</span>
-                <span id="launch-mode-lbl" style="color:#666; font-size:0.8rem; margin-right: auto; margin-left: 10px; font-weight: 700;">MANUAL</span>
-                <label class="switch"><input type="checkbox" checked onchange="window.toggleLaunchMode(this)"><span class="slider"></span></label>
+                <span style="font-weight: 600; font-size: 0.95rem;">Auto-Start Drive (>5km/h)</span>
+                <label class="switch"><input type="checkbox" id="auto-start-toggle" onchange="window.toggleAutoStart(this)"><span class="slider"></span></label>
             </div>
             <button class="btn-close-settings" onclick="document.getElementById('settings-overlay').style.display='none'">Close</button>
         </div>
     </div>
 
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="window.switchTab('tracker', event)">Tracker</button>
-        <button class="tab-btn" onclick="window.switchTab('history', event)">History</button>
-        <button id="obd-toggle-btn" class="icon-btn" onclick="window.showToast('OBD-II Configured Successfully')">⚙️</button>
-        <button class="icon-btn" onclick="document.getElementById('settings-overlay').style.display='flex'">≡</button>
-    </div>
+    <div id="map-wrapper"><div id="map"></div></div>
 
-    <div id="tracker-view" class="view active">
-        
-        <div id="top-ui-layer">
-            <div id="search-container"></div>
-            <div id="speed-container" onclick="window.handleSpeedometerTap()">
-                <div class="speed-metrics-wrapper">
-                    <div id="speed">0</div>
-                    <div id="unit">km/h</div>
+
+    <div id="portrait-ui">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="window.switchTab('tracker')">Tracker</button>
+            <button class="tab-btn" onclick="window.switchTab('history')">History</button>
+            <button class="icon-btn" onclick="window.showToast('OBD-II Hook Active')">⚙️</button>
+            <button class="icon-btn" onclick="document.getElementById('settings-overlay').style.display='flex'">≡</button>
+        </div>
+
+        <div id="tracker-view" class="view active">
+            <div id="p-top-layer">
+                <div id="search-container"></div>
+                <div id="p-speed-container" onclick="window.handleSpeedometerTap()">
+                    <div style="display: flex; align-items: baseline; gap: 4px;">
+                        <div id="p-speed">0</div><div class="p-unit">km/h</div>
+                    </div>
+                    <div class="p-telemetry">
+                        <span id="p-rpm">RPM: 780</span>
+                        <span id="p-gforce">0.00 G</span>
+                    </div>
                 </div>
-                <div id="hud-telemetry">
-                    <span id="hud-rpm">RPM: --</span>
-                    <span id="hud-gforce">0.00 G</span>
+            </div>
+
+            <button id="p-recenter-btn" onclick="window.forceRecenter()">🎯 RE-CENTER</button>
+
+            <div class="p-controls">
+                <div class="p-stats-row">
+                    <div class="p-stat-item"><div class="p-stat-val" id="p-max">0</div><div class="p-stat-lbl">MAX (km/h)</div></div>
+                    <div class="p-stat-item"><div class="p-stat-val" id="p-dist">0.0</div><div class="p-stat-lbl">DIST (km)</div></div>
+                    <div class="p-stat-item"><div class="p-stat-val" id="p-time">00:00</div><div class="p-stat-lbl">TIME</div></div>
+                </div>
+                <div class="p-action-row">
+                    <button id="p-toggle-btn" class="p-btn" onclick="window.toggleDrive()">START DRIVE</button>
+                    <button id="p-launch-btn" class="p-btn" onclick="window.triggerManualLaunch()">LAUNCH</button>
                 </div>
             </div>
         </div>
 
-        <button id="recenter-btn" onclick="window.forceRecenter()">🎯 RE-CENTER</button>
+        <div id="history-view" class="view">
+            <div id="history-container"><div class="empty-state">No drives saved yet.</div></div>
+        </div>
+    </div>
 
-        <div id="map-wrapper">
-            <div id="map"></div>
+
+    <div id="landscape-ui">
+        <div class="bmw-gauge-container">
+            <svg class="svg-gauge" viewBox="0 0 200 200">
+                <path d="M 10 180 L 10 100 L 70 20 L 180 20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
+                <path id="l-svg-speed" d="M 10 180 L 10 100 L 70 20 L 180 20" fill="none" stroke="#0078ff" stroke-width="8" stroke-linecap="round" stroke-dasharray="290" stroke-dashoffset="290" style="transition: stroke-dashoffset 0.1s linear;"/>
+            </svg>
+            <div class="bmw-cluster-data">
+                <div class="bmw-val" id="l-speed">0</div>
+                <div class="bmw-unit">km/h</div>
+                <div class="bmw-sub">DIST <span id="l-dist" style="color:#0078ff">0.00</span></div>
+            </div>
         </div>
 
-        <div class="controls">
-            <div id="nav-summary-card">
-                <div class="nav-meta-info">
-                    <div class="nav-meta-block"><div id="nav-val-time" class="nav-meta-val">--</div><div class="nav-meta-lbl">Duration</div></div>
-                    <div class="nav-meta-divider"></div>
-                    <div class="nav-meta-block"><div id="nav-val-dist" class="nav-meta-val">--</div><div class="nav-meta-lbl">Distance</div></div>
+        <div class="bmw-center-stack">
+            <div id="l-martor-recenter" onclick="window.forceRecenter()">⌖</div>
+            
+            <div class="bmw-bottom-bar">
+                <div class="bmw-stat-block">
+                    <div class="bmw-stat"><div class="bmw-stat-val" id="l-max">0</div><div class="bmw-stat-lbl">MAX</div></div>
+                    <div class="bmw-stat"><div class="bmw-stat-val" id="l-time">00:00</div><div class="bmw-stat-lbl">TIME</div></div>
                 </div>
-                <div class="nav-btn-row">
-                    <button id="nav-cancel-btn" class="btn-action btn-nav-cancel" onclick="window.clearActiveRoute()">CANCEL</button>
-                    <button id="nav-go-btn" class="btn-action btn-nav-go" onclick="window.acceptActiveRoute()">GO</button>
+                <div class="bmw-action-block">
+                    <button id="l-launch-btn" class="l-btn" onclick="window.triggerManualLaunch()">LAUNCH</button>
+                    <button id="l-toggle-btn" class="l-btn l-btn-start" onclick="window.toggleDrive()">START</button>
                 </div>
             </div>
+        </div>
 
-            <div class="stats-row">
-                <div class="stat-item"><div class="stat-val" id="ui-max">0</div><div class="stat-lbl">MAX (km/h)</div></div>
-                <div class="stat-item"><div class="stat-val" id="ui-dist">0.0</div><div class="stat-lbl">DIST (km)</div></div>
-                <div class="stat-item"><div class="stat-val" id="ui-time">00:00</div><div class="stat-lbl">TIME</div></div>
-            </div>
-            <div class="action-row">
-                <button id="toggle-drive-btn" class="btn-action" onclick="window.toggleDrive()">START DRIVE</button>
-                <button id="manual-launch-btn" class="btn-action btn-launch" onclick="window.triggerManualLaunch()">LAUNCH</button>
+        <div class="bmw-gauge-container">
+            <svg class="svg-gauge" viewBox="0 0 200 200">
+                <path d="M 190 180 L 190 100 L 130 20 L 20 20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
+                <path id="l-svg-rpm" d="M 190 180 L 190 100 L 130 20 L 20 20" fill="none" stroke="#ff2a2a" stroke-width="8" stroke-linecap="round" stroke-dasharray="290" stroke-dashoffset="290" style="transition: stroke-dashoffset 0.1s linear;"/>
+            </svg>
+            <div class="bmw-cluster-data">
+                <div class="bmw-unit" style="color:#ff2a2a;">GEAR <span id="l-gear" style="font-size:1.5rem; color:#fff; font-style:italic;">P</span></div>
+                <div class="bmw-val" id="l-rpm" style="font-size: 3.5rem; margin-top:5px;">780</div>
+                <div class="bmw-sub">G-FORCE <span id="l-gforce" style="color:#ff2a2a">0.00</span></div>
             </div>
         </div>
     </div>
 
-    <div id="history-view" class="view">
-        <div id="history-container"><div class="empty-state">No drives saved yet.</div></div>
-    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     
     <script>
-        let settings = { launchMode: 'manual' }; 
-        let currentMapHeading = 0;
-        let isUserPanning = false;
-        let panTimeout = null;
+        // System Config
+        let settings = { autoStart: false }; 
+        let currentMapHeading = 0; let isUserPanning = false; let panTimeout = null;
 
-        window.toggleLaunchMode = function(checkbox) {
-            settings.launchMode = checkbox.checked ? 'manual' : 'auto';
-            document.getElementById('launch-mode-lbl').innerText = settings.launchMode.toUpperCase();
-            if (isDriving) document.getElementById('manual-launch-btn').style.display = (settings.launchMode === 'manual' && !pullStartMs) ? 'block' : 'none';
+        window.toggleAutoStart = function(cb) {
+            settings.autoStart = cb.checked;
         };
 
-        window.switchTab = function(tab, event) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        window.switchTab = function(tab) {
+            if(tab === 'history') {
+                document.getElementById('history-view').style.display = 'block';
+                document.getElementById('tracker-view').style.display = 'none';
+                window.renderHistory();
+            } else {
+                document.getElementById('history-view').style.display = 'none';
+                document.getElementById('tracker-view').style.display = 'block';
+            }
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tab + '-view').classList.add('active');
-            if(event && event.target.classList.contains('tab-btn')) event.target.classList.add('active');
-            if (tab === 'history') window.renderHistory();
+            event.target.classList.add('active');
         };
 
+        // Map Setup
         const map = L.map('map', { zoomControl: false }).setView([44.4782, 26.1481], 16);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
 
         map.on('dragstart', () => {
             isUserPanning = true;
-            document.getElementById('recenter-btn').style.display = 'block';
+            document.getElementById('p-recenter-btn').style.display = 'block';
+            const martor = document.getElementById('l-martor-recenter');
+            martor.classList.add('warning'); // Flashes yellow in landscape
             clearTimeout(panTimeout);
         });
-        map.on('dragend', () => {
-            panTimeout = setTimeout(() => { window.forceRecenter(); }, 10000);
-        });
+        map.on('dragend', () => { panTimeout = setTimeout(() => { window.forceRecenter(); }, 10000); });
 
         window.forceRecenter = function() {
             isUserPanning = false;
-            document.getElementById('recenter-btn').style.display = 'none';
+            document.getElementById('p-recenter-btn').style.display = 'none';
+            const martor = document.getElementById('l-martor-recenter');
+            martor.classList.remove('warning');
             if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
         };
 
+        window.addEventListener("orientationchange", function() { setTimeout(() => { map.invalidateSize(); window.forceRecenter(); }, 250); });
+
+        // Search & Touch/Hold Routing Setup
         const geocoder = L.Control.geocoder({ defaultMarkGeocode: false, placeholder: 'Search destination...' }).addTo(map);
         document.getElementById('search-container').appendChild(geocoder.getContainer());
-        
         geocoder.on('markgeocode', function(e) { window.buildNavigationRoute(e.geocode.bbox.getCenter()); });
-        map.on('click', function(e) { if (!isNavigationActive) window.buildNavigationRoute(e.latlng); });
 
-        let routingControl = null;
-        let selectedDestination = null;
-        let isNavigationActive = false;
+        // Mobile Long-Press / Right-Click to set destination quickly
+        map.on('contextmenu', function(e) {
+            window.buildNavigationRoute(e.latlng);
+        });
 
-        window.buildNavigationRoute = function(destinationLatLng) {
+        let routingControl = null; let selectedDestination = null; let isNavigationActive = false;
+
+        window.buildNavigationRoute = function(dest) {
             if (!lastPos) { window.showToast("Waiting for GPS lock..."); return; }
             if (routingControl) map.removeControl(routingControl);
-            selectedDestination = destinationLatLng;
-            routingControl = L.Routing.control({
-                waypoints: [ L.latLng(lastPos.lat, lastPos.lng), selectedDestination ],
-                routeWhileDragging: false, addWaypoints: false, show: false, 
-                lineOptions: { styles: [{ color: '#0078ff', weight: 6, opacity: 0.85 }] }
-            }).addTo(map);
-
-            routingControl.on('routesfound', function(e) {
-                const summary = e.routes[0].summary;
-                document.getElementById('nav-val-time').innerText = Math.round(summary.totalTime / 60) + " min";
-                document.getElementById('nav-val-dist').innerText = (summary.totalDistance / 1000).toFixed(1) + " km";
-                document.getElementById('nav-summary-card').style.display = 'flex';
-            });
-        };
-
-        window.clearActiveRoute = function() {
-            if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-            selectedDestination = null; isNavigationActive = false;
-            document.getElementById('nav-summary-card').style.display = 'none';
-            window.forceRecenter();
-        };
-
-        window.acceptActiveRoute = function() {
-            if (!selectedDestination) return;
-            isNavigationActive = true;
-            document.getElementById('nav-go-btn').style.display = 'none'; 
-            window.forceRecenter();
-            window.showToast("Route Locked. Drive safely.");
+            routingControl = L.Routing.control({ waypoints: [ L.latLng(lastPos.lat, lastPos.lng), dest ], routeWhileDragging: false, addWaypoints: false, show: false, lineOptions: { styles: [{ color: '#0078ff', weight: 6, opacity: 0.85 }] } }).addTo(map);
         };
 
         const marker = L.circleMarker([44.4782, 26.1481], { radius: 8, color: '#00ff88', fillColor: '#00ff88', fillOpacity: 1, zIndexOffset: 1000 }).addTo(map);
@@ -358,40 +354,52 @@
         const ghostStartZone = L.circle([0, 0], { radius: 40, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.15 });
         const ghostMarker = L.circleMarker([0, 0], { radius: 8, color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.9, weight: 2 });
         
-        let activeGhostLap = null; let ghostStaged = false;
-        const radarLayer = L.layerGroup().addTo(map); 
+        let activeGhostLap = null; let ghostStaged = false; const radarLayer = L.layerGroup().addTo(map); 
 
+        // Drive State
         let isDriving = false; let driveStartTime = 0; let driveTimerInterval;
         let lastPos = { lat: 44.4782, lng: 26.1481 }; let radarsLoaded = false; 
         let currentDrive = { id: null, isGhost: false, date: null, duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
         
-        let pullStartMs = null; let hit60 = false; let hit100 = false; let maxGForce = 0;
-        let speedTapCount = 0; let speedTapTimeout = null; let isDebugMode = false; let debugInterval = null;
+        // Automated Pull Tracking
+        let previousSpeed = 0;
+        let pullStartMs = null; 
+        let hit60 = false; let hit100 = false; 
+        let ghostReleasedMs = null;
+        
+        let maxGForce = 0; let speedTapCount = 0; let speedTapTimeout = null; let isDebugMode = false; let debugInterval = null;
+
+        function calculateGear(speed) {
+            if (speed === 0) return 'P'; if (speed < 20) return 'D1'; if (speed < 45) return 'D2';
+            if (speed < 75) return 'D3'; if (speed < 110) return 'D4'; if (speed < 150) return 'D5';
+            if (speed < 200) return 'D6'; return 'D7';
+        }
 
         window.showToast = function(msg) {
             const el = document.getElementById('toast'); el.innerText = msg; el.style.display = 'block';
             setTimeout(() => { el.style.display = 'none'; }, 2500);
         };
 
+        // G-Force processing
         if (typeof DeviceMotionEvent !== 'undefined') {
             window.addEventListener('devicemotion', (event) => {
                 if (!isDriving) return;
                 const acc = event.acceleration || event.accelerationIncludingGravity; if (!acc) return;
-                const gForce = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z) / 9.81;
+                const gForce = Math.sqrt(acc.x*acc.x + acc.y*acc.y + acc.z*acc.z) / 9.81;
                 const normalizedG = event.acceleration ? gForce : Math.abs(gForce - 1);
-                if (normalizedG > maxGForce && normalizedG > 0.05) { maxGForce = normalizedG; document.getElementById('hud-gforce').innerText = maxGForce.toFixed(2) + " G"; }
-                if (settings.launchMode === 'auto' && normalizedG > 0.25 && currentDrive.maxSpeed < 3 && !pullStartMs) window.triggerManualLaunch(true);
+                if (normalizedG > maxGForce && normalizedG > 0.05) { 
+                    maxGForce = normalizedG; let f = maxGForce.toFixed(2);
+                    document.getElementById('p-gforce').innerText = f + " G"; 
+                    document.getElementById('l-gforce').innerText = f;
+                }
             });
         }
 
-        window.triggerManualLaunch = function(isAuto = false) {
+        window.triggerManualLaunch = function() {
             pullStartMs = Date.now(); hit60 = false; hit100 = false;
-            document.getElementById('manual-launch-btn').style.display = 'none';
-            window.showToast(isAuto ? "🚀 Auto-Launch Engaged!" : "🚀 Manual Launch Engaged!");
-            if (ghostStaged && activeGhostLap) { 
-                ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); 
-                ghostStartZone.removeFrom(map); 
-            }
+            document.getElementById('p-launch-btn').style.display = 'none';
+            document.getElementById('l-launch-btn').style.display = 'none';
+            window.showToast("🚀 Manual Launch Staged!");
         };
 
         window.scanForRadars = async function(lat, lng) {
@@ -401,150 +409,159 @@
                 const data = await response.json();
                 data.elements.forEach(c => { L.circleMarker([c.lat, c.lon], { radius: 7, color: '#ff4444', fillColor: '#ff0000', fillOpacity: 0.8 }).addTo(radarLayer).bindPopup("⚠️ Camera"); });
             } catch (err) {
-                if (isDebugMode) L.circleMarker([44.4800, 26.1500], { radius: 7, color: '#ff4444', fillColor: '#ff0000', fillOpacity: 0.8 }).addTo(radarLayer).bindPopup("⚠️ Mock Camera");
+                if (isDebugMode) L.circleMarker([44.4800, 26.1500], { radius: 7, color: '#ff4444', fillColor: '#ff0000', fillOpacity: 0.8 }).addTo(radarLayer).bindPopup("Mock Camera");
             }
         };
 
         window.calculateBearing = function(lat1, lon1, lat2, lon2) {
-            const toRad = Math.PI / 180; const toDeg = 180 / Math.PI;
-            const dLon = (lon2 - lon1) * toRad;
-            const y = Math.sin(dLon) * Math.cos(lat2 * toRad);
-            const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) - Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLon);
-            return (Math.atan2(y, x) * toDeg + 360) % 360;
+            const toRad = Math.PI/180; const dLon = (lon2-lon1)*toRad;
+            const y = Math.sin(dLon) * Math.cos(lat2*toRad);
+            const x = Math.cos(lat1*toRad) * Math.sin(lat2*toRad) - Math.sin(lat1*toRad) * Math.cos(lat2*toRad) * Math.cos(dLon);
+            return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
         };
 
         window.calculateDistance = function(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
-            const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+            const R = 6371e3; const p1 = lat1*Math.PI/180; const p2 = lat2*Math.PI/180;
+            const dp = (lat2-lat1)*Math.PI/180; const dl = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dp/2)*Math.sin(dp/2) + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
         };
 
-        window.formatTime = function(seconds) { return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`; };
+        window.formatTime = function(seconds) { return `${Math.floor(seconds/60).toString().padStart(2,'0')}:${(seconds%60).toString().padStart(2,'0')}`; };
 
-        // Optimized Vector Path Generator for instant mini-map rendering
         window.generateSVGPreview = function(route) {
             if (!route || route.length < 2) return '';
-            const lats = route.map(p => p[0]);
-            const lngs = route.map(p => p[1]);
-            const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-            const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-            const latRange = maxLat - minLat || 0.001, lngRange = maxLng - minLng || 0.001;
-            
+            const lats = route.map(p=>p[0]); const lngs = route.map(p=>p[1]);
+            const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+            const latRange = maxLat-minLat || 0.001, lngRange = maxLng-minLng || 0.001;
             const w = 110, h = 65, pad = 6;
-            const points = route.map(p => {
-                const x = pad + ((p[1] - minLng) / lngRange) * (w - pad * 2);
-                const y = pad + (1 - (p[0] - minLat) / latRange) * (h - pad * 2);
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-            });
-            
-            return `
-                <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#161616; border-radius:10px; border:1px solid rgba(255,255,255,0.04);">
-                    <polyline points="${points.join(' ')}" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            `;
+            const points = route.map(p => `${pad + ((p[1]-minLng)/lngRange)*(w-pad*2)},${pad + (1-(p[0]-minLat)/latRange)*(h-pad*2)}`);
+            return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#161616; border-radius:10px; border:1px solid rgba(255,255,255,0.04);"><polyline points="${points.join(' ')}" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
         };
 
-        window.toggleDrive = function() {
-            const btn = document.getElementById('toggle-drive-btn');
+        // Sync Drive Toggle
+        window.toggleDrive = function(isAutoStart = false) {
             if (!isDriving) {
-                isDriving = true; btn.innerText = "STOP"; btn.classList.add('stop');
-                driveStartTime = Date.now(); pathLine.setLatLngs([]); radarLayer.clearLayers();
-                pullStartMs = null; radarsLoaded = false; maxGForce = 0; document.getElementById('hud-gforce').innerText = "0.00 G";
-                currentDrive = { id: Date.now(), isGhost: false, date: new Date().toLocaleString('ro-RO'), duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
-                document.getElementById('ui-max').innerText = "0"; document.getElementById('ui-dist').innerText = "0.0";
+                isDriving = true; 
+                // Portrait Update
+                const pBtn = document.getElementById('p-toggle-btn'); pBtn.innerText = "STOP"; pBtn.classList.add('stop');
+                // Landscape Update
+                const lBtn = document.getElementById('l-toggle-btn'); lBtn.innerText = "STOP"; lBtn.classList.add('stop');
                 
-                if (settings.launchMode === 'manual') document.getElementById('manual-launch-btn').style.display = 'block';
+                driveStartTime = Date.now(); pathLine.setLatLngs([]); radarLayer.clearLayers();
+                pullStartMs = null; ghostReleasedMs = null; radarsLoaded = false; maxGForce = 0; 
+                document.getElementById('p-gforce').innerText = "0.00 G"; document.getElementById('l-gforce').innerText = "0.00";
+                
+                currentDrive = { id: Date.now(), isGhost: false, date: new Date().toLocaleString('ro-RO'), duration: 0, distance: 0, maxSpeed: 0, best0to60: null, best0to100: null, route: [], telemetry: [] };
+                document.getElementById('p-max').innerText = "0"; document.getElementById('p-dist').innerText = "0.0";
+                document.getElementById('l-max').innerText = "0"; document.getElementById('l-dist').innerText = "0.00";
+                
+                document.getElementById('p-launch-btn').style.display = 'block';
+                document.getElementById('l-launch-btn').style.display = 'block';
 
-                // Automated selection logic: Auto-fetches your fastest historical telemetry run
+                // Find best historical run for ghost
                 let drives = JSON.parse(localStorage.getItem('drives') || '[]');
                 activeGhostLap = drives.find(d => d.isGhost && d.telemetry && d.telemetry.length > 0);
                 if (!activeGhostLap) {
                     let eligible = drives.filter(d => d.telemetry && d.telemetry.length > 0);
-                    if (eligible.length > 0) {
-                        eligible.sort((a,b) => (parseFloat(a.best0to100) || 999) - (parseFloat(b.best0to100) || 999));
-                        activeGhostLap = eligible[0];
-                    }
+                    if (eligible.length > 0) { eligible.sort((a,b) => (parseFloat(a.best0to100)||999) - (parseFloat(b.best0to100)||999)); activeGhostLap = eligible[0]; }
                 }
 
-                // Simulation Safety Injection: Creates an instant companion trace if localstorage is blank
-                if (isDebugMode && !activeGhostLap) {
-                    activeGhostLap = {
-                        telemetry: a3HighwayRoutePoints.map((pt, i) => ({ lat: pt[0], lng: pt[1], t: i * 2000 }))
-                    };
-                }
-
-                if (activeGhostLap && activeGhostLap.telemetry && activeGhostLap.telemetry.length > 0) {
-                    ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); 
-                    ghostStaged = false; 
-                }
+                if (isDebugMode && !activeGhostLap) activeGhostLap = { telemetry: a3HighwayRoutePoints.map((pt, i) => ({ lat: pt[0], lng: pt[1], t: i * 2000 })) };
+                if (activeGhostLap && activeGhostLap.telemetry.length > 0) { ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map); ghostStaged = false; }
 
                 driveTimerInterval = setInterval(() => {
                     currentDrive.duration = Math.floor((Date.now() - driveStartTime) / 1000);
-                    document.getElementById('ui-time').innerText = window.formatTime(currentDrive.duration);
+                    let fTime = window.formatTime(currentDrive.duration);
+                    document.getElementById('p-time').innerText = fTime;
+                    document.getElementById('l-time').innerText = fTime;
                     
-                    if (ghostStaged && pullStartMs && activeGhostLap && activeGhostLap.telemetry) {
-                        let elapsedMs = Date.now() - pullStartMs; let tel = activeGhostLap.telemetry;
+                    if (ghostStaged && ghostReleasedMs && activeGhostLap.telemetry) {
+                        let elapsedMs = Date.now() - ghostReleasedMs; let tel = activeGhostLap.telemetry;
                         let moved = false;
                         for (let i = 0; i < tel.length - 1; i++) {
                             if (elapsedMs >= tel[i].t && elapsedMs < tel[i+1].t) {
-                                let progress = (elapsedMs - tel[i].t) / (tel[i+1].t - tel[i].t);
-                                ghostMarker.setLatLng([tel[i].lat + (tel[i+1].lat - tel[i].lat) * progress, tel[i].lng + (tel[i+1].lng - tel[i].lng) * progress]); 
+                                let prog = (elapsedMs - tel[i].t) / (tel[i+1].t - tel[i].t);
+                                ghostMarker.setLatLng([tel[i].lat + (tel[i+1].lat - tel[i].lat)*prog, tel[i].lng + (tel[i+1].lng - tel[i].lng)*prog]); 
                                 if (!ghostMarker._map) ghostMarker.addTo(map);
                                 moved = true; break;
                             }
                         }
-                        if (!moved && elapsedMs >= tel[tel.length - 1].t) ghostMarker.setLatLng([tel[tel.length - 1].lat, tel[tel.length - 1].lng]);
+                        if (!moved && elapsedMs >= tel[tel.length - 1].t) ghostMarker.setLatLng([tel[tel.length-1].lat, tel[tel.length-1].lng]);
                     }
                 }, 100); 
-                if (isDebugMode) window.runHighwaySimulation();
+                if (isDebugMode && !isAutoStart) window.runHighwaySimulation();
             } else {
-                isDriving = false; btn.innerText = "START DRIVE"; btn.classList.remove('stop'); document.getElementById('manual-launch-btn').style.display = 'none';
+                isDriving = false; 
+                document.getElementById('p-toggle-btn').innerText = "START DRIVE"; document.getElementById('p-toggle-btn').classList.remove('stop');
+                document.getElementById('l-toggle-btn').innerText = "START"; document.getElementById('l-toggle-btn').classList.remove('stop');
+                document.getElementById('p-launch-btn').style.display = 'none'; document.getElementById('l-launch-btn').style.display = 'none';
+                
                 clearInterval(driveTimerInterval); if (debugInterval) clearInterval(debugInterval);
                 ghostMarker.removeFrom(map); ghostStartZone.removeFrom(map);
-                if (currentDrive.distance > 0) { window.saveDrive(currentDrive); window.showToast("Drive saved."); }
+                if (currentDrive.distance > 0 || currentDrive.maxSpeed > 0) { window.saveDrive(currentDrive); window.showToast("Drive saved."); }
             }
         };
 
-        window.saveDrive = function(driveData) {
-            let drives = JSON.parse(localStorage.getItem('drives') || '[]'); drives.unshift(driveData); 
-            localStorage.setItem('drives', JSON.stringify([...drives.filter(d => d.isGhost), ...drives.filter(d => !d.isGhost).slice(0, 10)]));
+        window.saveDrive = function(d) {
+            let drives = JSON.parse(localStorage.getItem('drives') || '[]'); drives.unshift(d); 
+            localStorage.setItem('drives', JSON.stringify([...drives.filter(x=>x.isGhost), ...drives.filter(x=>!x.isGhost).slice(0, 10)]));
         };
 
         window.renderHistory = function() {
             const container = document.getElementById('history-container');
             let drives = JSON.parse(localStorage.getItem('drives') || '[]');
             if (drives.length === 0) { container.innerHTML = '<div class="empty-state">No drives saved yet.</div>'; return; }
-            container.innerHTML = drives.map((d, index) => `
-                <div class="drive-card ${d.isGhost ? 'is-ghost' : ''}" onclick="window.previewPastRoute(${index})">
+            container.innerHTML = drives.map((d, i) => `
+                <div class="drive-card ${d.isGhost ? 'is-ghost' : ''}" onclick="window.previewPastRoute(${i})">
                     <div class="drive-header"><span>${d.date}</span><span>${window.formatTime(d.duration)}</span></div>
                     <div class="drive-card-content">
                         <div class="drive-stats-block">
                             <div class="data-point">Max<br><span>${d.maxSpeed} km/h</span></div>
                             <div class="data-point">Dist<br><span>${(d.distance/1000).toFixed(2)} km</span></div>
-                            <div class="data-point">0-60<br><span>${d.best0to60 ? d.best0to60 + 's' : '--'}</span></div>
-                            <div class="data-point">0-100<br><span>${d.best0to100 ? d.best0to100 + 's' : '--'}</span></div>
+                            <div class="data-point">0-60<br><span>${d.best0to60 ? d.best0to60+'s' : '--'}</span></div>
+                            <div class="data-point">0-100<br><span>${d.best0to100 ? d.best0to100+'s' : '--'}</span></div>
                         </div>
-                        <div class="mini-map-preview">
-                            ${window.generateSVGPreview(d.route)}
-                        </div>
+                        <div>${window.generateSVGPreview(d.route)}</div>
                     </div>
-                    <div class="card-actions"><button class="card-btn btn-ghost-toggle ${d.isGhost ? 'active' : ''}" onclick="event.stopPropagation(); let dAll = JSON.parse(localStorage.getItem('drives') || '[]'); let t = dAll.find(x => x.id === ${d.id}); if(t){ t.isGhost = !t.isGhost; localStorage.setItem('drives', JSON.stringify(dAll)); window.renderHistory(); }">${d.isGhost ? '🌟 GHOST FAVORED' : 'Make Ghost'}</button></div>
+                    <div class="card-actions"><button class="card-btn btn-ghost-toggle ${d.isGhost?'active':''}" onclick="event.stopPropagation(); let a=JSON.parse(localStorage.getItem('drives')||'[]'); let t=a.find(x=>x.id===${d.id}); if(t){t.isGhost=!t.isGhost; localStorage.setItem('drives',JSON.stringify(a)); window.renderHistory();}">${d.isGhost?'🌟 GHOST':'Make Ghost'}</button></div>
                 </div>
             `).join('');
         };
 
         window.previewPastRoute = function(idx) {
-            let drive = JSON.parse(localStorage.getItem('drives') || '[]')[idx];
-            if (!drive || !drive.route || drive.route.length === 0) return alert("No GPS path saved.");
+            let d = JSON.parse(localStorage.getItem('drives') || '[]')[idx];
+            if (!d || !d.route || d.route.length === 0) return alert("No GPS path saved.");
             if (window.historyPathLine) map.removeLayer(window.historyPathLine);
-            window.historyPathLine = L.polyline(drive.route, { color: '#00ffff', weight: 6, opacity: 0.9 }).addTo(map);
+            window.historyPathLine = L.polyline(d.route, { color: '#00ff88', weight: 6, opacity: 0.9 }).addTo(map);
             map.fitBounds(window.historyPathLine.getBounds());
-            window.switchTab('tracker', null);
+            window.switchTab('tracker');
         };
 
+        // Master UI Processor (Updates Both UIs & Auto-Tracking)
         window.processTelemetry = function(lat, lng, speedKmh, providedHeading) {
-            document.getElementById('speed').innerText = speedKmh;
+            
+            // Auto-Start Drive System
+            if (!isDriving && speedKmh >= 5 && settings.autoStart) {
+                window.toggleDrive(true);
+                window.showToast("🚗 Auto-Start Engaged!");
+            }
+
+            // Speed Output
+            document.getElementById('p-speed').innerText = speedKmh;
+            document.getElementById('l-speed').innerText = speedKmh;
+            
+            // RPM Output
+            let calcRPM = speedKmh === 0 ? 780 : Math.min(6800, Math.floor(speedKmh * 38 + 1100));
+            document.getElementById('p-rpm').innerText = `RPM: ${calcRPM}`;
+            document.getElementById('l-rpm').innerText = calcRPM;
+            document.getElementById('l-gear').innerText = calculateGear(speedKmh);
+
+            // BMW SVG Gauge Sweeps
+            let speedOffset = 290 - (Math.min(speedKmh, 260) / 260 * 290);
+            let rpmOffset = 290 - (Math.min(calcRPM, 7000) / 7000 * 290);
+            document.getElementById('l-svg-speed').style.strokeDashoffset = speedOffset;
+            document.getElementById('l-svg-rpm').style.strokeDashoffset = rpmOffset;
             
             if (lastPos && speedKmh > 3) {
                 currentMapHeading = providedHeading !== null && !isNaN(providedHeading) ? providedHeading : window.calculateBearing(lastPos.lat, lastPos.lng, lat, lng);
@@ -552,40 +569,79 @@
                 document.querySelectorAll('.leaflet-popup').forEach(p => p.style.transform = `rotate(${currentMapHeading}deg) translateY(-15px)`);
             }
 
-            lastPos = { lat, lng };
-            marker.setLatLng([lat, lng]);
+            lastPos = { lat, lng }; marker.setLatLng([lat, lng]);
             if (!isUserPanning) map.panTo([lat, lng]);
-
-            if (isNavigationActive && routingControl) routingControl.spliceWaypoints(0, 1, L.latLng(lat, lng));
 
             if (isDriving) {
                 if (!radarsLoaded) { radarsLoaded = true; window.scanForRadars(lat, lng); }
                 currentDrive.route.push([lat, lng]);
-                if (pullStartMs) currentDrive.telemetry.push({ lat: lat, lng: lng, t: Date.now() - pullStartMs });
 
-                if (!ghostStaged && activeGhostLap && !pullStartMs) {
+                // Automated Launch / Pull Logic (0 to Moving)
+                if (previousSpeed === 0 && speedKmh > 0) {
+                    pullStartMs = Date.now();
+                    hit60 = false; hit100 = false;
+                    
+                    if (ghostStaged && activeGhostLap) {
+                        ghostReleasedMs = Date.now(); // Ghost leaves the line
+                        ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map);
+                        ghostStartZone.removeFrom(map);
+                        window.showToast("🏁 GHOST RELEASED!");
+                    }
+                } else if (speedKmh === 0) {
+                    pullStartMs = null; // Reset for next pull
+                }
+
+                if (pullStartMs) {
+                    currentDrive.telemetry.push({ lat, lng, t: Date.now() - pullStartMs });
+                    let pTime = ((Date.now() - pullStartMs) / 1000).toFixed(1);
+                    
+                    if (speedKmh >= 60 && !hit60) { 
+                        hit60 = true; 
+                        if (!currentDrive.best0to60 || parseFloat(pTime) < parseFloat(currentDrive.best0to60)) {
+                            currentDrive.best0to60 = pTime; 
+                            window.showToast(`New Best 0-60: ${pTime}s`); 
+                        }
+                    }
+                    if (speedKmh >= 100 && !hit100) { 
+                        hit100 = true; 
+                        if (!currentDrive.best0to100 || parseFloat(pTime) < parseFloat(currentDrive.best0to100)) {
+                            currentDrive.best0to100 = pTime; 
+                            window.showToast(`New Best 0-100: ${pTime}s`); 
+                        }
+                    }
+                } 
+                
+                // Ghost Staging Check
+                if (!ghostStaged && !ghostReleasedMs && activeGhostLap && speedKmh === 0) {
                     if (window.calculateDistance(lat, lng, activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng) < 40) {
-                        ghostStaged = true; window.showToast("👻 Ghost Staged! Awaiting Launch.");
+                        ghostStaged = true; window.showToast("👻 Ghost Staged!");
                         ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat, activeGhostLap.telemetry[0].lng]).addTo(map);
                     }
                 }
+
                 pathLine.addLatLng([lat, lng]);
 
                 if (currentDrive.route.length > 1) {
                     let prev = currentDrive.route[currentDrive.route.length - 2];
                     currentDrive.distance += window.calculateDistance(prev[0], prev[1], lat, lng);
-                    document.getElementById('ui-dist').innerText = (currentDrive.distance / 1000).toFixed(2);
+                    let dStr = (currentDrive.distance / 1000).toFixed(2);
+                    document.getElementById('p-dist').innerText = dStr;
+                    document.getElementById('l-dist').innerText = dStr;
                 }
 
-                if (speedKmh > currentDrive.maxSpeed) { currentDrive.maxSpeed = speedKmh; document.getElementById('ui-max').innerText = speedKmh; }
+                if (speedKmh > currentDrive.maxSpeed) { 
+                    currentDrive.maxSpeed = speedKmh; 
+                    document.getElementById('p-max').innerText = speedKmh; 
+                    document.getElementById('l-max').innerText = speedKmh; 
+                }
 
-                if (pullStartMs) {
-                    let pTime = ((Date.now() - pullStartMs) / 1000).toFixed(1);
-                    if (speedKmh >= 60 && !hit60) { hit60 = true; currentDrive.best0to60 = pTime; window.showToast(`0-60: ${pTime}s`); }
-                    if (speedKmh >= 100 && !hit100) { hit100 = true; currentDrive.best0to100 = pTime; window.showToast(`0-100: ${pTime}s`); }
-                } 
-                if (speedKmh > 5 && document.getElementById('manual-launch-btn').style.display === 'block') window.triggerManualLaunch(false); 
+                if (speedKmh > 5 && document.getElementById('p-launch-btn').style.display === 'block') {
+                    document.getElementById('p-launch-btn').style.display = 'none';
+                    document.getElementById('l-launch-btn').style.display = 'none';
+                }
             }
+            
+            previousSpeed = speedKmh;
         };
 
         if ("geolocation" in navigator) {
@@ -615,30 +671,26 @@
             let exactLat = a3HighwayRoutePoints[0][0]; let exactLng = a3HighwayRoutePoints[0][1];
             
             window.processTelemetry(exactLat, exactLng, 0, 0);
-            setTimeout(() => { if(!pullStartMs) window.triggerManualLaunch(true); }, 1500);
 
             debugInterval = setInterval(() => {
                 ticks++;
-                if (ticks < 6) { simSpeed += 24; maxGForce = Math.max(maxGForce, Math.random() * 0.2 + 0.55); document.getElementById('hud-gforce').innerText = maxGForce.toFixed(2) + " G"; } 
-                else if (ticks < 18) { simSpeed = Math.min(135, simSpeed + 6); maxGForce = Math.max(maxGForce, Math.random() * 0.1 + 0.15); document.getElementById('hud-gforce').innerText = maxGForce.toFixed(2) + " G"; } 
+                if (ticks < 6) { simSpeed += 24; maxGForce = Math.max(maxGForce, Math.random() * 0.2 + 0.55); } 
+                else if (ticks < 18) { simSpeed = Math.min(135, simSpeed + 6); maxGForce = Math.max(maxGForce, Math.random() * 0.1 + 0.15); } 
                 else if (ticks < 25) { simSpeed = Math.max(0, simSpeed - 15); } else { simSpeed = 0; }
 
-                document.getElementById('hud-rpm').innerText = `RPM: ${simSpeed === 0 ? 780 : Math.min(5600, Math.floor(simSpeed * 40 + 1000))}`;
-                let mps = simSpeed / 3.6;
+                let gStr = maxGForce.toFixed(2);
+                document.getElementById('p-gforce').innerText = gStr + " G";
+                document.getElementById('l-gforce').innerText = gStr;
 
+                let mps = simSpeed / 3.6;
                 if (simSpeed > 0 && sIdx < a3HighwayRoutePoints.length - 1) {
-                    let next = a3HighwayRoutePoints[sIdx + 1];
-                    let dist = window.calculateDistance(exactLat, exactLng, next[0], next[1]);
+                    let next = a3HighwayRoutePoints[sIdx + 1]; let dist = window.calculateDistance(exactLat, exactLng, next[0], next[1]);
                     if (mps >= dist) { sIdx++; exactLat = next[0]; exactLng = next[1]; } 
                     else { let p = mps / dist; exactLat += (next[0] - exactLat) * p; exactLng += (next[1] - exactLng) * p; }
                 }
-                
-                let simHeading = null;
-                if (sIdx < a3HighwayRoutePoints.length - 1) {
-                    simHeading = window.calculateBearing(exactLat, exactLng, a3HighwayRoutePoints[sIdx+1][0], a3HighwayRoutePoints[sIdx+1][1]);
-                }
+                let simH = sIdx < a3HighwayRoutePoints.length - 1 ? window.calculateBearing(exactLat, exactLng, a3HighwayRoutePoints[sIdx+1][0], a3HighwayRoutePoints[sIdx+1][1]) : null;
 
-                window.processTelemetry(exactLat, exactLng, simSpeed, simHeading);
+                window.processTelemetry(exactLat, exactLng, simSpeed, simH);
                 if (ticks >= 28 || sIdx >= a3HighwayRoutePoints.length - 1) { clearInterval(debugInterval); if (isDriving) window.toggleDrive(); }
             }, 1000);
         };
