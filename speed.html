@@ -475,24 +475,67 @@ let currentSpeedLimit = null;
 let speedLimitTimeout = null;
 
 window.fetchSpeedLimit = async function(lat, lng) {
-    const query = `[out:json];way["maxspeed"](around:25,${lat},${lng});out tags 1;`;
+    const query = `
+        [out:json][timeout:8];
+        way(around:75,${lat},${lng})["highway"];
+        out tags center 5;
+    `;
+
     try {
         const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
         const data = await r.json();
+
+        currentSpeedLimit = null;
+
         if (data.elements && data.elements.length > 0) {
-            const raw = data.elements[0].tags.maxspeed;
-            if (raw) {
-                // parse "50", "50 mph", "RO:urban" etc.
-                const num = parseInt(raw);
-                if (!isNaN(num)) {
-                    currentSpeedLimit = raw.toLowerCase().includes('mph') ? Math.round(num * 1.609) : num;
-                } else if (raw === 'RO:urban' || raw === 'urban') { currentSpeedLimit = 50; }
-                else if (raw === 'RO:rural' || raw === 'rural') { currentSpeedLimit = 90; }
-                else if (raw === 'RO:motorway' || raw === 'motorway') { currentSpeedLimit = 130; }
-                else { currentSpeedLimit = null; }
+            const el = data.elements.find(w =>
+                w.tags &&
+                (
+                    w.tags.maxspeed ||
+                    w.tags["maxspeed:type"] ||
+                    w.tags.highway
+                )
+            );
+
+            if (el && el.tags) {
+                const tags = el.tags;
+                const raw = tags.maxspeed;
+
+                if (raw) {
+                    const num = parseInt(raw, 10);
+
+                    if (!isNaN(num)) {
+                        currentSpeedLimit = raw.toLowerCase().includes("mph")
+                            ? Math.round(num * 1.609)
+                            : num;
+                    } else {
+                        const lower = raw.toLowerCase();
+
+                        if (lower.includes("urban")) currentSpeedLimit = 50;
+                        else if (lower.includes("rural")) currentSpeedLimit = 90;
+                        else if (lower.includes("motorway")) currentSpeedLimit = 130;
+                    }
+                }
+
+                // Fallback for Romania if maxspeed is missing
+                if (currentSpeedLimit === null) {
+                    const type = tags["maxspeed:type"] || tags["source:maxspeed"] || "";
+
+                    if (type.includes("RO:urban")) currentSpeedLimit = 50;
+                    else if (type.includes("RO:rural")) currentSpeedLimit = 90;
+                    else if (type.includes("RO:motorway")) currentSpeedLimit = 130;
+                    else if (tags.highway === "motorway") currentSpeedLimit = 130;
+                    else if (tags.highway === "trunk") currentSpeedLimit = 100;
+                    else if (["primary", "secondary", "tertiary"].includes(tags.highway)) currentSpeedLimit = 50;
+                    else if (["residential", "living_street", "service"].includes(tags.highway)) currentSpeedLimit = 50;
+                }
             }
         }
-    } catch(e) {}
+    } catch (e) {
+        console.warn("Speed limit fetch failed:", e);
+        currentSpeedLimit = null;
+    }
+
     window.updateSpeedLimitBadge(lastCurrentSpeed || 0);
 };
 
