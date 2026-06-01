@@ -505,17 +505,21 @@ window.updateSpeedLimitBadge = function(speed) {
     const lBadge = document.getElementById('l-speed-limit-badge');
     const lVal = document.getElementById('l-speed-limit-val');
 
+    badge.style.display = 'flex';
+    lBadge.style.display = 'flex';
+
     if (currentSpeedLimit !== null) {
-        badge.style.display = 'flex';
-        lBadge.style.display = 'flex';
         val.textContent = currentSpeedLimit;
         lVal.textContent = currentSpeedLimit;
         const speeding = speed > currentSpeedLimit;
         badge.classList.toggle('speeding', speeding);
         lBadge.classList.toggle('speeding', speeding);
     } else {
-        badge.style.display = 'none';
-        lBadge.style.display = 'none';
+        // When data is missing, show a question mark
+        val.textContent = '?';
+        lVal.textContent = '?';
+        badge.classList.remove('speeding');
+        lBadge.classList.remove('speeding');
     }
 };
 
