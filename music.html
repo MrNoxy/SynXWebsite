@@ -1646,7 +1646,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
       </div>
 
       <div class="cf-auto-note" id="cf-auto-note" style="display:none;">
-        <strong>Automix</strong> trims the dead air off the end of the current song, then overlaps the next one <em>from its start</em> while the first finishes — matching tempo (beatmatch), swapping bass like a DJ, and choosing the length per pair (up to ~20s). Full mixing works on local files and decodable streams; YouTube can only volume-fade between videos (its player gives no audio access).
+        <strong>Automix (beat-grid)</strong> finds each song's tempo and downbeats, then triggers the blend on a phrase boundary of the current song and starts the next one <em>on its own downbeat</em> — stretched to the same tempo so the bars (and even vocal lines) stack like a DJ set. It trims the dead tail and the next song's intro up to its first downbeat. Best on steady-tempo music; songs with no clear beat fall back to a smooth crossfade. Local/decodable audio only — YouTube can just volume-fade.
       </div>
 
       <div class="cf-toggle-row" style="margin-top:14px;">
@@ -2026,10 +2026,10 @@ async function analyseTrack(track) {
     // peaks for waveform drawing
     const N = 400, block = Math.floor(ch.length / N), peaks = new Float32Array(N);
     for (let i = 0; i < N; i++) { let m = 0; for (let j = 0; j < block; j += 64) { const v = Math.abs(ch[i*block+j]||0); if (v>m) m=v; } peaks[i] = m; }
-    // tempo (BPM) + first strong beat — for DJ-style beatmatching
-    let bpm = 0, firstBeat = lead;
-    try { const t = await detectTempo(decoded); bpm = t.bpm; firstBeat = t.firstBeat; } catch(e){}
-    const res = { peaks, silenceTail: tail, leadIn: lead, gain, duration: dur, bpm, firstBeat };
+    // tempo + beat grid — for DJ-style phrase-aligned beatmatching
+    let bpm = 0, beatPhase = 0, beatInterval = 0;
+    try { const t = await detectTempo(decoded); bpm = t.bpm; beatPhase = t.beatPhase; beatInterval = t.beatInterval; } catch(e){}
+    const res = { peaks, silenceTail: tail, leadIn: lead, gain, duration: dur, bpm, beatPhase, beatInterval };
     _analysis[track.id] = res;
     _cfWaveCache[track.id] = peaks;
     return res;
@@ -2050,27 +2050,24 @@ async function detectTempo(audioBuffer) {
   const data = rendered.getChannelData(0);
   const sr = rendered.sampleRate;
 
-  // Find peaks above a descending threshold until we have enough.
+  // Collect strong onset peaks (in seconds).
   let max = 0; for (let i = 0; i < data.length; i += 16) { const v = Math.abs(data[i]); if (v > max) max = v; }
   let threshold = max * 0.85, peaks = [];
-  while (peaks.length < 30 && threshold > max * 0.25) {
+  while (peaks.length < 60 && threshold > max * 0.25) {
     peaks = [];
     for (let i = 0; i < data.length;) {
-      if (Math.abs(data[i]) > threshold) {
-        peaks.push(i);
-        i += Math.floor(sr * 0.25);   // skip 0.25s (debounce, max 240bpm)
-      } else i++;
+      if (Math.abs(data[i]) > threshold) { peaks.push(i / sr); i += Math.floor(sr * 0.20); }
+      else i++;
     }
     threshold -= max * 0.05;
   }
-  if (peaks.length < 4) return { bpm: 0, firstBeat: 0 };
+  if (peaks.length < 4) return { bpm: 0, beatPhase: 0, beatInterval: 0 };
 
-  // Histogram of intervals → tempo.
+  // Tempo via interval histogram (folded into 90–180 BPM range).
   const counts = {};
   for (let i = 0; i < peaks.length; i++) {
     for (let j = 1; j < 10 && i + j < peaks.length; j++) {
-      let interval = peaks[i+j] - peaks[i];
-      let bpmGuess = 60 / (interval / sr);
+      let bpmGuess = 60 / (peaks[i+j] - peaks[i]);
       while (bpmGuess < 90)  bpmGuess *= 2;
       while (bpmGuess > 180) bpmGuess /= 2;
       const key = Math.round(bpmGuess);
@@ -2079,7 +2076,36 @@ async function detectTempo(audioBuffer) {
   }
   let bestBpm = 0, bestCount = 0;
   for (const k in counts) if (counts[k] > bestCount) { bestCount = counts[k]; bestBpm = +k; }
-  return { bpm: bestBpm, firstBeat: peaks[0] / sr };
+  if (!bestBpm) return { bpm: 0, beatPhase: 0, beatInterval: 0 };
+
+  const interval = 60 / bestBpm;               // seconds per beat
+  // Beat phase: which offset (0..interval) lines the grid up with the most peaks?
+  const STEPS = 48; let bestPhase = 0, bestScore = -1;
+  for (let s = 0; s < STEPS; s++) {
+    const phase = (s / STEPS) * interval;
+    let score = 0;
+    for (const p of peaks) {
+      const frac = ((p - phase) / interval);
+      const dist = Math.abs(frac - Math.round(frac));   // 0 = exactly on a beat
+      if (dist < 0.12) score++;
+    }
+    if (score > bestScore) { bestScore = score; bestPhase = phase; }
+  }
+  return { bpm: bestBpm, beatPhase: bestPhase, beatInterval: interval };
+}
+
+// Nearest beat-grid time on/after `t` for a track's analysis.
+function beatOnOrAfter(a, t) {
+  if (!a || !a.beatInterval) return t;
+  const n = Math.ceil((t - a.beatPhase) / a.beatInterval);
+  return a.beatPhase + n * a.beatInterval;
+}
+// Nearest phrase boundary (every `bars`*4 beats) on/after t.
+function phraseOnOrAfter(a, t, bars) {
+  if (!a || !a.beatInterval) return t;
+  const span = a.beatInterval * 4 * bars;
+  const n = Math.ceil((t - a.beatPhase) / span);
+  return a.beatPhase + n * span;
 }
 
 // Pre-analyse the upcoming track in the background so the trigger point is ready.
@@ -2093,10 +2119,9 @@ function preAnalyseNext() {
   analyseTrack(upcoming).finally(() => { _preAnalysing = null; });
 }
 
-// Decide how long this specific transition should be, and where to start it.
-// Automix = fully dynamic: long tail pulled from the outgoing song, short
-// head into the incoming one, length adapted to tempo & how much real audio
-// remains — just like Spotify's per-pair automatic timing.
+// Plan a beat-grid–aligned transition (Apple AutoMix style).
+// When both tracks have a usable grid, we line up bars so beats — and even
+// vocal phrases — stack. Length is a whole number of bars at the OUT tempo.
 function planTransition(deck) {
   const cur = state.queue[state.queueIndex];
   const nextIdx = state.queueIndex + 1;
@@ -2105,22 +2130,25 @@ function planTransition(deck) {
   const aIn  = upcoming && _analysis[upcoming.id];
 
   const realEnd = aOut ? Math.min(aOut.silenceTail, deck.duration) : deck.duration;
+  const gridded = state.transitionMode === 'auto' && aOut && aIn && aOut.bpm > 0 && aIn.bpm > 0 && aOut.beatInterval > 0;
 
-  if (state.transitionMode === 'auto') {
-    // Dynamic length: base it on tempo (one bar feels musical) but allow a long
-    // pull from the outgoing track. Clamp to what's actually available.
-    let len = 8;
-    if (aOut && aOut.bpm > 0) {
-      const beat = 60 / aOut.bpm;
-      len = beat * 16;                 // ~4 bars of 4/4
-    }
-    len = Math.max(4, Math.min(20, len));         // up to 20s out of the first song
-    // Don't exceed the real audio we have left, leave a hair of headroom.
-    len = Math.min(len, Math.max(2, realEnd - 0.2));
-    return { length: len, realEnd, aOut, aIn, beatmatch: true };
+  if (gridded) {
+    // Transition spans a whole number of bars. Pick bars so the overlap is
+    // musical and fits in the audio that's left.
+    const barLen = aOut.beatInterval * 4;
+    let bars = 8;                                  // 8 bars ≈ a full phrase
+    while (bars > 1 && bars * barLen > Math.max(2, realEnd - 0.3)) bars = Math.floor(bars / 2);
+    const len = bars * barLen;
+    // Trigger exactly on an OUT-track downbeat that leaves `len` before realEnd.
+    const target = realEnd - len;
+    const triggerAt = Math.max(0.1, phraseOnOrAfter(aOut, target - barLen, bars) );
+    return { gridded: true, length: len, bars, barLen, realEnd, triggerAt, aOut, aIn };
   }
-  // Plain crossfade: user duration, end at real audio end.
-  return { length: state.crossfadeDuration, realEnd, aOut, aIn, beatmatch: false };
+
+  // Fallback: silence-trimmed crossfade (no reliable grid).
+  let len = state.transitionMode === 'auto' ? 8 : state.crossfadeDuration;
+  len = Math.min(len, Math.max(2, realEnd - 0.2));
+  return { gridded: false, length: len, realEnd, triggerAt: realEnd - len, aOut, aIn };
 }
 
 function maybeStartCrossfade(deck) {
@@ -2134,13 +2162,9 @@ function maybeStartCrossfade(deck) {
   preAnalyseNext();
 
   const plan = planTransition(deck);
-  const triggerAt = plan.realEnd - plan.length;
-  if (deck.currentTime < triggerAt) return;
+  if (deck.currentTime < plan.triggerAt) return;
 
-  // Next track is YouTube → can't blend audio into an iframe. Fade this deck
-  // out, then start the YouTube video. Smooth, not a hard cut.
   if (upcoming.source === 'youtube') { audioFadeToNext(nextIdx, Math.min(plan.length, 4)); return; }
-
   beginCrossfade(nextIdx, plan);
 }
 
@@ -2184,37 +2208,47 @@ async function beginCrossfade(nextIdx, plan) {
   const aIn  = plan.aIn  || _analysis[upcoming.id] || await analyseTrack(upcoming);
   const fromGain = state.normalize && aOut ? aOut.gain : 1;
   const toGain   = state.normalize && aIn  ? aIn.gain  : 1;
+  const isAuto = state.transitionMode === 'auto';
 
-  // ── Beatmatching (Automix): nudge the incoming track's tempo toward the
-  // outgoing one so beats line up. Only when both BPMs are known & sane. ──
+  // ── Tempo match: stretch the incoming track to the outgoing BPM so the
+  // beat grids share the same beat length (the basis of phrase alignment). ──
   let rate = 1, didBeatmatch = false;
-  if (plan.beatmatch && aOut && aIn && aOut.bpm > 0 && aIn.bpm > 0) {
+  if (plan.gridded) {
     let r = aOut.bpm / aIn.bpm;
-    // Keep stretch musical: within ±6% sounds natural; otherwise try half/double.
     if (r > 1.06 || r < 0.94) {
-      if (aIn.bpm * 2 >= aOut.bpm * 0.94 && aIn.bpm * 2 <= aOut.bpm * 1.06) r = aOut.bpm / (aIn.bpm * 2);
-      else if (aIn.bpm / 2 >= aOut.bpm * 0.94 && aIn.bpm / 2 <= aOut.bpm * 1.06) r = aOut.bpm / (aIn.bpm / 2);
+      if (aIn.bpm*2 >= aOut.bpm*0.94 && aIn.bpm*2 <= aOut.bpm*1.06) r = aOut.bpm/(aIn.bpm*2);
+      else if (aIn.bpm/2 >= aOut.bpm*0.94 && aIn.bpm/2 <= aOut.bpm*1.06) r = aOut.bpm/(aIn.bpm/2);
     }
     if (r >= 0.94 && r <= 1.06) { rate = r; didBeatmatch = true; }
+  }
+
+  // ── Phrase alignment: start the incoming track ON its own downbeat, so when
+  // it's stretched to the OUT tempo its beats fall on the OUT beats. This is
+  // what makes even words land together. We may shave the intro up to the
+  // first downbeat (a couple seconds at most), exactly like Apple's AutoMix. ──
+  let startAt = 0;
+  if (plan.gridded && aIn.beatInterval > 0) {
+    // first downbeat (start of a bar) of the incoming track
+    startAt = phraseOnOrAfter(aIn, Math.max(0, aIn.leadIn - 0.01), 1);
+    if (startAt > 8) startAt = beatOnOrAfter(aIn, aIn.leadIn);  // safety: don't skip too far
+    if (startAt > 8) startAt = 0;
+  } else if (aIn && aIn.leadIn > 0.3 && aIn.leadIn <= 2.0) {
+    startAt = Math.max(0, aIn.leadIn - 0.1);
   }
 
   toDeck.src = src;
   toDeck.playbackRate = rate;
   setDeckVolume(toDeck, 0);
-  if (state.transitionMode === 'auto') setBass(toDeck, -18);   // start with incoming bass cut (DJ bass-swap)
+  if (isAuto) setBass(toDeck, -18);
   try {
     await toDeck.play();
-    // Start the next song from (essentially) its beginning. We only shave
-    // genuine dead air off the very start — never jump into the track.
-    const startAt = (aIn && aIn.leadIn > 0.3 && aIn.leadIn <= 2.0) ? Math.max(0, aIn.leadIn - 0.1) : 0;
     if (startAt > 0) { try { toDeck.currentTime = startAt; } catch(e){} }
   } catch(e) { isCrossfading = false; setBass(toDeck, 0); return; }
 
-  showCrossfadeOverlay(plan.beatmatch ? (didBeatmatch ? 'Beatmatching…' : 'Mixing…') : 'Crossfading…');
+  showCrossfadeOverlay(plan.gridded ? (didBeatmatch ? 'Beatmatched mix…' : 'Phrase mix…') : (isAuto ? 'Mixing…' : 'Crossfading…'));
   const dur = plan.length * 1000;
   const start = performance.now();
   const curve = state.crossfadeCurve;
-  const isAuto = state.transitionMode === 'auto';
   function step(now) {
     const p = Math.min(1, (now - start) / dur);
     const gOut = curve === 'equal' ? Math.cos(p * Math.PI/2) : (1 - p);
@@ -2222,10 +2256,7 @@ async function beginCrossfade(nextIdx, plan) {
     setDeckVolume(fromDeck, state.volume * gOut * fromGain);
     setDeckVolume(toDeck,   state.volume * gIn  * toGain);
     if (isAuto) {
-      // Bass swap: keep outgoing bass until midway, then hand it to the incoming
-      // track over the back half — a classic DJ EQ transition that avoids muddy
-      // double-bass in the overlap.
-      const swap = Math.max(0, (p - 0.4) / 0.6);    // 0 until 40%, →1 by end
+      const swap = Math.max(0, (p - 0.4) / 0.6);
       setBass(fromDeck, -18 * swap);
       setBass(toDeck,   -18 * (1 - swap));
     }
@@ -2233,9 +2264,8 @@ async function beginCrossfade(nextIdx, plan) {
     if (p < 1) { crossfadeRAF = requestAnimationFrame(step); }
     else {
       fromDeck.pause(); fromDeck.removeAttribute('src'); fromDeck.load();
-      setBass(fromDeck, 0);
-      setBass(toDeck, 0);
-      toDeck.playbackRate = 1;            // release tempo stretch once solo
+      setBass(fromDeck, 0); setBass(toDeck, 0);
+      toDeck.playbackRate = 1;
       setDeckVolume(toDeck, state.volume * toGain);
       audio = toDeck;
       state.queueIndex = nextIdx;
