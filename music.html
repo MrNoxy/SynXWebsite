@@ -1601,6 +1601,14 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
         </div>
       </div>
 
+      <div class="cf-toggle-row" style="margin-top:14px;">
+        <div>
+          <span class="cf-toggle-label">Normalize volume</span>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">Evens out loud vs quiet tracks during the blend</div>
+        </div>
+        <div class="toggle" id="cf-normalize-toggle" onclick="toggleNormalize()"></div>
+      </div>
+
       <div class="cf-note" id="cf-note"></div>
     </div>
 
@@ -1627,12 +1635,35 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 // ░░  AURA MUSIC PLAYER — REAL AUDIO ENGINE
 // ═══════════════════════════════════════════════════════════════════
 
-// Jamendo public demo client_id (from their official docs examples).
-// Register your own free at developer.jamendo.com and set it in Settings.
-let JAMENDO_CLIENT_ID = localStorage.getItem('aura_jamendo_id') || '709fa152';
+// ─── SAFE STORAGE LAYER ───────────────────────────────────────────
+// All persistence goes through these so one bad value or a quota error
+// can never abort the whole app (which would silently break saving).
+const Store = {
+  available: (() => { try { const k='__aura_t'; localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; } catch(e){ return false; } })(),
+  get(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null || raw === undefined || raw === 'undefined') return fallback;
+      return raw;
+    } catch (e) { return fallback; }
+  },
+  getJSON(key, fallback) {
+    const raw = this.get(key, null);
+    if (raw === null) return fallback;
+    try { return JSON.parse(raw); } catch (e) { console.warn('Bad stored JSON for', key, '— resetting'); try{localStorage.removeItem(key);}catch(_){} return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); return true; }
+    catch (e) { console.warn('Storage write failed for', key, e); if (typeof showToast==='function') showToast('⚠️ Could not save — storage full or blocked'); return false; }
+  },
+  setJSON(key, value) { return this.set(key, JSON.stringify(value)); },
+};
 
-// Which sources to search (toggle in Settings). All on by default.
-const SOURCES = JSON.parse(localStorage.getItem('aura_sources') || '{"jamendo":true,"archive":false,"youtube":true}');
+// Jamendo public demo client_id (from their official docs examples).
+let JAMENDO_CLIENT_ID = Store.get('aura_jamendo_id', '709fa152');
+
+// Which sources to search (toggle in Settings).
+const SOURCES = Store.getJSON('aura_sources', {jamendo:true, archive:false, youtube:true});
 
 // ─── APP STATE ────────────────────────────────────────────────────
 const state = {
@@ -1644,13 +1675,14 @@ const state = {
   isRepeat: false,
   crossfade: false,
   crossfadeDuration: 5,
-  volume: parseFloat(localStorage.getItem('aura_volume') || '0.8'),
-  backend: null,          // 'audio' | 'yt' | null
-  likedTracks: JSON.parse(localStorage.getItem('aura_liked') || '[]'),
-  playlists: JSON.parse(localStorage.getItem('aura_playlists') || '[]'),
-  localTracks: [],        // hydrated from IndexedDB at init
+  volume: parseFloat(Store.get('aura_volume', '0.8')) || 0.8,
+  backend: null,
+  likedTracks: Store.getJSON('aura_liked', []),
+  playlists: Store.getJSON('aura_playlists', []),
+  localTracks: [],
   viewingPlaylistId: null,
-  tasteProfile: JSON.parse(localStorage.getItem('aura_taste') || '{}'),
+  tasteProfile: Store.getJSON('aura_taste', {}),
+  normalize: Store.get('aura_normalize', '1') === '1',
 };
 
 // ─── DUAL-DECK AUDIO BACKEND (streams + local + real crossfade) ───
@@ -1774,8 +1806,12 @@ async function playTrackResource(track) {
     document.getElementById('yt-stage-label').textContent = '▶ ' + (track.title || 'YouTube');
     showYTStage(true);
     ytPlayer.loadVideoById(track.videoId);
-    ytPlayer.setVolume(Math.round(state.volume * 100));
-    ytPlayer.playVideo();
+    try {
+      ytPlayer.unMute();
+      ytPlayer.setVolume(Math.round(state.volume * 100));
+      ytPlayer.playVideo();
+      setTimeout(() => { try { ytPlayer.unMute(); ytPlayer.setVolume(Math.round(state.volume*100)); } catch(e){} }, 600);
+    } catch (e) {}
   } else {
     if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(e){} }
     showYTStage(false);
@@ -1822,7 +1858,7 @@ function backendSetVolume(v) {
   state.volume = v;
   if (state.backend === 'audio') setDeckVolume(audio, v);
   if (ytPlayer && ytReady && ytPlayer.setVolume) ytPlayer.setVolume(Math.round(v*100));
-  localStorage.setItem('aura_volume', String(v));
+  Store.set('aura_volume', String(v));
 }
 
 // ─── REAL CROSSFADE ───────────────────────────────────────────────
@@ -1832,48 +1868,131 @@ function cancelCrossfade() {
   cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
   hideCrossfadeOverlay();
 }
-// Called on each timeupdate of the active deck.
+
+// Cache of per-track audio analysis: { peaks, silenceTail, leadIn, gain, duration }
+const _analysis = {};
+
+// Decode a track and analyse it the way Spotify-style crossfade needs:
+//  • trailing-silence point (so we fade out of real audio, not a quiet tail)
+//  • leading-silence offset (so the next song doesn't start with dead air)
+//  • a normalization gain (so a quiet song doesn't vanish under a loud one)
+async function analyseTrack(track) {
+  if (_analysis[track.id]) return _analysis[track.id];
+  try {
+    initWebAudio();
+    if (!_audioCtx) return null;
+    const url = track.source === 'local' ? await getLocalObjectURL(track) : track.audioUrl;
+    if (!url) return null;
+    const buf = await fetch(url).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); });
+    const decoded = await _audioCtx.decodeAudioData(buf);
+    const ch = decoded.getChannelData(0);
+    const sr = decoded.sampleRate, dur = decoded.duration;
+    const win = Math.floor(sr * 0.05);             // 50ms RMS windows
+    const SIL = 0.02;                              // ~ -34 dBFS silence threshold
+    // trailing silence: scan backward to last window above threshold
+    let tail = dur;
+    for (let i = ch.length - win; i > 0; i -= win) {
+      let sum = 0; for (let j = 0; j < win; j += 8) { const v = ch[i+j]||0; sum += v*v; }
+      if (Math.sqrt(sum / (win/8)) > SIL) { tail = (i + win) / sr; break; }
+    }
+    // leading silence: scan forward to first window above threshold
+    let lead = 0;
+    for (let i = 0; i < ch.length - win; i += win) {
+      let sum = 0; for (let j = 0; j < win; j += 8) { const v = ch[i+j]||0; sum += v*v; }
+      if (Math.sqrt(sum / (win/8)) > SIL) { lead = i / sr; break; }
+    }
+    // overall RMS for loudness normalization
+    let total = 0, cnt = 0;
+    for (let i = 0; i < ch.length; i += 64) { const v = ch[i]||0; total += v*v; cnt++; }
+    const rms = Math.sqrt(total / cnt) || 0.1;
+    const TARGET = 0.12;                            // target RMS (~ -18 dBFS)
+    let gain = rms > 0 ? Math.min(2.0, TARGET / rms) : 1;
+    // peaks for waveform drawing
+    const N = 400, block = Math.floor(ch.length / N), peaks = new Float32Array(N);
+    for (let i = 0; i < N; i++) { let m = 0; for (let j = 0; j < block; j += 64) { const v = Math.abs(ch[i*block+j]||0); if (v>m) m=v; } peaks[i] = m; }
+    const res = { peaks, silenceTail: tail, leadIn: lead, gain, duration: dur };
+    _analysis[track.id] = res;
+    _cfWaveCache[track.id] = peaks;
+    return res;
+  } catch (e) { return null; }
+}
+
+// Pre-analyse the upcoming track in the background so the trigger point is ready.
+let _preAnalysing = null;
+function preAnalyseNext() {
+  const nextIdx = state.queueIndex + 1;
+  const upcoming = state.queue[nextIdx];
+  if (!upcoming || upcoming.source === 'youtube' || _analysis[upcoming.id]) return;
+  if (_preAnalysing === upcoming.id) return;
+  _preAnalysing = upcoming.id;
+  analyseTrack(upcoming).finally(() => { _preAnalysing = null; });
+}
+
 function maybeStartCrossfade(deck) {
   if (!state.crossfade || isCrossfading || state.isRepeat) return;
   if (!deck.duration || !isFinite(deck.duration)) return;
   const nextIdx = state.queueIndex < state.queue.length - 1 ? state.queueIndex + 1 : -1;
   if (nextIdx === -1) return;
   const upcoming = state.queue[nextIdx];
-  if (!upcoming || upcoming.source === 'youtube') return; // can't crossfade into YT
-  const remaining = deck.duration - deck.currentTime;
-  if (remaining <= state.crossfadeDuration) beginCrossfade(nextIdx);
+  if (!upcoming || upcoming.source === 'youtube') return;
+
+  preAnalyseNext();
+
+  const cur = state.queue[state.queueIndex];
+  const a = cur && _analysis[cur.id];
+  // Spotify trick: begin the fade so it ENDS at the real end of audio,
+  // i.e. start at (trailingSilencePoint - crossfadeDuration).
+  const effectiveEnd = a ? Math.min(a.silenceTail, deck.duration) : deck.duration;
+  const triggerAt = effectiveEnd - state.crossfadeDuration;
+  if (deck.currentTime >= triggerAt) beginCrossfade(nextIdx);
 }
+
 async function beginCrossfade(nextIdx) {
   if (isCrossfading) return;
+  isCrossfading = true;
   const upcoming = state.queue[nextIdx];
   const src = upcoming.source === 'local' ? await getLocalObjectURL(upcoming) : upcoming.audioUrl;
-  if (!src) return;
-  isCrossfading = true;
+  if (!src) { isCrossfading = false; return; }
   initWebAudio(); resumeCtx();
+
   const fromDeck = audio;
   const toDeck = otherDeck();
+  const curTrack = state.queue[state.queueIndex];
+  const fromGain = state.normalize && curTrack && _analysis[curTrack.id] ? _analysis[curTrack.id].gain : 1;
+  const toAnalysis = _analysis[upcoming.id] || await analyseTrack(upcoming);
+  const toGain = state.normalize && toAnalysis ? toAnalysis.gain : 1;
+
   toDeck.src = src;
   setDeckVolume(toDeck, 0);
-  try { await toDeck.play(); } catch(e) { isCrossfading = false; return; }
+  try {
+    await toDeck.play();
+    // Skip the incoming track's leading silence so the blend hits real audio.
+    if (toAnalysis && toAnalysis.leadIn > 0.15) { try { toDeck.currentTime = Math.max(0, toAnalysis.leadIn - 0.05); } catch(e){} }
+  } catch(e) { isCrossfading = false; return; }
 
   showCrossfadeOverlay();
   const dur = state.crossfadeDuration * 1000;
   const start = performance.now();
-  const fromStartVol = state.volume;
+  const curve = state.crossfadeCurve;
   function step(now) {
     const p = Math.min(1, (now - start) / dur);
-    setDeckVolume(fromDeck, fromStartVol * (1 - p));
-    setDeckVolume(toDeck, state.volume * p);
+    // Equal-power (constant-energy) curve like Spotify, or linear.
+    const gOut = curve === 'equal' ? Math.cos(p * Math.PI/2) : (1 - p);
+    const gIn  = curve === 'equal' ? Math.sin(p * Math.PI/2) : p;
+    setDeckVolume(fromDeck, state.volume * gOut * fromGain);
+    setDeckVolume(toDeck,   state.volume * gIn  * toGain);
     updateCrossfadeOverlay(p);
     if (p < 1) { crossfadeRAF = requestAnimationFrame(step); }
     else {
       fromDeck.pause(); fromDeck.removeAttribute('src'); fromDeck.load();
+      setDeckVolume(toDeck, state.volume * toGain);
       audio = toDeck;
       state.queueIndex = nextIdx;
       isCrossfading = false;
       hideCrossfadeOverlay();
       updateNowPlayingUI(state.queue[state.queueIndex]);
       updateAllTrackRows();
+      preAnalyseNext();
     }
   }
   crossfadeRAF = requestAnimationFrame(step);
@@ -2318,34 +2437,73 @@ async function searchArchive(query) {
   return out;
 }
 
-// ── YouTube: search via public scraping-free oEmbed is not possible,
-// so we use the no-key "suggest" approach: open a search and let the
-// IFrame API play whatever the user picks. We surface direct video
-// matches when the query *is* a YouTube URL or 11-char ID. ──
+// ── YouTube search via public Piped instances (no API key needed). ──
+// These community instances can be slow or down, so we race several and
+// use the first that answers. Falls back to direct ID/link parsing.
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://pipedapi.leptons.xyz',
+  'https://pipedapi.adminforge.de',
+  'https://api.piped.private.coffee',
+  'https://pipedapi.ducks.party',
+  'https://piped-api.codespace.cz',
+];
 function parseYouTubeId(q) {
-  const m = q.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{11})/);
+  const m = q.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/);
   if (m) return m[1];
   if (/^[\w-]{11}$/.test(q)) return q;
   return null;
 }
+
+async function fetchPipedSearch(query) {
+  // Try instances in order; return first good JSON with items.
+  for (const base of PIPED_INSTANCES) {
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 6000);
+      const r = await fetch(`${base}/search?q=${encodeURIComponent(query)}&filter=videos`, { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const items = data.items || data;
+      if (Array.isArray(items) && items.length) return items;
+    } catch (e) { /* try next instance */ }
+  }
+  return null;
+}
+
 async function searchYouTube(query) {
+  // 1) Direct link / ID always works.
   const id = parseYouTubeId(query);
-  if (!id) return []; // Without an API key we can only play a pasted link/ID
-  let title = 'YouTube video', artist = 'YouTube';
-  try {
-    const o = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`).then(r => r.ok ? r.json() : null);
-    if (o) { title = o.title || title; artist = o.author_name || artist; }
-  } catch (e) { /* oEmbed blocked on file:// — keep generic label */ }
-  return [{
-    id: 'yt_' + id,
-    source: 'youtube',
-    videoId: id,
-    title,
-    artist,
-    thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
-    duration: 0,
-    genre: 'youtube',
-  }];
+  if (id) {
+    let title = 'YouTube video', artist = 'YouTube';
+    try {
+      const o = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`).then(r => r.ok ? r.json() : null);
+      if (o) { title = o.title || title; artist = o.author_name || artist; }
+    } catch (e) {}
+    return [{ id:'yt_'+id, source:'youtube', videoId:id, title, artist, thumb:`https://i.ytimg.com/vi/${id}/mqdefault.jpg`, duration:0, genre:'youtube' }];
+  }
+  // 2) Keyword search via Piped.
+  const items = await fetchPipedSearch(query);
+  if (!items) return [];
+  return items
+    .filter(it => (it.url || it.id) && (it.type ? it.type === 'stream' : true))
+    .slice(0, 20)
+    .map(it => {
+      const vid = (it.url && it.url.split('v=')[1]) || it.id || '';
+      const cleanId = (vid || '').split('&')[0];
+      return {
+        id: 'yt_' + cleanId,
+        source: 'youtube',
+        videoId: cleanId,
+        title: it.title || 'YouTube video',
+        artist: (it.uploaderName || it.uploader || 'YouTube'),
+        thumb: it.thumbnail || (cleanId ? `https://i.ytimg.com/vi/${cleanId}/mqdefault.jpg` : ''),
+        duration: it.duration > 0 ? it.duration : 0,
+        genre: 'youtube',
+      };
+    })
+    .filter(t => t.videoId);
 }
 
 async function performSearch(query) {
@@ -2356,42 +2514,40 @@ async function performSearch(query) {
   document.getElementById('search-results').innerHTML = '<div class="spinner"></div>';
 
   const tasks = [];
+  if (SOURCES.youtube) tasks.push(searchYouTube(query).catch(e => { console.warn('yt', e); return []; }));
   if (SOURCES.jamendo) tasks.push(searchJamendo(query).catch(e => { console.warn('jamendo', e); return []; }));
   if (SOURCES.archive) tasks.push(searchArchive(query).catch(e => { console.warn('archive', e); return []; }));
-  if (SOURCES.youtube) tasks.push(searchYouTube(query).catch(e => { console.warn('yt', e); return []; }));
 
-  // Also include matching local files
   const localMatches = state.localTracks.filter(t =>
     t.title.toLowerCase().includes(query.toLowerCase()) ||
     t.artist.toLowerCase().includes(query.toLowerCase())
   );
 
   const settled = await Promise.all(tasks);
-  let results = settled.flat();
-  // Interleave sources so results feel mixed, YouTube/local first if present
-  results = [...localMatches, ...results];
+  let results = [...localMatches, ...settled.flat()];
 
   document.getElementById('search-loading').style.display = 'none';
   const list = document.getElementById('search-results');
   list.innerHTML = '';
 
   if (!results.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><h3>No playable results</h3><p>Try a different search, or paste a YouTube link to play it directly. Mainstream chart hits usually aren't on free/open sources.</p></div>`;
+    const ytHint = SOURCES.youtube ? ' YouTube search uses free community servers that are sometimes down — try again, or paste a video link directly.' : '';
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><h3>No results</h3><p>Try different keywords.${ytHint}</p></div>`;
     return;
   }
-  showToast(`Found ${results.length} playable result${results.length>1?'s':''}`);
+  showToast(`Found ${results.length} result${results.length>1?'s':''}`);
   results.forEach((t, i) => list.appendChild(makeTrackRow(t, results, i, { showAddToPlaylist: true })));
 }
 
 function toggleSource(name, el) {
   SOURCES[name] = !SOURCES[name];
   el.classList.toggle('on', SOURCES[name]);
-  localStorage.setItem('aura_sources', JSON.stringify(SOURCES));
+  Store.setJSON('aura_sources', SOURCES);
   showToast(`${SOURCE_LABEL[name]} ${SOURCES[name] ? 'on' : 'off'}`);
 }
 function setJamendoId(val) {
   JAMENDO_CLIENT_ID = (val || '').trim() || '709fa152';
-  localStorage.setItem('aura_jamendo_id', JAMENDO_CLIENT_ID);
+  Store.set('aura_jamendo_id', JAMENDO_CLIENT_ID);
   showToast('Jamendo ID saved');
   hydrateHome();
 }
@@ -2454,8 +2610,8 @@ function updateLikeCurrentBtn() {
 }
 
 function saveLikes() {
-  localStorage.setItem('aura_liked', JSON.stringify(state.likedTracks));
-  localStorage.setItem('aura_taste', JSON.stringify(state.tasteProfile));
+  Store.setJSON('aura_liked', state.likedTracks);
+  Store.setJSON('aura_taste', state.tasteProfile);
 }
 
 function playLikedAll() {
@@ -2502,7 +2658,7 @@ function initDefaultPlaylists() {
 }
 
 function savePlaylists() {
-  localStorage.setItem('aura_playlists', JSON.stringify(state.playlists));
+  Store.setJSON('aura_playlists', state.playlists);
   renderSidebarPlaylists();
 }
 
@@ -2632,7 +2788,7 @@ function openAddToPlaylistMenu(e, trackId) {
 // ═══════════════════════════════════════════════════════════════════
 // CROSSFADE STUDIO (popup with waveforms + fade-curve preview)
 // ═══════════════════════════════════════════════════════════════════
-state.crossfadeCurve = localStorage.getItem('aura_cf_curve') || 'equal';
+state.crossfadeCurve = Store.get('aura_cf_curve', 'equal');
 let _cfWaveCache = {};   // id -> Float32Array peaks
 let _cfAnimRAF = null;
 
@@ -2645,7 +2801,7 @@ function syncCrossfadeBadge() {
 
 function toggleCrossfade() {
   state.crossfade = !state.crossfade;
-  localStorage.setItem('aura_crossfade', state.crossfade ? '1' : '0');
+  Store.set('aura_crossfade', state.crossfade ? '1' : '0');
   document.getElementById('crossfade-toggle').classList.toggle('on', state.crossfade);   // settings page
   document.getElementById('cf-modal-toggle').classList.toggle('on', state.crossfade);     // modal
   const durRow = document.getElementById('crossfade-duration-row');
@@ -2657,7 +2813,7 @@ function toggleCrossfade() {
 
 function updateCrossfadeDuration(val) {
   state.crossfadeDuration = parseInt(val);
-  localStorage.setItem('aura_cf_dur', val);
+  Store.set('aura_cf_dur', val);
   // keep both sliders + labels in sync
   const s1 = document.getElementById('crossfade-seconds');     if (s1) s1.value = val;
   const s2 = document.getElementById('cf-duration-slider');    if (s2) s2.value = val;
@@ -2670,9 +2826,15 @@ function updateCrossfadeDuration(val) {
 
 function setCrossfadeCurve(curve, btn) {
   state.crossfadeCurve = curve;
-  localStorage.setItem('aura_cf_curve', curve);
+  Store.set('aura_cf_curve', curve);
   document.querySelectorAll('.cf-curve-btn').forEach(b => b.classList.toggle('active', b === btn));
   drawCrossfadePreview();
+}
+function toggleNormalize() {
+  state.normalize = !state.normalize;
+  Store.set('aura_normalize', state.normalize ? '1' : '0');
+  document.getElementById('cf-normalize-toggle').classList.toggle('on', state.normalize);
+  showToast(state.normalize ? '🔊 Volume normalization on' : 'Normalization off');
 }
 
 // Tiny overlay shown during an actual live crossfade
@@ -2696,6 +2858,7 @@ async function openCrossfadeModal() {
   document.getElementById('cf-duration-num').textContent = state.crossfadeDuration + 's';
   document.getElementById('cf-overlap-val').textContent = state.crossfadeDuration;
   document.querySelectorAll('.cf-curve-btn').forEach(b => b.classList.toggle('active', b.dataset.curve === state.crossfadeCurve));
+  document.getElementById('cf-normalize-toggle').classList.toggle('on', state.normalize);
 
   // label current + next track
   const cur = state.queue[state.queueIndex];
@@ -2705,15 +2868,24 @@ async function openCrossfadeModal() {
 
   drawCrossfadePreview();
 
-  // Try to load real waveforms (decodable: local files, or streams on a proper host)
+  // Try to load real waveforms + silence analysis
   const note = document.getElementById('cf-note');
   if (cur || nxt) {
-    note.textContent = 'Loading waveforms…';
-    const [wa, wb] = await Promise.all([cur ? loadWaveform(cur) : null, nxt ? loadWaveform(nxt) : null]);
-    if (wa || wb) { drawCrossfadePreview(wa, wb); note.textContent = 'Real waveforms shown. The shaded zone is where the two songs overlap.'; }
-    else { note.textContent = IS_FILE ? 'Showing fade curves. Waveforms need a hosted file or local songs (file:// blocks decoding).' : 'Showing fade curves — these tracks didn’t allow waveform decoding (CORS).'; }
+    note.textContent = 'Analysing audio…';
+    const [aOut, aIn] = await Promise.all([cur ? analyseTrack(cur) : null, nxt ? analyseTrack(nxt) : null]);
+    if (aOut || aIn) {
+      drawCrossfadePreview(aOut && aOut.peaks, aIn && aIn.peaks);
+      let msg = 'Real waveforms shown. The shaded zone is the overlap; the green curve fades out, purple fades in (equal-power).';
+      if (aOut && aOut.duration - aOut.silenceTail > 0.4) {
+        msg += ` Trailing silence (${(aOut.duration - aOut.silenceTail).toFixed(1)}s) is trimmed so it blends into real audio, not a quiet tail.`;
+      }
+      note.textContent = msg;
+    } else {
+      note.textContent = IS_FILE ? 'Showing fade curves. Waveforms & silence-trim need a hosted file or local songs (file:// blocks decoding).' : 'Showing fade curves — these tracks didn’t allow decoding (CORS). Local files always analyse fully.';
+      drawCrossfadePreview();
+    }
   } else {
-    note.textContent = 'Play something to preview the blend with real waveforms.';
+    note.textContent = 'Play something with a track queued next to preview the real blend.';
   }
 }
 function closeCrossfadeModal() {
@@ -2721,26 +2893,11 @@ function closeCrossfadeModal() {
   cancelAnimationFrame(_cfAnimRAF); _cfAnimRAF = null;
 }
 
-// ── Decode an audio source into ~peaks for drawing ──
+// ── Waveform peaks via the shared analyser (also computes silence/gain) ──
 async function loadWaveform(track) {
   if (_cfWaveCache[track.id]) return _cfWaveCache[track.id];
-  try {
-    initWebAudio();
-    if (!_audioCtx) return null;
-    let url = track.source === 'local' ? await getLocalObjectURL(track) : track.audioUrl;
-    if (!url) return null;
-    const buf = await fetch(url).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); });
-    const decoded = await _audioCtx.decodeAudioData(buf);
-    const raw = decoded.getChannelData(0);
-    const N = 400, block = Math.floor(raw.length / N), peaks = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      let max = 0;
-      for (let j = 0; j < block; j += 64) { const v = Math.abs(raw[i*block + j] || 0); if (v > max) max = v; }
-      peaks[i] = max;
-    }
-    _cfWaveCache[track.id] = peaks;
-    return peaks;
-  } catch (e) { return null; }
+  const a = await analyseTrack(track);
+  return a ? a.peaks : null;
 }
 
 // ── Draw the preview: two waveforms (or bands) + fade curves + overlap zone ──
@@ -2911,13 +3068,13 @@ document.addEventListener('keydown', unlockAudio, { once: true });
 // Warn when opened via file:// — streaming + YouTube need a real origin.
 const IS_FILE = location.protocol === 'file:';
 function showFileWarningOnce() {
-  if (!IS_FILE || localStorage.getItem('aura_file_warned')) return;
+  if (!IS_FILE || Store.get('aura_file_warned',null)) return;
   const b = document.getElementById('autoplay-banner');
   b.classList.remove('hidden');
   b.style.cursor = 'default';
   b.innerHTML = `<span style="color:var(--text);font-weight:600;">⚠ Opened as a local file.</span>&nbsp;Streaming search &amp; YouTube need a web origin — your own files work fine. Host on GitHub Pages (or run a local server) for full features.&nbsp;<span id="file-warn-dismiss" style="text-decoration:underline;cursor:pointer;color:var(--accent);">Got it</span>`;
   document.getElementById('file-warn-dismiss').addEventListener('click', (e) => {
-    e.stopPropagation(); localStorage.setItem('aura_file_warned','1'); b.classList.add('hidden');
+    e.stopPropagation(); Store.set('aura_file_warned','1'); b.classList.add('hidden');
   });
 }
 
@@ -2981,8 +3138,8 @@ async function init() {
   state.localTracks.forEach(registerTrack);
   renderHomePage();
   // Restore crossfade prefs
-  state.crossfade = localStorage.getItem('aura_crossfade') === '1';
-  state.crossfadeDuration = parseInt(localStorage.getItem('aura_cf_dur') || '5');
+  state.crossfade = Store.get('aura_crossfade','0') === '1';
+  state.crossfadeDuration = parseInt(Store.get('aura_cf_dur','5')) || 5;
   document.getElementById('crossfade-toggle').classList.toggle('on', state.crossfade);
   const durRow = document.getElementById('crossfade-duration-row');
   if (durRow) { durRow.style.opacity = state.crossfade ? '1' : '0.4'; durRow.style.pointerEvents = state.crossfade ? 'all' : 'none'; }
@@ -2993,7 +3150,17 @@ async function init() {
   showFileWarningOnce();
   hydrateHome();      // swap in fresh Jamendo tracks (async, non-blocking)
 }
-init();
-</script>
+// Surface uncaught errors instead of letting them silently break saving.
+window.addEventListener('error', (e) => {
+  console.error('AURA error:', e.error || e.message);
+});
+
+(async function start(){
+  try { await init(); }
+  catch (e) {
+    console.error('Init failed:', e);
+    if (typeof showToast === 'function') showToast('⚠️ Startup error — check console');
+  }
+})();</script>
 </body>
 </html>
