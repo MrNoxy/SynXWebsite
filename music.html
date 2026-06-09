@@ -1999,24 +1999,29 @@ async function analyseTrack(track) {
     const ch = decoded.getChannelData(0);
     const sr = decoded.sampleRate, dur = decoded.duration;
     const win = Math.floor(sr * 0.05);             // 50ms RMS windows
-    const SIL = 0.015;                             // silence threshold for windows
-    // Helper: RMS of a 50ms window starting at sample i
     const rmsAt = (i) => { let s=0,n=0; for (let j=0;j<win && i+j<ch.length;j+=4){const v=ch[i+j]||0;s+=v*v;n++;} return Math.sqrt(s/Math.max(1,n)); };
-    // Trailing silence: scan backward; require a few consecutive non-silent
-    // windows so a tiny blip in the fade-out doesn't count as "real audio".
-    let tail = dur, runNeeded = 3, run = 0;
-    for (let i = ch.length - win; i > 0; i -= win) {
-      if (rmsAt(i) > SIL) { run++; if (run >= runNeeded) { tail = (i + win*runNeeded) / sr; break; } }
-      else run = 0;
+    // Trailing silence: only trim a tail that is GENUINELY near-silent (not a
+    // quiet fade-out). Scan backward; the tail point is where audio last clearly
+    // exceeds a true-silence floor. We require ~200ms of real audio to confirm.
+    const SIL_END = 0.035;                         // ~ -29 dBFS: true near-silence
+    let tail = dur;
+    {
+      const need = 4; let run = 0, endIdx = ch.length;
+      for (let i = ch.length - win; i > 0; i -= win) {
+        if (rmsAt(i) > SIL_END) {
+          run++;
+          if (run === 1) endIdx = i + win;        // first (rightmost) loud window edge
+          if (run >= need) { tail = Math.min(dur, endIdx / sr); break; }
+        } else { run = 0; }
+      }
     }
-    if (tail > dur) tail = dur;
-    // Leading silence: first window above threshold — but CAP how much we skip.
-    // We never jump into the song; we only shave true dead air at the very start.
+    // Leading silence: first window above a low floor, capped so we never jump in.
+    const SIL_START = 0.02;
     let lead = 0;
     for (let i = 0; i < ch.length - win; i += win) {
-      if (rmsAt(i) > SIL) { lead = i / sr; break; }
+      if (rmsAt(i) > SIL_START) { lead = i / sr; break; }
     }
-    lead = Math.min(lead, 2.0);                     // never skip more than 2s of intro
+    lead = Math.min(lead, 20.0);                    // allow trimming long intros (e.g. 18s)
     // overall RMS for loudness normalization
     let total = 0, cnt = 0;
     for (let i = 0; i < ch.length; i += 64) { const v = ch[i]||0; total += v*v; cnt++; }
@@ -2126,8 +2131,9 @@ function preAnalyseNext() {
 }
 
 // Plan a beat-grid–aligned transition (Apple AutoMix style).
-// When both tracks have a usable grid, we line up bars so beats — and even
-// vocal phrases — stack. Length is a whole number of bars at the OUT tempo.
+// Key change: we trigger off the track's TOTAL duration (always reliable), not
+// fragile silence detection. The incoming song fades in OVER any quiet tail of
+// the outgoing one, so dead air is covered and there's never a gap.
 function planTransition(deck) {
   const cur = state.queue[state.queueIndex];
   const nextIdx = state.queueIndex + 1;
@@ -2136,28 +2142,31 @@ function planTransition(deck) {
   const aIn  = upcoming && _analysis[upcoming.id];
 
   const dur = (deck && isFinite(deck.duration) && deck.duration) ? deck.duration : (aOut ? aOut.duration : 0);
-  const realEnd = aOut ? Math.min(aOut.silenceTail, dur) : dur;
+  // End reference: the track's real end. If we detected a clearly-trimmable
+  // silent tail (≥1.5s of true silence), use it; otherwise use full duration.
+  let endRef = dur;
+  if (aOut && aOut.silenceTail && (dur - aOut.silenceTail) >= 1.5) endRef = aOut.silenceTail;
+
   const gridded = state.transitionMode === 'auto' && aOut && aIn && aOut.bpm > 0 && aIn.bpm > 0 && aOut.beatInterval > 0;
 
+  // Target overlap length.
+  let len;
   if (gridded) {
     const barLen = aOut.beatInterval * 4;
-    // Aim for a generous, musical overlap (8 bars), shrink only if not enough audio.
     let bars = 8;
-    while (bars > 2 && bars * barLen > Math.max(4, realEnd * 0.6)) bars = Math.floor(bars / 2);
-    let len = bars * barLen;
-    // Start the blend `len` before the real end, snapped to the NEAREST beat so
-    // the grids lock without shoving the trigger to the very end.
-    let triggerAt = nearestBeat(aOut, realEnd - len);
-    if (triggerAt < 0.1) triggerAt = 0.1;
-    // Recompute the actual length from the snapped trigger so preview == playback.
-    len = Math.max(2, realEnd - triggerAt);
-    return { gridded: true, length: len, bars, barLen, realEnd, triggerAt, aOut, aIn };
+    while (bars > 2 && bars * barLen > Math.max(6, dur * 0.5)) bars = Math.floor(bars / 2);
+    len = bars * barLen;
+  } else {
+    len = state.transitionMode === 'auto' ? 10 : state.crossfadeDuration;
   }
+  len = Math.min(len, Math.max(3, dur * 0.5));     // never more than half the song
 
-  // Fallback: silence-trimmed crossfade (no reliable grid).
-  let len = state.transitionMode === 'auto' ? 8 : state.crossfadeDuration;
-  len = Math.min(len, Math.max(2, realEnd - 0.2));
-  return { gridded: false, length: len, realEnd, triggerAt: realEnd - len, aOut, aIn };
+  let triggerAt = endRef - len;
+  if (gridded) triggerAt = nearestBeat(aOut, triggerAt);   // snap to beat for phrase lock
+  triggerAt = Math.max(0.1, Math.min(triggerAt, dur - 1)); // safety clamp
+  const actualLen = Math.max(2, endRef - triggerAt);
+
+  return { gridded, length: actualLen, realEnd: endRef, dur, triggerAt, aOut, aIn };
 }
 
 function maybeStartCrossfade(deck) {
@@ -2231,18 +2240,15 @@ async function beginCrossfade(nextIdx, plan) {
     if (r >= 0.94 && r <= 1.06) { rate = r; didBeatmatch = true; }
   }
 
-  // ── Phrase alignment: start the incoming track ON its own downbeat, so when
-  // it's stretched to the OUT tempo its beats fall on the OUT beats. This is
-  // what makes even words land together. We may shave the intro up to the
-  // first downbeat (a couple seconds at most), exactly like Apple's AutoMix. ──
+  // ── Start the incoming track just past its leading silence, then snap to its
+  // next downbeat so the grids lock (gridded mode). This both skips long dead
+  // intros (e.g. 18s) AND aligns phrases. ──
   let startAt = 0;
+  const lead = aIn ? Math.max(0, aIn.leadIn - 0.05) : 0;
   if (plan.gridded && aIn.beatInterval > 0) {
-    // first downbeat (start of a bar) of the incoming track
-    startAt = phraseOnOrAfter(aIn, Math.max(0, aIn.leadIn - 0.01), 1);
-    if (startAt > 8) startAt = beatOnOrAfter(aIn, aIn.leadIn);  // safety: don't skip too far
-    if (startAt > 8) startAt = 0;
-  } else if (aIn && aIn.leadIn > 0.3 && aIn.leadIn <= 2.0) {
-    startAt = Math.max(0, aIn.leadIn - 0.1);
+    startAt = phraseOnOrAfter(aIn, lead, 1);        // next bar boundary at/after the audio start
+  } else {
+    startAt = lead > 0.3 ? lead : 0;                // just trim the dead air
   }
 
   toDeck.src = src;
@@ -2617,6 +2623,12 @@ async function loadAndPlayTrack(track) {
   updateNowPlayingUI(track);
   updateAllTrackRows();
   await playTrackResource(track);
+  // Kick off analysis of the CURRENT track (for the outgoing-side grid/silence)
+  // and the next one, so the transition plan is ready long before it triggers.
+  if (track.source !== 'youtube' && state.transitionMode !== 'off' && !_analysis[track.id]) {
+    analyseTrack(track).then(() => { if (state.currentPage === 'settings' || document.getElementById('crossfade-modal').classList.contains('open')) drawCrossfadePreview(); });
+  }
+  preAnalyseNext();
 }
 
 function getNextIndex() {
