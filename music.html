@@ -2100,6 +2100,12 @@ function beatOnOrAfter(a, t) {
   const n = Math.ceil((t - a.beatPhase) / a.beatInterval);
   return a.beatPhase + n * a.beatInterval;
 }
+// Nearest beat to `t` (rounded), staying >= 0.
+function nearestBeat(a, t) {
+  if (!a || !a.beatInterval) return t;
+  const n = Math.round((t - a.beatPhase) / a.beatInterval);
+  return Math.max(0, a.beatPhase + n * a.beatInterval);
+}
 // Nearest phrase boundary (every `bars`*4 beats) on/after t.
 function phraseOnOrAfter(a, t, bars) {
   if (!a || !a.beatInterval) return t;
@@ -2129,19 +2135,22 @@ function planTransition(deck) {
   const aOut = cur && _analysis[cur.id];
   const aIn  = upcoming && _analysis[upcoming.id];
 
-  const realEnd = aOut ? Math.min(aOut.silenceTail, deck.duration) : deck.duration;
+  const dur = (deck && isFinite(deck.duration) && deck.duration) ? deck.duration : (aOut ? aOut.duration : 0);
+  const realEnd = aOut ? Math.min(aOut.silenceTail, dur) : dur;
   const gridded = state.transitionMode === 'auto' && aOut && aIn && aOut.bpm > 0 && aIn.bpm > 0 && aOut.beatInterval > 0;
 
   if (gridded) {
-    // Transition spans a whole number of bars. Pick bars so the overlap is
-    // musical and fits in the audio that's left.
     const barLen = aOut.beatInterval * 4;
-    let bars = 8;                                  // 8 bars ≈ a full phrase
-    while (bars > 1 && bars * barLen > Math.max(2, realEnd - 0.3)) bars = Math.floor(bars / 2);
-    const len = bars * barLen;
-    // Trigger exactly on an OUT-track downbeat that leaves `len` before realEnd.
-    const target = realEnd - len;
-    const triggerAt = Math.max(0.1, phraseOnOrAfter(aOut, target - barLen, bars) );
+    // Aim for a generous, musical overlap (8 bars), shrink only if not enough audio.
+    let bars = 8;
+    while (bars > 2 && bars * barLen > Math.max(4, realEnd * 0.6)) bars = Math.floor(bars / 2);
+    let len = bars * barLen;
+    // Start the blend `len` before the real end, snapped to the NEAREST beat so
+    // the grids lock without shoving the trigger to the very end.
+    let triggerAt = nearestBeat(aOut, realEnd - len);
+    if (triggerAt < 0.1) triggerAt = 0.1;
+    // Recompute the actual length from the snapped trigger so preview == playback.
+    len = Math.max(2, realEnd - triggerAt);
     return { gridded: true, length: len, bars, barLen, realEnd, triggerAt, aOut, aIn };
   }
 
@@ -3248,7 +3257,8 @@ async function loadWaveform(track) {
   return a ? a.peaks : null;
 }
 
-// ── Draw the preview: two waveforms (or bands) + fade curves + overlap zone ──
+// ── Draw the preview on ONE shared timeline: the end of song 1 overlaps the
+// start of song 2 in a shaded zone, sized from the REAL transition plan. ──
 function drawCrossfadePreview(waOut, waIn) {
   const canvas = document.getElementById('cf-canvas');
   if (!canvas) return;
@@ -3256,49 +3266,85 @@ function drawCrossfadePreview(waOut, waIn) {
   const W = canvas.width, H = canvas.height, mid = H/2;
   ctx.clearRect(0,0,W,H);
 
-  // Layout: out-track fades on the right end; in-track starts at right.
-  // Show a timeline where overlap = crossfadeDuration occupies the right portion.
-  const overlapFrac = Math.min(0.5, state.crossfadeDuration / 24 + 0.18); // visual width of overlap zone
-  const overlapStart = W * (1 - overlapFrac);
-
-  // Overlap shaded zone
-  const grad = ctx.createLinearGradient(overlapStart,0,W,0);
-  grad.addColorStop(0,'rgba(124,111,255,0.04)');
-  grad.addColorStop(1,'rgba(124,111,255,0.16)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(overlapStart,0,W-overlapStart,H);
-  ctx.strokeStyle='rgba(124,111,255,0.4)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(overlapStart,0); ctx.lineTo(overlapStart,H); ctx.stroke(); ctx.setLineDash([]);
-
-  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c8ff57';
+  const accent  = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()  || '#c8ff57';
   const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#7c6fff';
 
-  // OUT track waveform (top half)
-  drawWave(ctx, waOut, 0, W, mid, accent, 'top', overlapStart, true);
-  // IN track waveform (bottom half)
-  drawWave(ctx, waIn, 0, W, mid, accent2, 'bottom', overlapStart, false);
+  // Work out the real overlap length & how much of each song we show.
+  const cur = state.queue[state.queueIndex];
+  const nxt = state.queue[state.queueIndex + 1];
+  const aOut = cur && _analysis[cur.id];
+  const aIn  = nxt && _analysis[nxt.id];
 
-  // Fade curves over the overlap
-  drawFadeCurve(ctx, overlapStart, W, H, accent, true);   // out: 1->0
-  drawFadeCurve(ctx, overlapStart, W, H, accent2, false);  // in: 0->1
+  let overlap;                                  // overlap length (s)
+  if (state.transitionMode === 'auto' && aOut && aIn && aOut.bpm && aIn.bpm && aOut.beatInterval) {
+    const plan = planTransition({ duration: aOut.duration });
+    overlap = plan.length;
+  } else {
+    overlap = state.crossfadeDuration;
+  }
+
+  // Timeline: show `context` seconds of each song around the overlap.
+  const context = Math.max(overlap * 1.4, overlap + 6);   // tail of song1 / head of song2 shown
+  const total = context + overlap + context;              // song1-only | overlap | song2-only
+  const sec2x = W / total;
+  const olStart = context * sec2x;
+  const olEnd   = (context + overlap) * sec2x;
+
+  // Shaded overlap zone
+  const grad = ctx.createLinearGradient(olStart,0,olEnd,0);
+  grad.addColorStop(0,'rgba(124,111,255,0.05)');
+  grad.addColorStop(0.5,'rgba(124,111,255,0.18)');
+  grad.addColorStop(1,'rgba(124,111,255,0.05)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(olStart,0,olEnd-olStart,H);
+  ctx.strokeStyle='rgba(124,111,255,0.45)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(olStart,0); ctx.lineTo(olStart,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(olEnd,0);   ctx.lineTo(olEnd,H);   ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Song 1 (top half): occupies [0 .. olEnd], i.e. its tail runs THROUGH the overlap and ends at olEnd.
+  drawWaveSpan(ctx, waOut, 0, olEnd, mid, accent, 'top', olStart, olEnd, 'out');
+  // Song 2 (bottom half): starts at olStart and runs to the right edge — its head is UNDER song1's tail.
+  drawWaveSpan(ctx, waIn, olStart, W, mid, accent2, 'bottom', olStart, olEnd, 'in');
+
+  // Fade curves across the overlap (out: 1→0, in: 0→1)
+  drawFadeCurve(ctx, olStart, olEnd, H, accent, true);
+  drawFadeCurve(ctx, olStart, olEnd, H, accent2, false);
+
+  // Labels
+  ctx.globalAlpha = 0.85; ctx.font = '600 11px DM Sans, sans-serif';
+  ctx.fillStyle = accent;  ctx.textAlign='left';  ctx.fillText('SONG 1 ENDS', 8, 16);
+  ctx.fillStyle = accent2; ctx.textAlign='right'; ctx.fillText('SONG 2 BEGINS', W-8, H-8);
+  ctx.fillStyle = '#a99cff'; ctx.textAlign='center';
+  ctx.fillText(`overlap ${overlap.toFixed(1)}s`, (olStart+olEnd)/2, H-8);
+  ctx.globalAlpha = 1; ctx.textAlign='left';
+
+  const ov = document.getElementById('cf-overlap-val'); if (ov) ov.textContent = overlap.toFixed(1);
 }
 
-function drawWave(ctx, peaks, x0, x1, mid, color, half, overlapStart, isOut) {
-  const W = x1 - x0, n = peaks ? peaks.length : 60;
-  const barW = W / n;
+// Draw a waveform that occupies pixel span [px0..px1]. Within the overlap region
+// the alpha ramps to visualise the fade (out: loud→quiet, in: quiet→loud).
+function drawWaveSpan(ctx, peaks, px0, px1, mid, color, half, olStart, olEnd, role) {
+  const spanW = px1 - px0;
+  const n = peaks ? peaks.length : 80;
+  const barW = spanW / n;
   ctx.fillStyle = color;
   for (let i = 0; i < n; i++) {
-    const x = x0 + i*barW;
-    let amp = peaks ? peaks[i] : (0.25 + 0.5*Math.abs(Math.sin(i*0.5))); // placeholder band if no waveform
-    let h = Math.max(1.5, amp * (mid - 8));
-    // fade alpha within overlap to suggest the blend
+    const x = px0 + i*barW;
+    const amp = peaks ? peaks[i] : (0.22 + 0.5*Math.abs(Math.sin(i*0.4)));
+    const h = Math.max(1.5, amp * (mid - 14));
     let a = 0.85;
-    if (isOut && x >= overlapStart) a = 0.85 * (1 - (x-overlapStart)/(W+x0-overlapStart));
-    if (!isOut && x <  overlapStart) a = 0.18;
-    if (!isOut && x >= overlapStart) a = 0.3 + 0.55*((x-overlapStart)/(W+x0-overlapStart));
-    ctx.globalAlpha = Math.max(0.12, a);
-    if (half === 'top') ctx.fillRect(x, mid - h, barW*0.7, h);
-    else ctx.fillRect(x, mid + 4, barW*0.7, h);
+    if (x >= olStart && x <= olEnd) {
+      const t = (x - olStart) / Math.max(1,(olEnd - olStart));   // 0..1 across overlap
+      a = role === 'out' ? 0.85*(1-t)+0.12 : 0.12 + 0.73*t;
+    } else if (role === 'out' && x > olEnd) {
+      a = 0.1;
+    } else if (role === 'in' && x < olStart) {
+      a = 0.1;
+    }
+    ctx.globalAlpha = Math.max(0.1, Math.min(1, a));
+    if (half === 'top') ctx.fillRect(x, mid - h, Math.max(1,barW*0.7), h);
+    else                ctx.fillRect(x, mid + 4, Math.max(1,barW*0.7), h);
   }
   ctx.globalAlpha = 1;
 }
@@ -3307,13 +3353,10 @@ function drawFadeCurve(ctx, x0, x1, H, color, isOut) {
   ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
   const steps = 60;
   for (let i = 0; i <= steps; i++) {
-    const t = i/steps;                  // 0..1 across overlap
-    let g;                              // gain
-    if (state.crossfadeCurve === 'equal') {
-      g = isOut ? Math.cos(t*Math.PI/2) : Math.sin(t*Math.PI/2);
-    } else {
-      g = isOut ? (1-t) : t;
-    }
+    const t = i/steps;
+    let g;
+    if (state.crossfadeCurve === 'equal') g = isOut ? Math.cos(t*Math.PI/2) : Math.sin(t*Math.PI/2);
+    else g = isOut ? (1-t) : t;
     const x = x0 + (x1-x0)*t;
     const y = H - 6 - g*(H-12);
     i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
