@@ -1646,7 +1646,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
       </div>
 
       <div class="cf-auto-note" id="cf-auto-note" style="display:none;">
-        <strong>Automix</strong> analyses both songs and builds each transition automatically — it matches tempo (beatmatching), aligns on the beat, swaps the bass like a DJ, and picks the length per pair (up to ~20s pulled from the outgoing track). Works on local files and decodable streams; YouTube tracks use a plain crossfade.
+        <strong>Automix</strong> trims the dead air off the end of the current song, then overlaps the next one <em>from its start</em> while the first finishes — matching tempo (beatmatch), swapping bass like a DJ, and choosing the length per pair (up to ~20s). Full mixing works on local files and decodable streams; YouTube can only volume-fade between videos (its player gives no audio access).
       </div>
 
       <div class="cf-toggle-row" style="margin-top:14px;">
@@ -1844,8 +1844,45 @@ function startYTPoll() {
   clearInterval(ytPollInterval);
   ytPollInterval = setInterval(() => {
     if (state.backend !== 'yt' || !ytPlayer || !ytPlayer.getDuration) return;
-    updateProgressUI(ytPlayer.getCurrentTime() || 0, ytPlayer.getDuration() || 0);
-  }, 400);
+    const cur = ytPlayer.getCurrentTime() || 0;
+    const dur = ytPlayer.getDuration() || 0;
+    updateProgressUI(cur, dur);
+    maybeStartYTTransition(cur, dur);
+  }, 300);
+}
+
+// YouTube can't be truly crossfaded (the iframe exposes one volume and no audio
+// stream), so we do the closest thing the API allows: fade the current video's
+// volume down near the end, then advance. If the next track is local/stream it
+// fades in normally; if it's another YouTube video it starts cleanly.
+let _ytFading = false;
+function maybeStartYTTransition(cur, dur) {
+  if (state.transitionMode === 'off' || isCrossfading || _ytFading || state.isRepeat) return;
+  if (!dur || dur < 1) return;
+  const nextIdx = state.queueIndex < state.queue.length - 1 ? state.queueIndex + 1 : -1;
+  if (nextIdx === -1) return;
+  const fadeLen = Math.min(state.transitionMode === 'auto' ? 4 : state.crossfadeDuration, 6);
+  if (cur >= dur - fadeLen) ytVolumeHandoff(nextIdx, fadeLen);
+}
+function ytVolumeHandoff(nextIdx, fadeLen) {
+  if (_ytFading) return;
+  _ytFading = true;
+  showCrossfadeOverlay('Transitioning…');
+  const start = performance.now();
+  const fade = () => {
+    const p = Math.min(1, (performance.now() - start) / (fadeLen * 1000));
+    try { ytPlayer.setVolume(Math.round(state.volume * 100 * (1 - p))); } catch(e){}
+    updateCrossfadeOverlay(p);
+    if (p < 1 && state.backend === 'yt') { requestAnimationFrame(fade); }
+    else {
+      hideCrossfadeOverlay();
+      _ytFading = false;
+      try { ytPlayer.setVolume(Math.round(state.volume * 100)); } catch(e){}  // reset for next YT
+      state.queueIndex = nextIdx;
+      loadAndPlayTrack(state.queue[state.queueIndex]);
+    }
+  };
+  requestAnimationFrame(fade);
 }
 function showYTStage(show) {
   const stage = document.getElementById('yt-stage');
@@ -1937,6 +1974,7 @@ function backendSetVolume(v) {
 // ─── REAL CROSSFADE ───────────────────────────────────────────────
 function cancelCrossfade() {
   isCrossfading = false;
+  _ytFading = false;
   clearTimeout(crossfadeTimer); crossfadeTimer = null;
   cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
   hideCrossfadeOverlay();
@@ -1961,19 +1999,24 @@ async function analyseTrack(track) {
     const ch = decoded.getChannelData(0);
     const sr = decoded.sampleRate, dur = decoded.duration;
     const win = Math.floor(sr * 0.05);             // 50ms RMS windows
-    const SIL = 0.02;                              // ~ -34 dBFS silence threshold
-    // trailing silence: scan backward to last window above threshold
-    let tail = dur;
+    const SIL = 0.015;                             // silence threshold for windows
+    // Helper: RMS of a 50ms window starting at sample i
+    const rmsAt = (i) => { let s=0,n=0; for (let j=0;j<win && i+j<ch.length;j+=4){const v=ch[i+j]||0;s+=v*v;n++;} return Math.sqrt(s/Math.max(1,n)); };
+    // Trailing silence: scan backward; require a few consecutive non-silent
+    // windows so a tiny blip in the fade-out doesn't count as "real audio".
+    let tail = dur, runNeeded = 3, run = 0;
     for (let i = ch.length - win; i > 0; i -= win) {
-      let sum = 0; for (let j = 0; j < win; j += 8) { const v = ch[i+j]||0; sum += v*v; }
-      if (Math.sqrt(sum / (win/8)) > SIL) { tail = (i + win) / sr; break; }
+      if (rmsAt(i) > SIL) { run++; if (run >= runNeeded) { tail = (i + win*runNeeded) / sr; break; } }
+      else run = 0;
     }
-    // leading silence: scan forward to first window above threshold
+    if (tail > dur) tail = dur;
+    // Leading silence: first window above threshold — but CAP how much we skip.
+    // We never jump into the song; we only shave true dead air at the very start.
     let lead = 0;
     for (let i = 0; i < ch.length - win; i += win) {
-      let sum = 0; for (let j = 0; j < win; j += 8) { const v = ch[i+j]||0; sum += v*v; }
-      if (Math.sqrt(sum / (win/8)) > SIL) { lead = i / sr; break; }
+      if (rmsAt(i) > SIL) { lead = i / sr; break; }
     }
+    lead = Math.min(lead, 2.0);                     // never skip more than 2s of intro
     // overall RMS for loudness normalization
     let total = 0, cnt = 0;
     for (let i = 0; i < ch.length; i += 64) { const v = ch[i]||0; total += v*v; cnt++; }
@@ -2086,13 +2129,43 @@ function maybeStartCrossfade(deck) {
   const nextIdx = state.queueIndex < state.queue.length - 1 ? state.queueIndex + 1 : -1;
   if (nextIdx === -1) return;
   const upcoming = state.queue[nextIdx];
-  if (!upcoming || upcoming.source === 'youtube') return;
+  if (!upcoming) return;
 
   preAnalyseNext();
 
   const plan = planTransition(deck);
   const triggerAt = plan.realEnd - plan.length;
-  if (deck.currentTime >= triggerAt) beginCrossfade(nextIdx, plan);
+  if (deck.currentTime < triggerAt) return;
+
+  // Next track is YouTube → can't blend audio into an iframe. Fade this deck
+  // out, then start the YouTube video. Smooth, not a hard cut.
+  if (upcoming.source === 'youtube') { audioFadeToNext(nextIdx, Math.min(plan.length, 4)); return; }
+
+  beginCrossfade(nextIdx, plan);
+}
+
+// Fade the current audio deck to silence, then advance to the next track.
+function audioFadeToNext(nextIdx, fadeLen) {
+  if (isCrossfading) return;
+  isCrossfading = true;
+  showCrossfadeOverlay('Transitioning…');
+  const fromDeck = audio;
+  const startVol = state.volume;
+  const t0 = performance.now();
+  const fade = () => {
+    const p = Math.min(1, (performance.now() - t0) / (fadeLen * 1000));
+    setDeckVolume(fromDeck, startVol * Math.cos(p * Math.PI/2));
+    updateCrossfadeOverlay(p);
+    if (p < 1) { crossfadeRAF = requestAnimationFrame(fade); }
+    else {
+      fromDeck.pause(); fromDeck.removeAttribute('src'); fromDeck.load();
+      isCrossfading = false;
+      hideCrossfadeOverlay();
+      state.queueIndex = nextIdx;
+      loadAndPlayTrack(state.queue[state.queueIndex]);
+    }
+  };
+  crossfadeRAF = requestAnimationFrame(fade);
 }
 
 async function beginCrossfade(nextIdx, plan) {
@@ -2131,9 +2204,9 @@ async function beginCrossfade(nextIdx, plan) {
   if (state.transitionMode === 'auto') setBass(toDeck, -18);   // start with incoming bass cut (DJ bass-swap)
   try {
     await toDeck.play();
-    // Start the incoming track at its first beat (auto) or after lead-in silence.
-    const startAt = (plan.beatmatch && aIn && aIn.firstBeat > 0.05) ? aIn.firstBeat
-                  : (aIn && aIn.leadIn > 0.15 ? Math.max(0, aIn.leadIn - 0.05) : 0);
+    // Start the next song from (essentially) its beginning. We only shave
+    // genuine dead air off the very start — never jump into the track.
+    const startAt = (aIn && aIn.leadIn > 0.3 && aIn.leadIn <= 2.0) ? Math.max(0, aIn.leadIn - 0.1) : 0;
     if (startAt > 0) { try { toDeck.currentTime = startAt; } catch(e){} }
   } catch(e) { isCrossfading = false; setBass(toDeck, 0); return; }
 
