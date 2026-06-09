@@ -1002,13 +1002,25 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
   color: var(--text2);
 }
-#yt-stage-close {
+#yt-stage-close, #yt-stage-min {
   width: 24px; height: 24px; border-radius: 6px;
   color: var(--text2); font-size: 13px;
   display: flex; align-items: center; justify-content: center;
 }
-#yt-stage-close:hover { background: var(--bg4); color: var(--text); }
+#yt-stage-close:hover, #yt-stage-min:hover { background: var(--bg4); color: var(--text); }
 #yt-player, #yt-player iframe { width: 280px; height: 158px; display: block; }
+/* Minimized: collapse video, keep header bar (audio keeps playing) */
+#yt-stage.yt-min #yt-player { height: 0; }
+#yt-stage.yt-min { width: 200px; }
+/* Restore pill when fully hidden */
+#yt-restore {
+  position: fixed; right: 18px; bottom: calc(var(--player-h) + 14px);
+  z-index: 200; padding: 8px 14px; border-radius: 99px;
+  background: var(--accent3); color: #1a0a10; font-weight: 700; font-size: 12px;
+  box-shadow: 0 8px 24px rgba(255,107,157,0.4); transition: var(--transition);
+}
+#yt-restore:hover { transform: translateY(-2px); }
+#yt-restore.yt-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
 
 /* ─── LOCAL DROPZONE ─────────────────────────────────────────────── */
 .local-dropzone {
@@ -1057,6 +1069,23 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px; background: var(--bg3); border-radius: 12px; margin-bottom: 16px;
 }
+.cf-mode-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.cf-mode-btn {
+  flex: 1; display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  padding: 11px 12px; border-radius: 12px; text-align: left;
+  background: var(--bg3); border: 1.5px solid var(--border); transition: var(--transition);
+}
+.cf-mode-btn:hover { border-color: var(--border2); }
+.cf-mode-btn.active { background: rgba(200,255,87,0.1); border-color: var(--accent); }
+.cf-mode-name { font-weight: 700; font-size: 13.5px; color: var(--text); }
+.cf-mode-btn.active .cf-mode-name { color: var(--accent); }
+.cf-mode-desc { font-size: 10.5px; color: var(--text3); }
+.cf-auto-note {
+  font-size: 12px; line-height: 1.5; color: var(--text2);
+  background: rgba(124,111,255,0.08); border: 1px solid rgba(124,111,255,0.2);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+}
+.cf-auto-note strong { color: #a99cff; }
 .cf-toggle-label { font-weight: 600; font-size: 14px; }
 #cf-body { transition: opacity 0.2s ease; }
 #cf-body.disabled { opacity: 0.45; pointer-events: none; filter: grayscale(0.4); }
@@ -1132,10 +1161,15 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 <div id="yt-stage" class="yt-hidden">
   <div id="yt-stage-head">
     <span id="yt-stage-label">▶ YouTube</span>
-    <button id="yt-stage-close" title="Hide video">✕</button>
+    <div style="display:flex;gap:2px;">
+      <button id="yt-stage-min" title="Minimize (keeps playing)">—</button>
+      <button id="yt-stage-close" title="Hide video (keeps playing)">✕</button>
+    </div>
   </div>
   <div id="yt-player"></div>
 </div>
+<!-- Tiny pill to bring the video back; audio keeps playing while hidden -->
+<button id="yt-restore" class="yt-hidden" title="Show YouTube video">▶ Video</button>
 
 <!-- Hidden file picker for adding local songs -->
 <input type="file" id="local-file-input" accept="audio/*" multiple style="display:none">
@@ -1566,15 +1600,25 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   <div class="cf-modal">
     <div class="cf-modal-head">
       <div>
-        <div class="cf-modal-title">Crossfade</div>
-        <div class="cf-modal-sub">Blend the end of one song into the start of the next</div>
+        <div class="cf-modal-title">Transitions</div>
+        <div class="cf-modal-sub">How one song flows into the next</div>
       </div>
       <button class="cf-close" onclick="closeCrossfadeModal()" title="Close">✕</button>
     </div>
 
-    <div class="cf-toggle-row">
-      <span class="cf-toggle-label">Crossfade</span>
-      <div class="toggle" id="cf-modal-toggle" onclick="toggleCrossfade()"></div>
+    <div class="cf-mode-row">
+      <button class="cf-mode-btn" data-mode="off" onclick="setTransitionMode('off')">
+        <span class="cf-mode-name">Off</span>
+        <span class="cf-mode-desc">Hard cut</span>
+      </button>
+      <button class="cf-mode-btn" data-mode="crossfade" onclick="setTransitionMode('crossfade')">
+        <span class="cf-mode-name">Crossfade</span>
+        <span class="cf-mode-desc">Fixed fade, silence-trimmed</span>
+      </button>
+      <button class="cf-mode-btn" data-mode="auto" onclick="setTransitionMode('auto')">
+        <span class="cf-mode-name">Automix 🎧</span>
+        <span class="cf-mode-desc">DJ: beatmatch + dynamic</span>
+      </button>
     </div>
 
     <div id="cf-body">
@@ -1589,7 +1633,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
         <div class="cf-overlap-badge"><span id="cf-overlap-val">5</span>s overlap</div>
       </div>
 
-      <div class="cf-duration-block">
+      <div class="cf-duration-block" id="cf-duration-block">
         <div class="cf-duration-head">
           <span>Overlap duration</span>
           <span class="cf-duration-num" id="cf-duration-num">5s</span>
@@ -1599,6 +1643,10 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
           <button class="cf-curve-btn active" data-curve="equal" onclick="setCrossfadeCurve('equal', this)">Equal power</button>
           <button class="cf-curve-btn" data-curve="linear" onclick="setCrossfadeCurve('linear', this)">Linear</button>
         </div>
+      </div>
+
+      <div class="cf-auto-note" id="cf-auto-note" style="display:none;">
+        <strong>Automix</strong> analyses both songs and builds each transition automatically — it matches tempo (beatmatching), aligns on the beat, swaps the bass like a DJ, and picks the length per pair (up to ~20s pulled from the outgoing track). Works on local files and decodable streams; YouTube tracks use a plain crossfade.
       </div>
 
       <div class="cf-toggle-row" style="margin-top:14px;">
@@ -1683,6 +1731,8 @@ const state = {
   viewingPlaylistId: null,
   tasteProfile: Store.getJSON('aura_taste', {}),
   normalize: Store.get('aura_normalize', '1') === '1',
+  // Transition between songs: 'off' | 'crossfade' | 'auto' (DJ Automix)
+  transitionMode: Store.get('aura_transition', 'crossfade'),
 };
 
 // ─── DUAL-DECK AUDIO BACKEND (streams + local + real crossfade) ───
@@ -1692,13 +1742,15 @@ const state = {
 const deckA = document.getElementById('audio-a');
 const deckB = document.getElementById('audio-b');
 let audio = deckA;                 // active deck
-let _audioCtx = null, _gainA = null, _gainB = null, _srcA = null, _srcB = null, _waInit = false;
+let _audioCtx = null, _gainA = null, _gainB = null, _srcA = null, _srcB = null, _bassA = null, _bassB = null, _waInit = false;
 let crossfadeTimer = null, crossfadeRAF = null, isCrossfading = false;
 
 function gainFor(deck) { return deck === deckA ? _gainA : _gainB; }
+function bassFor(deck) { return deck === deckA ? _bassA : _bassB; }
 function otherDeck()   { return audio === deckA ? deckB : deckA; }
 
 // Lazily create the Web Audio graph (needs a user gesture on some browsers).
+// Signal chain per deck:  source → lowShelf(bass EQ) → gain → destination
 function initWebAudio() {
   if (_waInit) return true;
   try {
@@ -1706,21 +1758,23 @@ function initWebAudio() {
     _audioCtx = new AC();
     _gainA = _audioCtx.createGain();
     _gainB = _audioCtx.createGain();
+    _bassA = _audioCtx.createBiquadFilter(); _bassA.type = 'lowshelf'; _bassA.frequency.value = 220; _bassA.gain.value = 0;
+    _bassB = _audioCtx.createBiquadFilter(); _bassB.type = 'lowshelf'; _bassB.frequency.value = 220; _bassB.gain.value = 0;
     _srcA = _audioCtx.createMediaElementSource(deckA);
     _srcB = _audioCtx.createMediaElementSource(deckB);
-    _srcA.connect(_gainA).connect(_audioCtx.destination);
-    _srcB.connect(_gainB).connect(_audioCtx.destination);
+    _srcA.connect(_bassA).connect(_gainA).connect(_audioCtx.destination);
+    _srcB.connect(_bassB).connect(_gainB).connect(_audioCtx.destination);
     _gainA.gain.value = state.volume;
     _gainB.gain.value = 0;
     _waInit = true;
     return true;
   } catch (e) {
-    // CORS-tainted streams can't go through Web Audio. Fall back to plain <audio>.
     console.warn('Web Audio unavailable, using element volume', e);
     _waInit = false;
     return false;
   }
 }
+function setBass(deck, dB) { if (_waInit) { try { bassFor(deck).gain.value = dB; } catch(e){} } }
 function resumeCtx() { if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{}); }
 
 function wireDeck(deck) {
@@ -1793,7 +1847,26 @@ function startYTPoll() {
     updateProgressUI(ytPlayer.getCurrentTime() || 0, ytPlayer.getDuration() || 0);
   }, 400);
 }
-function showYTStage(show) { document.getElementById('yt-stage').classList.toggle('yt-hidden', !show); if (!show) clearYTError(); }
+function showYTStage(show) {
+  const stage = document.getElementById('yt-stage');
+  stage.classList.toggle('yt-hidden', !show);
+  if (show) stage.classList.remove('yt-min');
+  const pill = document.getElementById('yt-restore');
+  if (pill) pill.classList.add('yt-hidden');
+  if (!show) clearYTError();
+}
+// Hide the video window but KEEP AUDIO PLAYING (just collapses the UI).
+function hideYTKeepAudio() {
+  document.getElementById('yt-stage').classList.add('yt-hidden');
+  if (state.backend === 'yt') document.getElementById('yt-restore').classList.remove('yt-hidden');
+}
+function restoreYTStage() {
+  document.getElementById('yt-stage').classList.remove('yt-hidden', 'yt-min');
+  document.getElementById('yt-restore').classList.add('yt-hidden');
+}
+function minimizeYTStage() {
+  document.getElementById('yt-stage').classList.toggle('yt-min');
+}
 
 // ─── UNIFIED BACKEND CONTROL ──────────────────────────────────────
 async function playTrackResource(track) {
@@ -1910,11 +1983,60 @@ async function analyseTrack(track) {
     // peaks for waveform drawing
     const N = 400, block = Math.floor(ch.length / N), peaks = new Float32Array(N);
     for (let i = 0; i < N; i++) { let m = 0; for (let j = 0; j < block; j += 64) { const v = Math.abs(ch[i*block+j]||0); if (v>m) m=v; } peaks[i] = m; }
-    const res = { peaks, silenceTail: tail, leadIn: lead, gain, duration: dur };
+    // tempo (BPM) + first strong beat — for DJ-style beatmatching
+    let bpm = 0, firstBeat = lead;
+    try { const t = await detectTempo(decoded); bpm = t.bpm; firstBeat = t.firstBeat; } catch(e){}
+    const res = { peaks, silenceTail: tail, leadIn: lead, gain, duration: dur, bpm, firstBeat };
     _analysis[track.id] = res;
     _cfWaveCache[track.id] = peaks;
     return res;
   } catch (e) { return null; }
+}
+
+// ── BPM / beat detection (Joe Sullivan low-pass + peak-interval method) ──
+async function detectTempo(audioBuffer) {
+  // Render a low-pass version offline to isolate kick/bass (the beat).
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const off = new OAC(1, audioBuffer.length, audioBuffer.sampleRate);
+  const src = off.createBufferSource(); src.buffer = audioBuffer;
+  const lp = off.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 150; lp.Q.value = 1;
+  const hp = off.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90; hp.Q.value = 1;
+  src.connect(lp); lp.connect(hp); hp.connect(off.destination);
+  src.start(0);
+  const rendered = await off.startRendering();
+  const data = rendered.getChannelData(0);
+  const sr = rendered.sampleRate;
+
+  // Find peaks above a descending threshold until we have enough.
+  let max = 0; for (let i = 0; i < data.length; i += 16) { const v = Math.abs(data[i]); if (v > max) max = v; }
+  let threshold = max * 0.85, peaks = [];
+  while (peaks.length < 30 && threshold > max * 0.25) {
+    peaks = [];
+    for (let i = 0; i < data.length;) {
+      if (Math.abs(data[i]) > threshold) {
+        peaks.push(i);
+        i += Math.floor(sr * 0.25);   // skip 0.25s (debounce, max 240bpm)
+      } else i++;
+    }
+    threshold -= max * 0.05;
+  }
+  if (peaks.length < 4) return { bpm: 0, firstBeat: 0 };
+
+  // Histogram of intervals → tempo.
+  const counts = {};
+  for (let i = 0; i < peaks.length; i++) {
+    for (let j = 1; j < 10 && i + j < peaks.length; j++) {
+      let interval = peaks[i+j] - peaks[i];
+      let bpmGuess = 60 / (interval / sr);
+      while (bpmGuess < 90)  bpmGuess *= 2;
+      while (bpmGuess > 180) bpmGuess /= 2;
+      const key = Math.round(bpmGuess);
+      counts[key] = (counts[key] || 0) + 1;
+    }
+  }
+  let bestBpm = 0, bestCount = 0;
+  for (const k in counts) if (counts[k] > bestCount) { bestCount = counts[k]; bestBpm = +k; }
+  return { bpm: bestBpm, firstBeat: peaks[0] / sr };
 }
 
 // Pre-analyse the upcoming track in the background so the trigger point is ready.
@@ -1928,8 +2050,38 @@ function preAnalyseNext() {
   analyseTrack(upcoming).finally(() => { _preAnalysing = null; });
 }
 
+// Decide how long this specific transition should be, and where to start it.
+// Automix = fully dynamic: long tail pulled from the outgoing song, short
+// head into the incoming one, length adapted to tempo & how much real audio
+// remains — just like Spotify's per-pair automatic timing.
+function planTransition(deck) {
+  const cur = state.queue[state.queueIndex];
+  const nextIdx = state.queueIndex + 1;
+  const upcoming = state.queue[nextIdx];
+  const aOut = cur && _analysis[cur.id];
+  const aIn  = upcoming && _analysis[upcoming.id];
+
+  const realEnd = aOut ? Math.min(aOut.silenceTail, deck.duration) : deck.duration;
+
+  if (state.transitionMode === 'auto') {
+    // Dynamic length: base it on tempo (one bar feels musical) but allow a long
+    // pull from the outgoing track. Clamp to what's actually available.
+    let len = 8;
+    if (aOut && aOut.bpm > 0) {
+      const beat = 60 / aOut.bpm;
+      len = beat * 16;                 // ~4 bars of 4/4
+    }
+    len = Math.max(4, Math.min(20, len));         // up to 20s out of the first song
+    // Don't exceed the real audio we have left, leave a hair of headroom.
+    len = Math.min(len, Math.max(2, realEnd - 0.2));
+    return { length: len, realEnd, aOut, aIn, beatmatch: true };
+  }
+  // Plain crossfade: user duration, end at real audio end.
+  return { length: state.crossfadeDuration, realEnd, aOut, aIn, beatmatch: false };
+}
+
 function maybeStartCrossfade(deck) {
-  if (!state.crossfade || isCrossfading || state.isRepeat) return;
+  if (state.transitionMode === 'off' || isCrossfading || state.isRepeat) return;
   if (!deck.duration || !isFinite(deck.duration)) return;
   const nextIdx = state.queueIndex < state.queue.length - 1 ? state.queueIndex + 1 : -1;
   if (nextIdx === -1) return;
@@ -1938,16 +2090,12 @@ function maybeStartCrossfade(deck) {
 
   preAnalyseNext();
 
-  const cur = state.queue[state.queueIndex];
-  const a = cur && _analysis[cur.id];
-  // Spotify trick: begin the fade so it ENDS at the real end of audio,
-  // i.e. start at (trailingSilencePoint - crossfadeDuration).
-  const effectiveEnd = a ? Math.min(a.silenceTail, deck.duration) : deck.duration;
-  const triggerAt = effectiveEnd - state.crossfadeDuration;
-  if (deck.currentTime >= triggerAt) beginCrossfade(nextIdx);
+  const plan = planTransition(deck);
+  const triggerAt = plan.realEnd - plan.length;
+  if (deck.currentTime >= triggerAt) beginCrossfade(nextIdx, plan);
 }
 
-async function beginCrossfade(nextIdx) {
+async function beginCrossfade(nextIdx, plan) {
   if (isCrossfading) return;
   isCrossfading = true;
   const upcoming = state.queue[nextIdx];
@@ -1958,33 +2106,63 @@ async function beginCrossfade(nextIdx) {
   const fromDeck = audio;
   const toDeck = otherDeck();
   const curTrack = state.queue[state.queueIndex];
-  const fromGain = state.normalize && curTrack && _analysis[curTrack.id] ? _analysis[curTrack.id].gain : 1;
-  const toAnalysis = _analysis[upcoming.id] || await analyseTrack(upcoming);
-  const toGain = state.normalize && toAnalysis ? toAnalysis.gain : 1;
+  if (!plan) plan = planTransition(fromDeck);
+  const aOut = plan.aOut || (curTrack && _analysis[curTrack.id]);
+  const aIn  = plan.aIn  || _analysis[upcoming.id] || await analyseTrack(upcoming);
+  const fromGain = state.normalize && aOut ? aOut.gain : 1;
+  const toGain   = state.normalize && aIn  ? aIn.gain  : 1;
+
+  // ── Beatmatching (Automix): nudge the incoming track's tempo toward the
+  // outgoing one so beats line up. Only when both BPMs are known & sane. ──
+  let rate = 1, didBeatmatch = false;
+  if (plan.beatmatch && aOut && aIn && aOut.bpm > 0 && aIn.bpm > 0) {
+    let r = aOut.bpm / aIn.bpm;
+    // Keep stretch musical: within ±6% sounds natural; otherwise try half/double.
+    if (r > 1.06 || r < 0.94) {
+      if (aIn.bpm * 2 >= aOut.bpm * 0.94 && aIn.bpm * 2 <= aOut.bpm * 1.06) r = aOut.bpm / (aIn.bpm * 2);
+      else if (aIn.bpm / 2 >= aOut.bpm * 0.94 && aIn.bpm / 2 <= aOut.bpm * 1.06) r = aOut.bpm / (aIn.bpm / 2);
+    }
+    if (r >= 0.94 && r <= 1.06) { rate = r; didBeatmatch = true; }
+  }
 
   toDeck.src = src;
+  toDeck.playbackRate = rate;
   setDeckVolume(toDeck, 0);
+  if (state.transitionMode === 'auto') setBass(toDeck, -18);   // start with incoming bass cut (DJ bass-swap)
   try {
     await toDeck.play();
-    // Skip the incoming track's leading silence so the blend hits real audio.
-    if (toAnalysis && toAnalysis.leadIn > 0.15) { try { toDeck.currentTime = Math.max(0, toAnalysis.leadIn - 0.05); } catch(e){} }
-  } catch(e) { isCrossfading = false; return; }
+    // Start the incoming track at its first beat (auto) or after lead-in silence.
+    const startAt = (plan.beatmatch && aIn && aIn.firstBeat > 0.05) ? aIn.firstBeat
+                  : (aIn && aIn.leadIn > 0.15 ? Math.max(0, aIn.leadIn - 0.05) : 0);
+    if (startAt > 0) { try { toDeck.currentTime = startAt; } catch(e){} }
+  } catch(e) { isCrossfading = false; setBass(toDeck, 0); return; }
 
-  showCrossfadeOverlay();
-  const dur = state.crossfadeDuration * 1000;
+  showCrossfadeOverlay(plan.beatmatch ? (didBeatmatch ? 'Beatmatching…' : 'Mixing…') : 'Crossfading…');
+  const dur = plan.length * 1000;
   const start = performance.now();
   const curve = state.crossfadeCurve;
+  const isAuto = state.transitionMode === 'auto';
   function step(now) {
     const p = Math.min(1, (now - start) / dur);
-    // Equal-power (constant-energy) curve like Spotify, or linear.
     const gOut = curve === 'equal' ? Math.cos(p * Math.PI/2) : (1 - p);
     const gIn  = curve === 'equal' ? Math.sin(p * Math.PI/2) : p;
     setDeckVolume(fromDeck, state.volume * gOut * fromGain);
     setDeckVolume(toDeck,   state.volume * gIn  * toGain);
+    if (isAuto) {
+      // Bass swap: keep outgoing bass until midway, then hand it to the incoming
+      // track over the back half — a classic DJ EQ transition that avoids muddy
+      // double-bass in the overlap.
+      const swap = Math.max(0, (p - 0.4) / 0.6);    // 0 until 40%, →1 by end
+      setBass(fromDeck, -18 * swap);
+      setBass(toDeck,   -18 * (1 - swap));
+    }
     updateCrossfadeOverlay(p);
     if (p < 1) { crossfadeRAF = requestAnimationFrame(step); }
     else {
       fromDeck.pause(); fromDeck.removeAttribute('src'); fromDeck.load();
+      setBass(fromDeck, 0);
+      setBass(toDeck, 0);
+      toDeck.playbackRate = 1;            // release tempo stretch once solo
       setDeckVolume(toDeck, state.volume * toGain);
       audio = toDeck;
       state.queueIndex = nextIdx;
@@ -2255,6 +2433,9 @@ function makeTrackRow(track, queue, index, opts = {}) {
       ${opts.showAddToPlaylist ? `<button class="icon-btn add-btn" title="Add to playlist">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>` : ''}
+      ${(track.audioUrl && track.source !== 'local' && track.source !== 'youtube') ? `<button class="icon-btn save-btn" title="Save offline to this device">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>` : ''}
       ${opts.showDelete ? `<button class="icon-btn del-btn" title="Remove from device">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4h6v2"/></svg>
       </button>` : ''}
@@ -2264,9 +2445,42 @@ function makeTrackRow(track, queue, index, opts = {}) {
   div.querySelector('.like-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleLike(track, div.querySelector('.like-btn')); });
   const addBtn = div.querySelector('.add-btn');
   if (addBtn) addBtn.addEventListener('click', (e) => { e.stopPropagation(); openAddToPlaylistMenu(e, track.id); });
+  const saveBtn = div.querySelector('.save-btn');
+  if (saveBtn) saveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveTrackOffline(track, saveBtn); });
   const delBtn = div.querySelector('.del-btn');
   if (delBtn) delBtn.addEventListener('click', (e) => deleteLocalTrack(e, track.id));
   return div;
+}
+
+// Download a streamable (Jamendo/Archive) track into IndexedDB so it plays offline,
+// and add it to the Local Files library. Only legitimate free sources get this.
+async function saveTrackOffline(track, btn) {
+  if (state.localTracks.some(t => t.savedFrom === track.id)) { showToast('Already saved offline'); return; }
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  showToast('⬇️ Saving “' + track.title + '”…');
+  try {
+    const resp = await fetch(track.audioUrl);
+    if (!resp.ok) throw new Error('http ' + resp.status);
+    const blob = await resp.blob();
+    const id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    const meta = {
+      id, source: 'local', savedFrom: track.id,
+      title: track.title, artist: track.artist, thumb: track.thumb || '',
+      duration: track.duration || 0, genre: track.genre || 'local', addedAt: Date.now(),
+    };
+    await dbPut('files', { id, blob });
+    await dbPut('meta', meta);
+    state.localTracks.unshift(meta);
+    registerTrack(meta);
+    updateLocalCount();
+    if (state.currentPage === 'local') renderLocalPage();
+    showToast('✅ Saved offline — find it in Local Files');
+  } catch (e) {
+    console.warn('offline save failed', e);
+    showToast('⚠️ Couldn’t save (the source blocked the download)');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
 }
 
 function escapeHtml(s) {
@@ -2792,29 +3006,45 @@ state.crossfadeCurve = Store.get('aura_cf_curve', 'equal');
 let _cfWaveCache = {};   // id -> Float32Array peaks
 let _cfAnimRAF = null;
 
+const MODE_LABEL = { off: 'TRANSITIONS OFF', crossfade: 'CROSSFADE', auto: 'AUTOMIX (DJ)' };
+
 function syncCrossfadeBadge() {
   const badge = document.getElementById('crossfade-badge');
-  badge.classList.toggle('off', !state.crossfade);
+  const m = state.transitionMode;
+  badge.classList.toggle('off', m === 'off');
   const icon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 16s2-4 6-4 6 4 6 4"/><path d="M10 12s2-4 6-4 6 4 6 4"/></svg>`;
-  badge.innerHTML = `${icon} ${state.crossfade ? 'CROSSFADE ' + state.crossfadeDuration + 's' : 'CROSSFADE OFF'}`;
+  let txt = MODE_LABEL[m];
+  if (m === 'crossfade') txt = 'CROSSFADE ' + state.crossfadeDuration + 's';
+  badge.innerHTML = `${icon} ${txt}`;
 }
 
-function toggleCrossfade() {
-  state.crossfade = !state.crossfade;
-  Store.set('aura_crossfade', state.crossfade ? '1' : '0');
-  document.getElementById('crossfade-toggle').classList.toggle('on', state.crossfade);   // settings page
-  document.getElementById('cf-modal-toggle').classList.toggle('on', state.crossfade);     // modal
-  const durRow = document.getElementById('crossfade-duration-row');
-  if (durRow) { durRow.style.opacity = state.crossfade ? '1' : '0.4'; durRow.style.pointerEvents = state.crossfade ? 'all' : 'none'; }
-  document.getElementById('cf-body').classList.toggle('disabled', !state.crossfade);
+// Set transition mode: 'off' | 'crossfade' | 'auto'
+function setTransitionMode(mode) {
+  state.transitionMode = mode;
+  Store.set('aura_transition', mode);
+  // reflect in the mode buttons
+  document.querySelectorAll('.cf-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  // crossfade-only controls (duration slider) visible only in crossfade mode
+  const durBlock = document.getElementById('cf-duration-block');
+  if (durBlock) durBlock.style.display = (mode === 'crossfade') ? 'block' : 'none';
+  const autoNote = document.getElementById('cf-auto-note');
+  if (autoNote) autoNote.style.display = (mode === 'auto') ? 'block' : 'none';
+  // settings-page mirror toggle (on for any active mode)
+  const stoggle = document.getElementById('crossfade-toggle');
+  if (stoggle) stoggle.classList.toggle('on', mode !== 'off');
   syncCrossfadeBadge();
-  showToast(state.crossfade ? `🌊 Crossfade on (${state.crossfadeDuration}s)` : 'Crossfade off');
+  const msg = mode === 'off' ? 'Transitions off' : mode === 'auto' ? '🎧 Automix (DJ) on — beatmatched, dynamic' : `🌊 Crossfade on (${state.crossfadeDuration}s)`;
+  showToast(msg);
+}
+
+// Settings-page toggle just flips between off and crossfade.
+function toggleCrossfade() {
+  setTransitionMode(state.transitionMode === 'off' ? 'crossfade' : 'off');
 }
 
 function updateCrossfadeDuration(val) {
   state.crossfadeDuration = parseInt(val);
   Store.set('aura_cf_dur', val);
-  // keep both sliders + labels in sync
   const s1 = document.getElementById('crossfade-seconds');     if (s1) s1.value = val;
   const s2 = document.getElementById('cf-duration-slider');    if (s2) s2.value = val;
   const l1 = document.getElementById('crossfade-value-label'); if (l1) l1.textContent = val + 's';
@@ -2837,13 +3067,17 @@ function toggleNormalize() {
   showToast(state.normalize ? '🔊 Volume normalization on' : 'Normalization off');
 }
 
-// Tiny overlay shown during an actual live crossfade
-function showCrossfadeOverlay() { document.getElementById('crossfade-overlay').classList.add('show'); }
+// Live transition overlay (bottom toast-style badge)
+function showCrossfadeOverlay(label) {
+  const el = document.getElementById('crossfade-overlay');
+  el.classList.add('show');
+  el.dataset.label = label || 'Crossfading…';
+}
 function hideCrossfadeOverlay() { document.getElementById('crossfade-overlay').classList.remove('show'); }
 function updateCrossfadeOverlay(p) {
   const el = document.getElementById('crossfade-overlay');
   if (el && el.classList.contains('show')) {
-    el.querySelector('svg') && (el.lastChild.textContent = ` Crossfading… ${Math.round(p*100)}%`);
+    el.lastChild.textContent = ` ${el.dataset.label || 'Crossfading…'} ${Math.round(p*100)}%`;
   }
 }
 
@@ -2851,9 +3085,10 @@ function updateCrossfadeOverlay(p) {
 async function openCrossfadeModal() {
   const m = document.getElementById('crossfade-modal');
   m.classList.add('open');
-  // sync controls
-  document.getElementById('cf-modal-toggle').classList.toggle('on', state.crossfade);
-  document.getElementById('cf-body').classList.toggle('disabled', !state.crossfade);
+  // sync mode buttons + mode-specific sections
+  document.querySelectorAll('.cf-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === state.transitionMode));
+  document.getElementById('cf-duration-block').style.display = (state.transitionMode === 'crossfade') ? 'block' : 'none';
+  document.getElementById('cf-auto-note').style.display = (state.transitionMode === 'auto') ? 'block' : 'none';
   document.getElementById('cf-duration-slider').value = state.crossfadeDuration;
   document.getElementById('cf-duration-num').textContent = state.crossfadeDuration + 's';
   document.getElementById('cf-overlap-val').textContent = state.crossfadeDuration;
@@ -2868,20 +3103,30 @@ async function openCrossfadeModal() {
 
   drawCrossfadePreview();
 
-  // Try to load real waveforms + silence analysis
+  // Try to load real waveforms + silence/BPM analysis
   const note = document.getElementById('cf-note');
   if (cur || nxt) {
     note.textContent = 'Analysing audio…';
     const [aOut, aIn] = await Promise.all([cur ? analyseTrack(cur) : null, nxt ? analyseTrack(nxt) : null]);
     if (aOut || aIn) {
       drawCrossfadePreview(aOut && aOut.peaks, aIn && aIn.peaks);
-      let msg = 'Real waveforms shown. The shaded zone is the overlap; the green curve fades out, purple fades in (equal-power).';
-      if (aOut && aOut.duration - aOut.silenceTail > 0.4) {
-        msg += ` Trailing silence (${(aOut.duration - aOut.silenceTail).toFixed(1)}s) is trimmed so it blends into real audio, not a quiet tail.`;
+      let msg = 'Real waveforms shown. Green fades out, purple fades in.';
+      if (state.transitionMode === 'auto') {
+        const bo = aOut && aOut.bpm ? `${aOut.bpm} BPM` : 'BPM ?';
+        const bi = aIn && aIn.bpm ? `${aIn.bpm} BPM` : 'BPM ?';
+        msg = `Automix: current ${bo}, next ${bi}. `;
+        if (aOut && aIn && aOut.bpm && aIn.bpm) {
+          const r = aOut.bpm / aIn.bpm;
+          msg += (r > 0.94 && r < 1.06) || (Math.abs(aOut.bpm/(aIn.bpm*2)-1)<0.06) || (Math.abs(aOut.bpm/(aIn.bpm/2)-1)<0.06)
+            ? 'Close enough to beatmatch — tempo will be nudged to align.'
+            : 'Tempos too far apart to beatmatch cleanly; it’ll do a smooth EQ blend instead.';
+        }
+      } else if (aOut && aOut.duration - aOut.silenceTail > 0.4) {
+        msg += ` Trailing silence (${(aOut.duration - aOut.silenceTail).toFixed(1)}s) is trimmed so it blends into real audio.`;
       }
       note.textContent = msg;
     } else {
-      note.textContent = IS_FILE ? 'Showing fade curves. Waveforms & silence-trim need a hosted file or local songs (file:// blocks decoding).' : 'Showing fade curves — these tracks didn’t allow decoding (CORS). Local files always analyse fully.';
+      note.textContent = IS_FILE ? 'Showing fade curves. Full analysis needs a hosted file or local songs (file:// blocks decoding).' : 'Showing fade curves — these tracks didn’t allow decoding (CORS). Local files always analyse fully.';
       drawCrossfadePreview();
     }
   } else {
@@ -3096,7 +3341,9 @@ document.getElementById('new-playlist-name').addEventListener('keydown', (e) => 
 });
 
 // ─── LOCAL FILE INPUT + DROPZONE WIRING ───────────────────────────
-document.getElementById('yt-stage-close').addEventListener('click', () => showYTStage(false));
+document.getElementById('yt-stage-close').addEventListener('click', () => hideYTKeepAudio());
+document.getElementById('yt-stage-min').addEventListener('click', () => minimizeYTStage());
+document.getElementById('yt-restore').addEventListener('click', () => restoreYTStage());
 document.getElementById('local-file-input').addEventListener('change', (e) => {
   if (e.target.files && e.target.files.length) addLocalFiles(e.target.files);
   e.target.value = '';
@@ -3137,12 +3384,14 @@ async function init() {
   try { state.localTracks = (await dbGetAllMeta()).sort((a,b)=> (b.addedAt||0)-(a.addedAt||0)); } catch(e) { state.localTracks = []; }
   state.localTracks.forEach(registerTrack);
   renderHomePage();
-  // Restore crossfade prefs
-  state.crossfade = Store.get('aura_crossfade','0') === '1';
+  // Restore transition prefs
   state.crossfadeDuration = parseInt(Store.get('aura_cf_dur','5')) || 5;
-  document.getElementById('crossfade-toggle').classList.toggle('on', state.crossfade);
+  // migrate legacy boolean if present
+  if (Store.get('aura_transition', null) === null && Store.get('aura_crossfade','0') === '1') state.transitionMode = 'crossfade';
   const durRow = document.getElementById('crossfade-duration-row');
-  if (durRow) { durRow.style.opacity = state.crossfade ? '1' : '0.4'; durRow.style.pointerEvents = state.crossfade ? 'all' : 'none'; }
+  const active = state.transitionMode !== 'off';
+  document.getElementById('crossfade-toggle').classList.toggle('on', active);
+  if (durRow) { durRow.style.opacity = active ? '1' : '0.4'; durRow.style.pointerEvents = active ? 'all' : 'none'; }
   const cs = document.getElementById('crossfade-seconds'); if (cs) cs.value = state.crossfadeDuration;
   const cl = document.getElementById('crossfade-value-label'); if (cl) cl.textContent = state.crossfadeDuration + 's';
   syncCrossfadeBadge();
