@@ -772,20 +772,105 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border-radius: 99px;
   cursor: pointer;
   position: relative;
+  /* allow the sweeping glow to bleed past the bar edges */
+  overflow: visible;
+  touch-action: none;            /* we own pointer gestures (drag-to-seek) */
+  transition: height 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+/* clip the fill itself to the rounded track */
+.progress-bar-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
   overflow: hidden;
 }
+/* grow + lift the bar when hovered or being dragged (Apple-style) */
+.progress-bar-wrap:hover,
+.progress-bar-wrap.scrubbing { height: 6px; }
 .progress-bar-fill {
   height: 100%;
   background: var(--text);
   border-radius: 99px;
   transition: none;
   position: relative;
+  pointer-events: none;
 }
-.progress-bar-wrap:hover .progress-bar-fill { background: var(--accent); }
+.progress-bar-wrap:hover .progress-bar-fill,
+.progress-bar-wrap.scrubbing .progress-bar-fill { background: var(--accent); }
+/* enlarged invisible hit-area so the thin bar is easy to grab */
 .progress-bar-wrap::after {
   content: '';
   position: absolute;
-  top: -6px; left: 0; right: 0; bottom: -6px;
+  top: -8px; left: 0; right: 0; bottom: -8px;
+}
+
+/* ─── MIXING STATE (Apple-Music-style transition on the bar) ──────── */
+/* moving gradient washes through the filled portion */
+.progress-bar-wrap.mixing .progress-bar-fill {
+  background: linear-gradient(90deg,
+    var(--accent) 0%, #7c6fff 35%, var(--accent3) 60%, var(--accent) 100%);
+  background-size: 220% 100%;
+  animation: mix-fill-flow 2.4s linear infinite;
+  box-shadow: 0 0 10px rgba(200,255,87,0.45);
+}
+@keyframes mix-fill-flow {
+  from { background-position: 220% 0; }
+  to   { background-position: 0% 0; }
+}
+/* a soft light that sweeps left→right across the whole bar */
+.progress-glow {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  left: 0;
+  width: 38%;
+  border-radius: 99px;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(200,255,87,0.0) 10%,
+    rgba(200,255,87,0.55) 50%,
+    rgba(124,111,255,0.25) 75%, transparent 100%);
+  filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-120%);
+  transition: opacity 0.45s ease;
+}
+.progress-bar-wrap.mixing .progress-glow {
+  opacity: 1;
+  animation: glow-sweep 2.1s cubic-bezier(0.45,0,0.25,1) infinite;
+}
+@keyframes glow-sweep {
+  0%   { transform: translateX(-130%); }
+  100% { transform: translateX(360%); }
+}
+
+/* "MIXING" label that fades in under the bar */
+.mix-indicator {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translate(-50%, 4px);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.4,0.5,1);
+  white-space: nowrap;
+}
+.mix-indicator.show { opacity: 0.92; transform: translate(-50%, 0); }
+.mix-indicator .mix-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: mix-dot-pulse 1.1s ease-in-out infinite;
+}
+@keyframes mix-dot-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.25); }
 }
 
 .player-right {
@@ -1554,8 +1639,12 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
       </div>
       <div class="progress-row">
         <span class="time-label" id="current-time">0:00</span>
-        <div class="progress-bar-wrap" id="progress-bar" onclick="seekTo(event)">
-          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        <div class="progress-bar-wrap" id="progress-bar">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+          <div class="progress-glow" id="progress-glow"></div>
+          <div class="mix-indicator" id="mix-indicator"><span class="mix-dot"></span>MIXING</div>
         </div>
         <span class="time-label right" id="total-time">0:00</span>
       </div>
@@ -1744,6 +1833,8 @@ const deckB = document.getElementById('audio-b');
 let audio = deckA;                 // active deck
 let _audioCtx = null, _gainA = null, _gainB = null, _srcA = null, _srcB = null, _bassA = null, _bassB = null, _waInit = false;
 let crossfadeTimer = null, crossfadeRAF = null, isCrossfading = false;
+let _xfade = null;   // active crossfade controller (pausable, handoff-aware)
+let _scrubbing = false;   // true while the user is dragging the progress bar
 
 function gainFor(deck) { return deck === deckA ? _gainA : _gainB; }
 function bassFor(deck) { return deck === deckA ? _bassA : _bassB; }
@@ -1975,8 +2066,16 @@ function backendSetVolume(v) {
 function cancelCrossfade() {
   isCrossfading = false;
   _ytFading = false;
+  if (_xfade) {
+    try { setBass(_xfade.fromDeck, 0); setBass(_xfade.toDeck, 0); } catch (e) {}
+    // If we never reached the metadata handoff, the incoming deck is orphaned —
+    // silence it so it can't keep playing under a freshly-loaded track.
+    if (!_xfade.switched) { try { _xfade.toDeck.pause(); _xfade.toDeck.removeAttribute('src'); _xfade.toDeck.load(); } catch (e) {} }
+  }
+  _xfade = null;
   clearTimeout(crossfadeTimer); crossfadeTimer = null;
   cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
+  hideMixUI();
   hideCrossfadeOverlay();
 }
 
@@ -1998,30 +2097,54 @@ async function analyseTrack(track) {
     const decoded = await _audioCtx.decodeAudioData(buf);
     const ch = decoded.getChannelData(0);
     const sr = decoded.sampleRate, dur = decoded.duration;
-    const win = Math.floor(sr * 0.05);             // 50ms RMS windows
-    const rmsAt = (i) => { let s=0,n=0; for (let j=0;j<win && i+j<ch.length;j+=4){const v=ch[i+j]||0;s+=v*v;n++;} return Math.sqrt(s/Math.max(1,n)); };
-    // Trailing silence: only trim a tail that is GENUINELY near-silent (not a
-    // quiet fade-out). Scan backward; the tail point is where audio last clearly
-    // exceeds a true-silence floor. We require ~200ms of real audio to confirm.
-    const SIL_END = 0.035;                         // ~ -29 dBFS: true near-silence
-    let tail = dur;
-    {
-      const need = 4; let run = 0, endIdx = ch.length;
-      for (let i = ch.length - win; i > 0; i -= win) {
-        if (rmsAt(i) > SIL_END) {
-          run++;
-          if (run === 1) endIdx = i + win;        // first (rightmost) loud window edge
-          if (run >= need) { tail = Math.min(dur, endIdx / sr); break; }
-        } else { run = 0; }
-      }
+    const win = Math.floor(sr * 0.05);             // 50ms analysis windows
+    // ── Build a coarse RMS envelope of the whole track (one value per window).
+    const env = [];
+    for (let i = 0; i + win <= ch.length; i += win) {
+      let s = 0, n = 0;
+      for (let j = 0; j < win; j += 4) { const v = ch[i+j] || 0; s += v*v; n++; }
+      env.push(Math.sqrt(s / Math.max(1, n)));
     }
-    // Leading silence: first window above a low floor, capped so we never jump in.
-    const SIL_START = 0.02;
-    let lead = 0;
-    for (let i = 0; i < ch.length - win; i += win) {
-      if (rmsAt(i) > SIL_START) { lead = i / sr; break; }
+    const envT = win / sr;                          // seconds per envelope step
+
+    // ── DYNAMIC loudness reference. Instead of a fixed dBFS floor, we measure
+    // THIS song's own body loudness and derive every threshold from it. That's
+    // what makes detection adapt per-track: a loud master and a quiet one each
+    // get a proportional floor, and a faint outro "tease" sitting far below the
+    // body is recognised as tail, not as the song still playing.
+    const sorted = env.filter(v => v > 0).sort((a, b) => a - b);
+    const pctl = (p) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] : 0;
+    const body = pctl(0.80) || 0.1;                 // 80th-pct ≈ the representative "loud part"
+    const noiseFloor = 0.008;                        // absolute true-silence floor (~ -42 dBFS)
+
+    // Trailing tail: scan backward for the last SUSTAINED passage that is loud
+    // relative to the body. Threshold ≈ 13% of body (~ -18 dB) but never below the
+    // noise floor. A short or quiet blip (a teaser, a stray click) can't clear the
+    // sustained-run test, so 30s of silence + a faint tease all collapse to "tail".
+    const tailFloor = Math.max(noiseFloor, body * 0.13);
+    const needTail = 6;                              // ~300ms of sustained real audio
+    let tail = dur, run = 0, rightEdge = env.length;
+    for (let i = env.length - 1; i >= 0; i--) {
+      if (env[i] > tailFloor) {
+        if (run === 0) rightEdge = i + 1;
+        run++;
+        if (run >= needTail) { tail = Math.min(dur, rightEdge * envT); break; }
+      } else { run = 0; }
     }
-    lead = Math.min(lead, 20.0);                    // allow trimming long intros (e.g. 18s)
+
+    // Leading silence: first SUSTAINED passage above a relative floor, so we trim
+    // dead air / very soft intros without ever clipping the first real note.
+    const leadFloor = Math.max(noiseFloor, body * 0.08);
+    const needLead = 3;                              // ~150ms sustained
+    let lead = 0, lrun = 0;
+    for (let i = 0; i < env.length; i++) {
+      if (env[i] > leadFloor) {
+        if (lrun === 0) lead = i * envT;
+        lrun++;
+        if (lrun >= needLead) break;
+      } else { lrun = 0; }
+    }
+    lead = Math.min(lead, 20.0);                     // cap: trim long intros, but bounded
     // overall RMS for loudness normalization
     let total = 0, cnt = 0;
     for (let i = 0; i < ch.length; i += 64) { const v = ch[i]||0; total += v*v; cnt++; }
@@ -2260,38 +2383,95 @@ async function beginCrossfade(nextIdx, plan) {
     if (startAt > 0) { try { toDeck.currentTime = startAt; } catch(e){} }
   } catch(e) { isCrossfading = false; setBass(toDeck, 0); return; }
 
-  showCrossfadeOverlay(plan.gridded ? (didBeatmatch ? 'Beatmatched mix…' : 'Phrase mix…') : (isAuto ? 'Mixing…' : 'Crossfading…'));
-  const dur = plan.length * 1000;
-  const start = performance.now();
-  const curve = state.crossfadeCurve;
-  function step(now) {
-    const p = Math.min(1, (now - start) / dur);
-    const gOut = curve === 'equal' ? Math.cos(p * Math.PI/2) : (1 - p);
-    const gIn  = curve === 'equal' ? Math.sin(p * Math.PI/2) : p;
-    setDeckVolume(fromDeck, state.volume * gOut * fromGain);
-    setDeckVolume(toDeck,   state.volume * gIn  * toGain);
-    if (isAuto) {
-      const swap = Math.max(0, (p - 0.4) / 0.6);
-      setBass(fromDeck, -18 * swap);
-      setBass(toDeck,   -18 * (1 - swap));
-    }
-    updateCrossfadeOverlay(p);
-    if (p < 1) { crossfadeRAF = requestAnimationFrame(step); }
-    else {
-      fromDeck.pause(); fromDeck.removeAttribute('src'); fromDeck.load();
-      setBass(fromDeck, 0); setBass(toDeck, 0);
-      toDeck.playbackRate = 1;
-      setDeckVolume(toDeck, state.volume * toGain);
-      audio = toDeck;
-      state.queueIndex = nextIdx;
-      isCrossfading = false;
-      hideCrossfadeOverlay();
-      updateNowPlayingUI(state.queue[state.queueIndex]);
-      updateAllTrackRows();
-      preAnalyseNext();
-    }
+  // Hand the transition to a pausable controller so play/pause, seeking and
+  // track changes act on the WHOLE mix (both decks) — not just one deck.
+  _xfade = {
+    fromDeck, toDeck, nextIdx,
+    curve: state.crossfadeCurve,
+    fromGain, toGain, isAuto,
+    dur: plan.length * 1000,
+    elapsed: 0, segStart: performance.now(),
+    paused: false, switched: false,
+  };
+  showMixUI();
+  crossfadeRAF = requestAnimationFrame(stepXfade);
+}
+
+// One animation frame of the active crossfade. Progress is accumulated as
+// `elapsed` ms so the mix can be frozen on pause and resumed seamlessly.
+function stepXfade(now) {
+  const x = _xfade;
+  if (!x || x.paused) return;
+  const t = x.elapsed + (now - x.segStart);
+  const p = Math.min(1, t / x.dur);
+  const gOut = x.curve === 'equal' ? Math.cos(p * Math.PI / 2) : (1 - p);
+  const gIn  = x.curve === 'equal' ? Math.sin(p * Math.PI / 2) : p;
+  setDeckVolume(x.fromDeck, state.volume * gOut * x.fromGain);
+  setDeckVolume(x.toDeck,   state.volume * gIn  * x.toGain);
+  if (x.isAuto) {
+    const swap = Math.max(0, (p - 0.4) / 0.6);
+    setBass(x.fromDeck, -18 * swap);
+    setBass(x.toDeck,   -18 * (1 - swap));
   }
-  crossfadeRAF = requestAnimationFrame(step);
+  // ── Crossover handoff: once the incoming track is the one you mostly hear,
+  // make IT the active deck. From here the progress bar, now-playing metadata
+  // and the play/pause button all follow the new song — exactly like Apple. ──
+  if (!x.switched && p >= 0.5) {
+    x.switched = true;
+    audio = x.toDeck;
+    state.queueIndex = x.nextIdx;
+    updateNowPlayingUI(state.queue[state.queueIndex]);
+    updateAllTrackRows();
+    updateLikeCurrentBtn();
+  }
+  updateMixUI(p);
+  if (p < 1) { crossfadeRAF = requestAnimationFrame(stepXfade); }
+  else { finishXfade(); }
+}
+
+function finishXfade() {
+  const x = _xfade;
+  if (!x) return;
+  x.fromDeck.pause(); x.fromDeck.removeAttribute('src'); x.fromDeck.load();
+  setBass(x.fromDeck, 0); setBass(x.toDeck, 0);
+  x.toDeck.playbackRate = 1;
+  setDeckVolume(x.toDeck, state.volume * x.toGain);
+  if (!x.switched) {                 // ultra-short mixes can end before crossover
+    audio = x.toDeck;
+    state.queueIndex = x.nextIdx;
+    updateNowPlayingUI(state.queue[state.queueIndex]);
+    updateAllTrackRows();
+    updateLikeCurrentBtn();
+  }
+  isCrossfading = false;
+  _xfade = null;
+  crossfadeRAF = null;
+  hideMixUI();
+  preAnalyseNext();
+}
+
+// Freeze the whole mix: both decks pause and the fade halts where it is, so
+// resuming continues the transition from the same point.
+function pauseTransition() {
+  const x = _xfade;
+  if (!x || x.paused) return;
+  x.elapsed += performance.now() - x.segStart;
+  x.paused = true;
+  cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
+  try { x.fromDeck.pause(); } catch (e) {}
+  try { x.toDeck.pause(); } catch (e) {}
+  setMixUIPaused(true);
+}
+function resumeTransition() {
+  const x = _xfade;
+  if (!x || !x.paused) return;
+  x.paused = false;
+  x.segStart = performance.now();
+  resumeCtx();
+  if (x.fromDeck.src) x.fromDeck.play().catch(() => {});
+  if (x.toDeck.src)   x.toDeck.play().catch(() => {});
+  setMixUIPaused(false);
+  crossfadeRAF = requestAnimationFrame(stepXfade);
 }
 
 
@@ -2667,6 +2847,14 @@ function togglePlayPause() {
     if (DEMO_TRACKS.length) playQueue(DEMO_TRACKS, 0);
     return;
   }
+  // Mid-mix: act on the whole transition (both decks) so pausing can't leave
+  // the incoming song playing on its own.
+  if (isCrossfading && _xfade) {
+    if (state.isPlaying) { pauseTransition(); state.isPlaying = false; }
+    else { resumeTransition(); state.isPlaying = true; }
+    updatePlayPauseUI();
+    return;
+  }
   if (state.isPlaying) { backendPause(); state.isPlaying = false; }
   else { backendResume(); state.isPlaying = true; }
   updatePlayPauseUI();
@@ -2676,15 +2864,48 @@ function setVolume(val) {
   backendSetVolume(val / 100);
 }
 
-function seekTo(e) {
+// ─── DRAGGABLE PROGRESS BAR (scrub like the volume slider — no thumb) ──
+function _seekFracFromEvent(e) {
   const bar = document.getElementById('progress-bar');
   const rect = bar.getBoundingClientRect();
-  const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  backendSeekFraction(frac);
+  return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
 }
+function _scrubPreview(frac) {
+  document.getElementById('progress-fill').style.width = (frac * 100) + '%';
+  let dur = 0;
+  if (state.backend === 'yt' && ytPlayer && ytPlayer.getDuration) dur = ytPlayer.getDuration() || 0;
+  else dur = (audio && audio.duration) || 0;
+  if (dur) document.getElementById('current-time').textContent = formatTime(dur * frac);
+}
+(function wireProgressScrub() {
+  const bar = document.getElementById('progress-bar');
+  if (!bar) return;
+  const onDown = (e) => {
+    if (!state.queue.length) return;
+    _scrubbing = true;
+    bar.classList.add('scrubbing');
+    _scrubPreview(_seekFracFromEvent(e));
+    if (e.pointerId != null && bar.setPointerCapture) { try { bar.setPointerCapture(e.pointerId); } catch (_) {} }
+    e.preventDefault();
+  };
+  const onMove = (e) => { if (_scrubbing) { _scrubPreview(_seekFracFromEvent(e)); e.preventDefault(); } };
+  const onUp = (e) => {
+    if (!_scrubbing) return;
+    const frac = _seekFracFromEvent(e);
+    _scrubbing = false;
+    bar.classList.remove('scrubbing');
+    backendSeekFraction(frac);     // a simple tap (down+up, no move) still seeks here
+  };
+  bar.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+})();
+// Back-compat shim in case anything still calls seekTo(event).
+function seekTo(e) { backendSeekFraction(_seekFracFromEvent(e)); }
 
 // ─── PROGRESS UI (driven by whichever backend is active) ──────────
 function updateProgressUI(current, duration) {
+  if (_scrubbing) return;          // don't fight the user's drag
   if (!duration || !isFinite(duration)) duration = 0;
   const pct = duration ? (current / duration) * 100 : 0;
   document.getElementById('progress-fill').style.width = pct + '%';
@@ -3191,19 +3412,34 @@ function toggleNormalize() {
   showToast(state.normalize ? '🔊 Volume normalization on' : 'Normalization off');
 }
 
-// Live transition overlay (bottom toast-style badge)
-function showCrossfadeOverlay(label) {
-  const el = document.getElementById('crossfade-overlay');
-  el.classList.add('show');
-  el.dataset.label = label || 'Crossfading…';
+// ─── MIX UI — Apple-style transition shown on the progress bar ─────
+function showMixUI() {
+  const bar = document.getElementById('progress-bar');
+  const mi  = document.getElementById('mix-indicator');
+  if (bar) bar.classList.add('mixing');
+  if (mi)  mi.classList.add('show');
+  setMixUIPaused(false);
 }
-function hideCrossfadeOverlay() { document.getElementById('crossfade-overlay').classList.remove('show'); }
-function updateCrossfadeOverlay(p) {
-  const el = document.getElementById('crossfade-overlay');
-  if (el && el.classList.contains('show')) {
-    el.lastChild.textContent = ` ${el.dataset.label || 'Crossfading…'} ${Math.round(p*100)}%`;
-  }
+function updateMixUI(_p) { /* sweep + flow are CSS-driven; hook kept for future use */ }
+function setMixUIPaused(paused) {
+  const bar = document.getElementById('progress-bar');
+  if (!bar) return;
+  const val = paused ? 'paused' : 'running';
+  bar.querySelectorAll('.progress-glow, .progress-bar-fill, .mix-dot')
+     .forEach(el => { el.style.animationPlayState = val; });
 }
+function hideMixUI() {
+  const bar = document.getElementById('progress-bar');
+  const mi  = document.getElementById('mix-indicator');
+  if (bar) bar.classList.remove('mixing');
+  if (mi)  mi.classList.remove('show');
+  setMixUIPaused(false);
+}
+
+// Legacy overlay entry-points now route to the on-bar mix UI (no top-right box).
+function showCrossfadeOverlay(_label) { showMixUI(); }
+function hideCrossfadeOverlay() { hideMixUI(); }
+function updateCrossfadeOverlay(p) { updateMixUI(p); }
 
 // ── Modal open/close ──
 async function openCrossfadeModal() {
