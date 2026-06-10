@@ -20,9 +20,10 @@
   --text:      #f0eff5;
   --text2:     #9490aa;
   --text3:     #5a5670;
-  --accent:    #c8ff57;
-  --accent2:   #7c6fff;
-  --accent3:   #ff6b9d;
+  --accent:    #8b5cf6;
+  --accent-rgb: 139,92,246;
+  --accent2:   #a855f7;
+  --accent3:   #c084fc;
   --red:       #ff4d6d;
   --radius:    14px;
   --radius-sm: 8px;
@@ -196,7 +197,7 @@ svg { display: block; flex-shrink: 0; }
   transition: var(--transition);
   border: 1px dashed var(--border2);
 }
-.new-playlist-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(200,255,87,0.04); }
+.new-playlist-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(139,92,246,0.04); }
 
 /* ─── SEARCH BAR ────────────────────────────────────────────────── */
 .search-bar-wrap {
@@ -213,7 +214,7 @@ svg { display: block; flex-shrink: 0; }
   padding: 9px 14px;
   transition: var(--transition);
 }
-.search-bar:focus-within { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(124,111,255,0.12); }
+.search-bar:focus-within { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(168,85,247,0.12); }
 .search-bar input {
   background: none;
   border: none;
@@ -304,7 +305,7 @@ svg { display: block; flex-shrink: 0; }
   background: var(--accent);
   display: flex; align-items: center; justify-content: center;
   transform: scale(0.85); transition: var(--transition);
-  box-shadow: 0 4px 20px rgba(200,255,87,0.4);
+  box-shadow: 0 4px 20px rgba(139,92,246,0.4);
 }
 .card:hover .play-btn-circle { transform: scale(1); }
 .play-btn-circle svg path { fill: #0a0a0c; }
@@ -346,6 +347,18 @@ svg { display: block; flex-shrink: 0; }
   transition: var(--transition);
 }
 .hscroll-card:hover { transform: translateY(-3px); border-color: var(--border2); }
+/* shimmer placeholder while home content loads */
+.skel-card {
+  flex-shrink: 0; width: 150px; height: 196px; border-radius: var(--radius);
+  background: linear-gradient(100deg, var(--bg2) 30%, var(--bg4) 50%, var(--bg2) 70%);
+  background-size: 220% 100%;
+  animation: skel-shimmer 1.2s linear infinite;
+}
+@keyframes skel-shimmer { from { background-position: 200% 0; } to { background-position: -120% 0; } }
+.home-note {
+  color: var(--text2); font-size: 13px; padding: 14px 0;
+}
+.home-note .section-link { margin-left: 4px; }
 
 /* ─── TRACK LIST ────────────────────────────────────────────────── */
 .track-list { display: flex; flex-direction: column; gap: 2px; }
@@ -361,7 +374,7 @@ svg { display: block; flex-shrink: 0; }
   position: relative;
 }
 .track-row:hover { background: var(--bg3); }
-.track-row.playing { background: rgba(200,255,87,0.06); }
+.track-row.playing { background: rgba(139,92,246,0.06); }
 .track-row.playing .track-title { color: var(--accent); }
 .track-num {
   font-size: 13px;
@@ -440,7 +453,7 @@ svg { display: block; flex-shrink: 0; }
 }
 .search-main-bar:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(200,255,87,0.1);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.1);
 }
 .search-main-bar input {
   background: none; border: none; outline: none;
@@ -473,8 +486,8 @@ svg { display: block; flex-shrink: 0; }
   transition: var(--transition);
   color: var(--text2);
 }
-.genre-chip:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(124,111,255,0.08); }
-.genre-chip.active { background: rgba(200,255,87,0.1); border-color: var(--accent); color: var(--accent); }
+.genre-chip:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(168,85,247,0.08); }
+.genre-chip.active { background: rgba(139,92,246,0.1); border-color: var(--accent); color: var(--accent); }
 
 /* ─── LIKED PAGE ────────────────────────────────────────────────── */
 .liked-header {
@@ -483,7 +496,7 @@ svg { display: block; flex-shrink: 0; }
   gap: 20px;
   margin-bottom: 28px;
   padding: 20px;
-  background: linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,107,157,0.08));
+  background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(192,132,252,0.08));
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -514,9 +527,9 @@ svg { display: block; flex-shrink: 0; }
   font-weight: 600;
   letter-spacing: 0.02em;
 }
-.taste-tag.green { background: rgba(200,255,87,0.1); color: var(--accent); border: 1px solid rgba(200,255,87,0.2); }
-.taste-tag.purple { background: rgba(124,111,255,0.1); color: var(--accent2); border: 1px solid rgba(124,111,255,0.2); }
-.taste-tag.pink { background: rgba(255,107,157,0.1); color: var(--accent3); border: 1px solid rgba(255,107,157,0.2); }
+.taste-tag.green { background: rgba(139,92,246,0.1); color: var(--accent); border: 1px solid rgba(139,92,246,0.2); }
+.taste-tag.purple { background: rgba(168,85,247,0.1); color: var(--accent2); border: 1px solid rgba(168,85,247,0.2); }
+.taste-tag.pink { background: rgba(192,132,252,0.1); color: var(--accent3); border: 1px solid rgba(192,132,252,0.2); }
 
 /* ─── PLAYLISTS PAGE ─────────────────────────────────────────────── */
 .playlists-grid {
@@ -680,7 +693,7 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(200,255,87,0.4);
+  box-shadow: 0 2px 8px rgba(139,92,246,0.4);
   transition: transform 0.1s;
 }
 input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
@@ -805,72 +818,42 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 
 /* ─── MIXING STATE (Apple-Music-style transition on the bar) ──────── */
-/* moving gradient washes through the filled portion */
+/* a white→gray shimmer flows through the filled portion (no colour) */
 .progress-bar-wrap.mixing .progress-bar-fill {
   background: linear-gradient(90deg,
-    var(--accent) 0%, #7c6fff 35%, var(--accent3) 60%, var(--accent) 100%);
+    #4a4a55 0%, #d8d8e0 40%, #ffffff 50%, #d8d8e0 60%, #4a4a55 100%);
   background-size: 220% 100%;
-  animation: mix-fill-flow 2.4s linear infinite;
-  box-shadow: 0 0 10px rgba(200,255,87,0.45);
+  animation: mix-fill-flow 2.0s linear infinite;
+  box-shadow: 0 0 6px rgba(255,255,255,0.22);
 }
 @keyframes mix-fill-flow {
   from { background-position: 220% 0; }
-  to   { background-position: 0% 0; }
-}
-/* a soft light that sweeps left→right across the whole bar */
-.progress-glow {
-  position: absolute;
-  top: -2px; bottom: -2px;
-  left: 0;
-  width: 38%;
-  border-radius: 99px;
-  background: linear-gradient(90deg,
-    transparent 0%, rgba(200,255,87,0.0) 10%,
-    rgba(200,255,87,0.55) 50%,
-    rgba(124,111,255,0.25) 75%, transparent 100%);
-  filter: blur(4px);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-120%);
-  transition: opacity 0.45s ease;
-}
-.progress-bar-wrap.mixing .progress-glow {
-  opacity: 1;
-  animation: glow-sweep 2.1s cubic-bezier(0.45,0,0.25,1) infinite;
-}
-@keyframes glow-sweep {
-  0%   { transform: translateX(-130%); }
-  100% { transform: translateX(360%); }
+  to   { background-position: -20% 0; }
 }
 
-/* "MIXING" label that fades in under the bar */
+/* "MIXING" label that fades in under the bar, pulsing gray→white */
 .mix-indicator {
   position: absolute;
   left: 50%;
   bottom: -16px;
   transform: translate(-50%, 4px);
-  display: flex;
-  align-items: center;
-  gap: 5px;
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  color: var(--accent);
+  letter-spacing: 0.2em;
+  color: #6b6b78;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.4,0.5,1);
   white-space: nowrap;
 }
-.mix-indicator.show { opacity: 0.92; transform: translate(-50%, 0); }
-.mix-indicator .mix-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-  animation: mix-dot-pulse 1.1s ease-in-out infinite;
+.mix-indicator.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  animation: mix-text-pulse 1.7s ease-in-out infinite;
 }
-@keyframes mix-dot-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
-  50%      { opacity: 1;   transform: scale(1.25); }
+@keyframes mix-text-pulse {
+  0%, 100% { color: #6b6b78; }   /* gray */
+  50%      { color: #ffffff; }   /* white */
 }
 
 .player-right {
@@ -894,8 +877,8 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   gap: 5px;
   padding: 4px 10px;
   border-radius: 99px;
-  background: rgba(200,255,87,0.08);
-  border: 1px solid rgba(200,255,87,0.2);
+  background: rgba(139,92,246,0.08);
+  border: 1px solid rgba(139,92,246,0.2);
   font-size: 11px;
   font-weight: 600;
   color: var(--accent);
@@ -903,7 +886,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   cursor: pointer;
   transition: var(--transition);
 }
-.crossfade-badge:hover { background: rgba(200,255,87,0.15); }
+.crossfade-badge:hover { background: rgba(139,92,246,0.15); }
 .crossfade-badge.off { background: var(--bg3); border-color: var(--border); color: var(--text3); }
 
 /* ─── YT HIDDEN ─────────────────────────────────────────────────── */
@@ -944,8 +927,8 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .crossfade-overlay {
   position: fixed;
   top: 24px; right: 24px;
-  background: rgba(200,255,87,0.1);
-  border: 1px solid rgba(200,255,87,0.3);
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.3);
   border-radius: 12px;
   padding: 12px 16px;
   font-size: 12px;
@@ -969,7 +952,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   align-items: flex-end;
   margin-bottom: 28px;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(124,111,255,0.1), rgba(200,255,87,0.05));
+  background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(139,92,246,0.05));
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -1049,8 +1032,8 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 #autoplay-banner {
   position: fixed;
   top: 0; left: 0; right: 0;
-  background: linear-gradient(90deg, rgba(200,255,87,0.15), rgba(124,111,255,0.15));
-  border-bottom: 1px solid rgba(200,255,87,0.3);
+  background: linear-gradient(90deg, rgba(139,92,246,0.15), rgba(168,85,247,0.15));
+  border-bottom: 1px solid rgba(139,92,246,0.3);
   padding: 10px 20px;
   display: flex;
   align-items: center;
@@ -1093,16 +1076,19 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   display: flex; align-items: center; justify-content: center;
 }
 #yt-stage-close:hover, #yt-stage-min:hover { background: var(--bg4); color: var(--text); }
-#yt-player, #yt-player iframe { width: 280px; height: 158px; display: block; }
+#yt-player-host { position: relative; width: 280px; height: 158px; }
+#yt-player, #yt-player-b { position: absolute; inset: 0; }
+#yt-player iframe, #yt-player-b iframe { width: 280px; height: 158px; display: block; }
+#yt-player.standby, #yt-player-b.standby { opacity: 0; pointer-events: none; }
 /* Minimized: collapse video, keep header bar (audio keeps playing) */
-#yt-stage.yt-min #yt-player { height: 0; }
+#yt-stage.yt-min #yt-player-host { height: 0; }
 #yt-stage.yt-min { width: 200px; }
 /* Restore pill when fully hidden */
 #yt-restore {
   position: fixed; right: 18px; bottom: calc(var(--player-h) + 14px);
   z-index: 200; padding: 8px 14px; border-radius: 99px;
   background: var(--accent3); color: #1a0a10; font-weight: 700; font-size: 12px;
-  box-shadow: 0 8px 24px rgba(255,107,157,0.4); transition: var(--transition);
+  box-shadow: 0 8px 24px rgba(192,132,252,0.4); transition: var(--transition);
 }
 #yt-restore:hover { transform: translateY(-2px); }
 #yt-restore.yt-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
@@ -1117,7 +1103,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   transition: var(--transition);
   cursor: pointer;
 }
-.local-dropzone.drag { border-color: var(--accent); background: rgba(200,255,87,0.05); }
+.local-dropzone.drag { border-color: var(--accent); background: rgba(139,92,246,0.05); }
 
 /* ─── CROSSFADE STUDIO MODAL ─────────────────────────────────────── */
 .cf-modal-overlay {
@@ -1161,13 +1147,13 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   background: var(--bg3); border: 1.5px solid var(--border); transition: var(--transition);
 }
 .cf-mode-btn:hover { border-color: var(--border2); }
-.cf-mode-btn.active { background: rgba(200,255,87,0.1); border-color: var(--accent); }
+.cf-mode-btn.active { background: rgba(139,92,246,0.1); border-color: var(--accent); }
 .cf-mode-name { font-weight: 700; font-size: 13.5px; color: var(--text); }
 .cf-mode-btn.active .cf-mode-name { color: var(--accent); }
 .cf-mode-desc { font-size: 10.5px; color: var(--text3); }
 .cf-auto-note {
   font-size: 12px; line-height: 1.5; color: var(--text2);
-  background: rgba(124,111,255,0.08); border: 1px solid rgba(124,111,255,0.2);
+  background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2);
   border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
 }
 .cf-auto-note strong { color: #a99cff; }
@@ -1198,7 +1184,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .cf-duration-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 13px; color: var(--text2); }
 .cf-duration-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); }
 .cf-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 99px; background: var(--bg4); outline: none; }
-.cf-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 2px 8px rgba(200,255,87,0.4); }
+.cf-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 2px 8px rgba(139,92,246,0.4); }
 .cf-slider::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: var(--accent); cursor: pointer; }
 .cf-curve-options { display: flex; gap: 8px; margin-top: 12px; }
 .cf-curve-btn {
@@ -1206,7 +1192,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   background: var(--bg3); color: var(--text2); border: 1px solid var(--border); transition: var(--transition);
 }
 .cf-curve-btn:hover { color: var(--text); }
-.cf-curve-btn.active { background: rgba(200,255,87,0.12); color: var(--accent); border-color: rgba(200,255,87,0.3); }
+.cf-curve-btn.active { background: rgba(139,92,246,0.12); color: var(--accent); border-color: rgba(139,92,246,0.3); }
 .cf-note { font-size: 11.5px; color: var(--text3); line-height: 1.45; min-height: 16px; }
 .cf-modal-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
 @media (max-width: 560px) { .cf-modal { padding: 16px; } #cf-canvas { height: 120px; } }
@@ -1221,11 +1207,139 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-left: 8px;
   flex-shrink: 0;
 }
-.src-badge.jamendo  { background: rgba(200,255,87,0.14); color: var(--accent); }
-.src-badge.archive  { background: rgba(124,111,255,0.16); color: #a99cff; }
+.src-badge.jamendo  { background: rgba(139,92,246,0.14); color: var(--accent); }
+.src-badge.archive  { background: rgba(168,85,247,0.16); color: #a99cff; }
 .src-badge.youtube  { background: rgba(255,77,109,0.15); color: #ff8095; }
 .src-badge.local    { background: rgba(255,255,255,0.08); color: var(--text2); }
 .track-meta-wrap { display: flex; align-items: center; overflow: hidden; }
+
+/* ─── EXPANDED NOW PLAYING ─────────────────────────────────────── */
+#np-screen {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg);
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr;
+  gap: 28px;
+  padding: 56px clamp(28px, 6vw, 88px);
+  opacity: 0; visibility: hidden;
+  transform: translateY(22px);
+  transition: opacity 0.32s ease, transform 0.38s cubic-bezier(0.22,1,0.36,1), visibility 0.32s;
+  overflow: hidden;
+}
+#np-screen.open { opacity: 1; visibility: visible; transform: translateY(0); }
+/* ambient purple glow behind everything */
+.np-glow {
+  position: absolute; top: -25%; left: -10%;
+  width: 70%; height: 80%;
+  background: radial-gradient(closest-side, rgba(139,92,246,0.30), transparent 70%);
+  filter: blur(40px); pointer-events: none;
+  animation: np-glow-float 11s ease-in-out infinite alternate;
+}
+@keyframes np-glow-float {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(14%, 10%) scale(1.18); }
+}
+.np-close {
+  position: absolute; top: 22px; right: 26px; z-index: 5;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); background: var(--bg2); border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.np-close:hover { color: var(--text); background: var(--bg3); transform: translateY(2px); }
+
+.np-main { display: flex; flex-direction: column; justify-content: center; min-width: 0; position: relative; z-index: 2; }
+.np-art {
+  width: min(42vh, 420px); aspect-ratio: 1; border-radius: 22px;
+  background: linear-gradient(135deg, var(--bg3), var(--bg2));
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px var(--border);
+  overflow: hidden; margin-bottom: 30px;
+}
+.np-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.np-art-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 64px; color: var(--text3); }
+.np-info { min-width: 0; max-width: 560px; }
+.np-eyebrow { color: var(--accent); font-weight: 700; letter-spacing: 0.18em; font-size: 11px; margin-bottom: 12px; }
+.np-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(28px, 4.2vw, 46px); line-height: 1.05; color: var(--text);
+  margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.np-artist { color: var(--accent); font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+.np-sub { color: var(--text2); font-size: 14px; margin-bottom: 18px; min-height: 18px; }
+
+/* decorative equalizer bars (purple) */
+.np-eq { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin: 6px 0 22px; opacity: 0.9; }
+.np-eq span {
+  width: 4px; border-radius: 2px;
+  background: linear-gradient(to top, var(--accent), var(--accent3));
+  height: 30%;
+  animation: np-eq-bounce 1.1s ease-in-out infinite;
+}
+.np-eq span:nth-child(odd)   { animation-duration: 0.9s; }
+.np-eq span:nth-child(3n)    { animation-duration: 1.3s; }
+.np-eq span:nth-child(4n)    { animation-duration: 0.75s; }
+.np-eq span:nth-child(5n)    { animation-duration: 1.5s; }
+.np-eq span:nth-child(2n)    { animation-delay: -0.4s; }
+.np-eq span:nth-child(3n)    { animation-delay: -0.8s; }
+.np-eq span:nth-child(5n)    { animation-delay: -0.2s; }
+.np-eq span:nth-child(7n)    { animation-delay: -1.1s; }
+@keyframes np-eq-bounce { 0%,100% { height: 18%; } 50% { height: 95%; } }
+/* frozen when paused */
+#np-screen.paused .np-eq span { animation-play-state: paused; }
+
+.np-progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.np-progress-row .progress-bar-wrap { flex: 1; }
+.np-progress-row .time-label { font-size: 12px; color: var(--text2); min-width: 38px; }
+.np-progress-row .time-label.right { text-align: right; }
+
+.np-controls { display: flex; align-items: center; gap: 20px; margin-bottom: 22px; }
+.np-controls .ctrl-btn { color: var(--text2); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: var(--transition); }
+.np-controls .ctrl-btn:hover { color: var(--text); background: var(--bg2); }
+.np-controls .ctrl-btn.active { color: var(--accent); }
+.np-play-main {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent); color: #0a0a0c;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 30px rgba(139,92,246,0.5);
+  transition: transform var(--transition);
+}
+.np-play-main:hover { transform: scale(1.05); }
+.np-play-main svg { margin-left: 1px; }
+
+.np-actions { display: flex; gap: 12px; }
+.np-action-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 99px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text2); font-weight: 600; font-size: 13px; transition: var(--transition);
+}
+.np-action-btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+.np-action-btn.liked { color: var(--accent3); border-color: rgba(192,132,252,0.4); }
+.np-action-btn.liked svg path { fill: var(--accent3); stroke: var(--accent3); }
+.np-action-btn.mix-on { color: var(--accent); border-color: rgba(139,92,246,0.45); background: rgba(139,92,246,0.10); }
+
+/* up-next queue */
+.np-queue { display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 2; align-self: center; max-height: 80vh; }
+.np-queue-head { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 14px; letter-spacing: 0.02em; }
+.np-queue-list { overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding-right: 6px; }
+.np-q-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 10px;
+  cursor: pointer; transition: background var(--transition);
+}
+.np-q-item:hover { background: var(--bg2); }
+.np-q-item.current { background: rgba(139,92,246,0.10); }
+.np-q-thumb { width: 42px; height: 42px; border-radius: 7px; object-fit: cover; background: var(--bg3); flex-shrink: 0; }
+.np-q-meta { min-width: 0; }
+.np-q-title { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-q-title.current { color: var(--accent); }
+.np-q-artist { font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-q-empty { color: var(--text3); font-size: 13px; padding: 8px 4px; }
+
+@media (max-width: 880px) {
+  #np-screen { grid-template-columns: 1fr; padding: 48px 22px; overflow-y: auto; }
+  .np-queue { display: none; }
+  .np-art { width: min(56vw, 300px); }
+}
 </style>
 </head>
 <body>
@@ -1251,7 +1365,10 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
       <button id="yt-stage-close" title="Hide video (keeps playing)">✕</button>
     </div>
   </div>
-  <div id="yt-player"></div>
+  <div id="yt-player-host">
+    <div id="yt-player"></div>
+    <div id="yt-player-b"></div>
+  </div>
 </div>
 <!-- Tiny pill to bring the video back; audio keeps playing while hidden -->
 <button id="yt-restore" class="yt-hidden" title="Show YouTube video">▶ Video</button>
@@ -1333,24 +1450,31 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     <div class="page active" id="page-home">
       <div class="hero-greeting">
         <h1 id="greeting-text">Good evening ✦</h1>
-        <p>Here's what AURA picked for you today</p>
+        <p id="greeting-sub">Pick up where you left off, or discover something new.</p>
       </div>
 
+      <div class="section-header" id="hdr-foryou" style="display:none">
+        <span class="section-title">✨ Made for You</span>
+        <span class="section-link" onclick="refreshHomeContent()">Refresh</span>
+      </div>
+      <div class="hscroll-row" id="home-foryou"></div>
+
       <div class="section-header">
-        <span class="section-title">✦ Recommended</span>
+        <span class="section-title">🔥 Top Hits</span>
+        <span class="section-link" onclick="navigate('search')">More</span>
+      </div>
+      <div class="hscroll-row" id="home-tophits"></div>
+
+      <div class="section-header" id="hdr-recent" style="display:none">
+        <span class="section-title">🕑 Recently Played</span>
+      </div>
+      <div class="track-list" id="home-recent"></div>
+
+      <div class="section-header">
+        <span class="section-title">🎧 Free &amp; Streamable</span>
         <span class="section-link" onclick="navigate('search')">See all</span>
       </div>
       <div class="cards-grid" id="home-recommended"></div>
-
-      <div class="section-header">
-        <span class="section-title">🔥 Trending Now</span>
-      </div>
-      <div class="hscroll-row" id="home-trending"></div>
-
-      <div class="section-header">
-        <span class="section-title">🎵 Quick Picks</span>
-      </div>
-      <div class="track-list" id="home-quick-picks"></div>
     </div>
 
     <!-- SEARCH -->
@@ -1424,7 +1548,7 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     <!-- LOCAL FILES -->
     <div class="page" id="page-local">
       <div class="liked-header">
-        <div class="liked-icon" style="background:linear-gradient(135deg,var(--accent),#9dff3c);">💾</div>
+        <div class="liked-icon" style="background:linear-gradient(135deg,var(--accent),#a855f7);">💾</div>
         <div class="liked-info">
           <h2>Local Files</h2>
           <p id="local-count-text">0 songs saved on this device</p>
@@ -1586,13 +1710,82 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
   </main>
 
+  <!-- ─── EXPANDED NOW PLAYING ───────────────────────────────────── -->
+  <div id="np-screen" aria-hidden="true">
+    <div class="np-glow" id="np-glow"></div>
+    <button class="np-close" onclick="closeNowPlaying()" title="Close">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="np-main">
+      <div class="np-art" id="np-art"><div class="np-art-ph">♪</div></div>
+      <div class="np-info">
+        <div class="np-eyebrow">NOW PLAYING</div>
+        <div class="np-title" id="np-title">Nothing playing</div>
+        <div class="np-artist" id="np-artist">Choose a track to begin</div>
+        <div class="np-sub" id="np-sub"></div>
+
+        <div class="np-eq" id="np-eq">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="np-progress-row">
+          <span class="time-label js-current-time">0:00</span>
+          <div class="progress-bar-wrap" data-progress>
+            <div class="progress-bar-track"><div class="progress-bar-fill" style="width:0%"></div></div>
+            <div class="mix-indicator">MIXING</div>
+          </div>
+          <span class="time-label right js-total-time">0:00</span>
+        </div>
+
+        <div class="np-controls">
+          <button class="ctrl-btn" id="np-shuffle" title="Shuffle" onclick="toggleShuffle()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+            </svg>
+          </button>
+          <button class="ctrl-btn" title="Previous" onclick="prevTrack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="19 20 9 12 19 4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+          </button>
+          <button class="np-play-main" id="np-play-btn" title="Play/Pause" onclick="togglePlayPause()">
+            <svg id="np-play-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            <svg id="np-pause-icon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <button class="ctrl-btn" title="Next" onclick="nextTrack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+          </button>
+          <button class="ctrl-btn" id="np-repeat" title="Repeat" onclick="toggleRepeat()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </button>
+        </div>
+
+        <div class="np-actions">
+          <button class="np-action-btn" id="np-like-btn" onclick="likeCurrentTrack()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span>Like</span>
+          </button>
+          <button class="np-action-btn" id="np-mix-btn" onclick="openCrossfadeModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><circle cx="18" cy="13" r="3"/></svg>
+            <span id="np-mix-label">Auto Mix</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="np-queue">
+      <div class="np-queue-head">Up Next</div>
+      <div class="np-queue-list" id="np-queue-list"></div>
+    </div>
+  </div>
+
   <!-- ─── PLAYER BAR ─────────────────────────────────────────────── -->
   <div class="player-bar">
     <div class="player-left">
-      <div class="now-playing-thumb" id="now-playing-thumb">
+      <div class="now-playing-thumb" id="now-playing-thumb" onclick="openNowPlaying()" title="Open now playing">
         <div class="now-playing-thumb-placeholder">♪</div>
       </div>
-      <div class="now-playing-info">
+      <div class="now-playing-info" onclick="openNowPlaying()" title="Open now playing">
         <div class="now-playing-title" id="now-playing-title">Nothing playing</div>
         <div class="now-playing-artist" id="now-playing-artist">Choose a track to begin</div>
       </div>
@@ -1638,15 +1831,14 @@ input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
         </button>
       </div>
       <div class="progress-row">
-        <span class="time-label" id="current-time">0:00</span>
-        <div class="progress-bar-wrap" id="progress-bar">
+        <span class="time-label js-current-time" id="current-time">0:00</span>
+        <div class="progress-bar-wrap" id="progress-bar" data-progress>
           <div class="progress-bar-track">
             <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
           </div>
-          <div class="progress-glow" id="progress-glow"></div>
-          <div class="mix-indicator" id="mix-indicator"><span class="mix-dot"></span>MIXING</div>
+          <div class="mix-indicator">MIXING</div>
         </div>
-        <span class="time-label right" id="total-time">0:00</span>
+        <span class="time-label right js-total-time" id="total-time">0:00</span>
       </div>
     </div>
 
@@ -1891,31 +2083,59 @@ function wireDeck(deck) {
 }
 wireDeck(deckA); wireDeck(deckB);
 
-// ─── YOUTUBE IFRAME API BACKEND ───────────────────────────────────
-let ytPlayer = null, ytReady = false, ytReadyResolvers = [], ytPollInterval = null;
+// ─── YOUTUBE IFRAME API BACKEND (dual-player → real YT→YT crossfades) ─
+// Two iframe players. `ytPlayer` is always the ACTIVE one; `ytPlayerB` is the
+// standby used to pre-roll the next video so we can fade between them — a true
+// overlap, the closest thing to Automix that's possible without the raw audio
+// (YouTube never exposes its samples, so beat-matching still needs local files).
+let ytPlayer = null, ytPlayerB = null;
+let ytReady = false, ytBReady = false;
+let ytReadyResolvers = [], ytPollInterval = null;
+let _ytFading = false;
+let _ytX = null;   // active YT crossfade controller (pausable)
+
 window.onYouTubeIframeAPIReady = function () {
-  ytPlayer = new YT.Player('yt-player', {
+  ytPlayer  = makeYTPlayer('yt-player',   () => { ytReady  = true; ytReadyResolvers.forEach(r => r()); ytReadyResolvers = []; });
+  ytPlayerB = makeYTPlayer('yt-player-b', () => { ytBReady = true; });
+  refreshYTStageVisibility();
+};
+function makeYTPlayer(elId, onReady) {
+  const p = new YT.Player(elId, {
     height: '158', width: '280',
     host: 'https://www.youtube.com',
     playerVars: { autoplay: 0, controls: 1, rel: 0, modestbranding: 1, playsinline: 1, origin: location.origin },
-    events: {
-      onReady: () => { ytReady = true; ytReadyResolvers.forEach(r => r()); ytReadyResolvers = []; },
-      onStateChange: onYTStateChange,
-      onError: onYTError,
-    }
+    events: { onReady, onStateChange: onYTStateChange, onError: onYTError }
   });
-};
+  p._elId = elId;
+  return p;
+}
 function waitForYT() {
   if (ytReady && ytPlayer) return Promise.resolve();
   return new Promise(resolve => ytReadyResolvers.push(resolve));
 }
+function ytGetDuration() { try { return (ytPlayer && ytPlayer.getDuration) ? (ytPlayer.getDuration() || 0) : 0; } catch (e) { return 0; } }
+// Show the active player's video; hide the standby (audio of both still plays).
+function refreshYTStageVisibility() {
+  const a = document.getElementById('yt-player');
+  const b = document.getElementById('yt-player-b');
+  const activeId = ytPlayer && ytPlayer._elId;
+  if (a) a.classList.toggle('standby', activeId !== 'yt-player');
+  if (b) b.classList.toggle('standby', activeId !== 'yt-player-b');
+}
+function ytSwapActive() {
+  [ytPlayer, ytPlayerB] = [ytPlayerB, ytPlayer];
+  [ytReady, ytBReady]   = [ytBReady, ytReady];
+  refreshYTStageVisibility();
+}
 function onYTStateChange(e) {
   if (state.backend !== 'yt' || !window.YT) return;
+  if (e.target !== ytPlayer) return;       // standby player never drives global state
   if (e.data === YT.PlayerState.PLAYING) { state.isPlaying = true; updatePlayPauseUI(); startYTPoll(); }
-  else if (e.data === YT.PlayerState.PAUSED) { state.isPlaying = false; updatePlayPauseUI(); }
-  else if (e.data === YT.PlayerState.ENDED) { nextTrack(); }
+  else if (e.data === YT.PlayerState.PAUSED) { if (!_ytFading) { state.isPlaying = false; updatePlayPauseUI(); } }
+  else if (e.data === YT.PlayerState.ENDED) { if (!_ytFading) nextTrack(); }
 }
 function onYTError(e) {
+  if (e.target !== ytPlayer) return;
   // 101/150 = embedding disabled by uploader; 153 = config/origin error; 100 = removed; 2 = bad id
   const t = state.queue[state.queueIndex] || {};
   const id = t.videoId || '';
@@ -1937,43 +2157,116 @@ function startYTPoll() {
     if (state.backend !== 'yt' || !ytPlayer || !ytPlayer.getDuration) return;
     const cur = ytPlayer.getCurrentTime() || 0;
     const dur = ytPlayer.getDuration() || 0;
-    updateProgressUI(cur, dur);
+    if (!_ytFading) updateProgressUI(cur, dur);
     maybeStartYTTransition(cur, dur);
-  }, 300);
+  }, 250);
 }
 
-// YouTube can't be truly crossfaded (the iframe exposes one volume and no audio
-// stream), so we do the closest thing the API allows: fade the current video's
-// volume down near the end, then advance. If the next track is local/stream it
-// fades in normally; if it's another YouTube video it starts cleanly.
-let _ytFading = false;
 function maybeStartYTTransition(cur, dur) {
   if (state.transitionMode === 'off' || isCrossfading || _ytFading || state.isRepeat) return;
   if (!dur || dur < 1) return;
   const nextIdx = state.queueIndex < state.queue.length - 1 ? state.queueIndex + 1 : -1;
   if (nextIdx === -1) return;
-  const fadeLen = Math.min(state.transitionMode === 'auto' ? 4 : state.crossfadeDuration, 6);
-  if (cur >= dur - fadeLen) ytVolumeHandoff(nextIdx, fadeLen);
+  const upcoming = state.queue[nextIdx];
+  // Overlap length: longer for Automix to feel DJ-like, bounded by the track.
+  let len = state.transitionMode === 'auto' ? 8 : state.crossfadeDuration;
+  len = Math.min(len, Math.max(3, dur * 0.4));
+  if (cur < dur - len) return;
+  if (upcoming && upcoming.source === 'youtube' && ytPlayerB) ytCrossfadeToNext(nextIdx, len);
+  else ytVolumeHandoff(nextIdx, Math.min(len, 5));   // YT → local/stream: fade out, then load
 }
+
+// ── Real overlap crossfade between two YouTube videos. ──
+async function ytCrossfadeToNext(nextIdx, len) {
+  if (_ytFading) return;
+  const upcoming = state.queue[nextIdx];
+  if (!upcoming || upcoming.source !== 'youtube' || !ytPlayerB) { ytVolumeHandoff(nextIdx, Math.min(len, 5)); return; }
+  _ytFading = true; isCrossfading = true;
+  // Make sure the standby player is ready.
+  if (!ytBReady) {
+    await new Promise(res => { const iv = setInterval(() => { if (ytBReady) { clearInterval(iv); res(); } }, 100); setTimeout(() => { clearInterval(iv); res(); }, 3000); });
+  }
+  try {
+    ytPlayerB.loadVideoById(upcoming.videoId);
+    ytPlayerB.unMute(); ytPlayerB.setVolume(0);
+    ytPlayerB.playVideo();
+  } catch (e) { _ytFading = false; isCrossfading = false; ytVolumeHandoff(nextIdx, Math.min(len, 5)); return; }
+  showMixUI();
+  _ytX = { nextIdx, len: len * 1000, elapsed: 0, segStart: performance.now(), paused: false, switched: false };
+  crossfadeRAF = requestAnimationFrame(stepYTX);
+}
+function stepYTX(now) {
+  const x = _ytX;
+  if (!x || x.paused) return;
+  const p = Math.min(1, (x.elapsed + (now - x.segStart)) / x.len);
+  // equal-power fade so the perceived loudness stays constant through the blend
+  const vOut = Math.cos(p * Math.PI / 2), vIn = Math.sin(p * Math.PI / 2);
+  try { ytPlayer.setVolume(Math.round(state.volume * 100 * vOut)); } catch (e) {}
+  try { ytPlayerB.setVolume(Math.round(state.volume * 100 * vIn)); } catch (e) {}
+  if (!x.switched && p >= 0.5) {
+    x.switched = true;
+    state.queueIndex = x.nextIdx;
+    updateNowPlayingUI(state.queue[x.nextIdx]);
+    updateAllTrackRows(); updateLikeCurrentBtn();
+    recordPlay(state.queue[x.nextIdx]);
+    if (state.currentPage === 'home') renderRecentlyPlayed();
+    document.getElementById('yt-stage-label').textContent = '▶ ' + (state.queue[x.nextIdx].title || 'YouTube');
+  }
+  if (p < 1 && state.backend === 'yt') { crossfadeRAF = requestAnimationFrame(stepYTX); }
+  else { finishYTX(); }
+}
+function finishYTX() {
+  const x = _ytX; if (!x) return;
+  try { ytPlayer.stopVideo(); } catch (e) {}
+  ytSwapActive();                                  // incoming becomes the active player
+  try { ytPlayer.setVolume(Math.round(state.volume * 100)); } catch (e) {}
+  if (!x.switched) {
+    state.queueIndex = x.nextIdx;
+    updateNowPlayingUI(state.queue[x.nextIdx]);
+    updateAllTrackRows(); updateLikeCurrentBtn();
+    document.getElementById('yt-stage-label').textContent = '▶ ' + (state.queue[x.nextIdx].title || 'YouTube');
+  }
+  _ytX = null; _ytFading = false; isCrossfading = false; crossfadeRAF = null;
+  hideMixUI();
+  startYTPoll();
+  preAnalyseNext();
+}
+function pauseYTTransition() {
+  const x = _ytX; if (!x || x.paused) return;
+  x.elapsed += performance.now() - x.segStart; x.paused = true;
+  cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
+  try { ytPlayer.pauseVideo(); } catch (e) {}
+  try { ytPlayerB.pauseVideo(); } catch (e) {}
+  setMixUIPaused(true);
+}
+function resumeYTTransition() {
+  const x = _ytX; if (!x || !x.paused) return;
+  x.paused = false; x.segStart = performance.now();
+  try { ytPlayer.playVideo(); } catch (e) {}
+  try { ytPlayerB.playVideo(); } catch (e) {}
+  setMixUIPaused(false);
+  crossfadeRAF = requestAnimationFrame(stepYTX);
+}
+
+// YT → local/stream: fade the YouTube audio down, then load the next track.
 function ytVolumeHandoff(nextIdx, fadeLen) {
   if (_ytFading) return;
   _ytFading = true;
-  showCrossfadeOverlay('Transitioning…');
+  showMixUI();
   const start = performance.now();
   const fade = () => {
     const p = Math.min(1, (performance.now() - start) / (fadeLen * 1000));
     try { ytPlayer.setVolume(Math.round(state.volume * 100 * (1 - p))); } catch(e){}
-    updateCrossfadeOverlay(p);
-    if (p < 1 && state.backend === 'yt') { requestAnimationFrame(fade); }
+    if (p < 1 && state.backend === 'yt') { crossfadeRAF = requestAnimationFrame(fade); }
     else {
-      hideCrossfadeOverlay();
-      _ytFading = false;
+      hideMixUI();
+      _ytFading = false; crossfadeRAF = null;
       try { ytPlayer.setVolume(Math.round(state.volume * 100)); } catch(e){}  // reset for next YT
       state.queueIndex = nextIdx;
       loadAndPlayTrack(state.queue[state.queueIndex]);
     }
   };
-  requestAnimationFrame(fade);
+  crossfadeRAF = requestAnimationFrame(fade);
 }
 function showYTStage(show) {
   const stage = document.getElementById('yt-stage');
@@ -2004,6 +2297,8 @@ async function playTrackResource(track) {
     state.backend = 'yt';
     clearYTError();
     await waitForYT();
+    try { if (ytPlayerB) { ytPlayerB.stopVideo(); ytPlayerB.setVolume(0); } } catch(e){}
+    refreshYTStageVisibility();
     document.getElementById('yt-stage-label').textContent = '▶ ' + (track.title || 'YouTube');
     showYTStage(true);
     ytPlayer.loadVideoById(track.videoId);
@@ -2015,6 +2310,7 @@ async function playTrackResource(track) {
     } catch (e) {}
   } else {
     if (ytPlayer && ytReady) { try { ytPlayer.stopVideo(); } catch(e){} }
+    if (ytPlayerB && ytBReady) { try { ytPlayerB.stopVideo(); ytPlayerB.setVolume(0); } catch(e){} }
     showYTStage(false);
     clearInterval(ytPollInterval);
     state.backend = 'audio';
@@ -2047,7 +2343,7 @@ function backendResume() {
 }
 function backendStop()   {
   cancelCrossfade();
-  if (state.backend === 'yt' && ytPlayer && ytReady) { try{ytPlayer.stopVideo();}catch(e){} showYTStage(false); }
+  if (state.backend === 'yt' && ytPlayer && ytReady) { try{ytPlayer.stopVideo();}catch(e){} try{ if(ytPlayerB) ytPlayerB.stopVideo(); }catch(e){} showYTStage(false); }
   [deckA, deckB].forEach(d => { d.pause(); d.removeAttribute('src'); d.load(); });
   clearInterval(ytPollInterval);
 }
@@ -2073,6 +2369,7 @@ function cancelCrossfade() {
     if (!_xfade.switched) { try { _xfade.toDeck.pause(); _xfade.toDeck.removeAttribute('src'); _xfade.toDeck.load(); } catch (e) {} }
   }
   _xfade = null;
+  if (_ytX) { try { ytPlayerB.stopVideo(); ytPlayerB.setVolume(0); } catch (e) {} _ytX = null; }
   clearTimeout(crossfadeTimer); crossfadeTimer = null;
   cancelAnimationFrame(crossfadeRAF); crossfadeRAF = null;
   hideMixUI();
@@ -2423,6 +2720,8 @@ function stepXfade(now) {
     updateNowPlayingUI(state.queue[state.queueIndex]);
     updateAllTrackRows();
     updateLikeCurrentBtn();
+    recordPlay(state.queue[state.queueIndex]);
+    if (state.currentPage === 'home') renderRecentlyPlayed();
   }
   updateMixUI(p);
   if (p < 1) { crossfadeRAF = requestAnimationFrame(stepXfade); }
@@ -2589,10 +2888,31 @@ function playLocalAll() {
 }
 
 // ─── HOME PAGE ────────────────────────────────────────────────────
-let HOME_TRACKS = [...DEMO_TRACKS];
+let HOME_TRACKS = [];                                     // Jamendo (reliable, full automix)
+let RECENT_PLAYED = Store.getJSON('aura_recent', []);
+let PLAY_COUNTS  = Store.getJSON('aura_plays', {});
+let ARTIST_PLAYS = Store.getJSON('aura_artist_plays', {});
+const HOME_CACHE_KEY = 'aura_home_cache_v2';
+
+// Record listening so recommendations can learn what you actually play.
+function recordPlay(track) {
+  if (!track || !track.id) return;
+  PLAY_COUNTS[track.id] = (PLAY_COUNTS[track.id] || 0) + 1;
+  if (track.artist) { const a = track.artist.trim(); if (a) ARTIST_PLAYS[a] = (ARTIST_PLAYS[a] || 0) + 1; }
+  RECENT_PLAYED = [track, ...RECENT_PLAYED.filter(t => t.id !== track.id)].slice(0, 40);
+  Store.setJSON('aura_plays', PLAY_COUNTS);
+  Store.setJSON('aura_artist_plays', ARTIST_PLAYS);
+  Store.setJSON('aura_recent', RECENT_PLAYED);
+}
+// Artists you play a lot + ones you liked (likes weighted higher).
+function topArtists(n) {
+  const score = {};
+  Object.entries(ARTIST_PLAYS).forEach(([a, c]) => { score[a] = (score[a] || 0) + c; });
+  (state.likedTracks || []).forEach(t => { if (t.artist) { const a = t.artist.trim(); score[a] = (score[a] || 0) + 3; } });
+  return Object.entries(score).sort((x, y) => y[1] - x[1]).slice(0, n).map(e => e[0]);
+}
 
 async function hydrateHome() {
-  // Pull fresh, real, streamable tracks from Jamendo for the home page.
   if (!SOURCES.jamendo) return;
   try {
     const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=json&limit=16&order=popularity_total&include=musicinfo&audioformat=mp32`;
@@ -2604,8 +2924,8 @@ async function hydrateHome() {
       thumb: t.album_image || t.image || '', duration: parseInt(t.duration) || 0, audioUrl: t.audio,
       genre: detectGenre(t.name + ' ' + t.artist_name),
     }));
-    if (tracks.length) { HOME_TRACKS = tracks; if (state.currentPage === 'home') renderHomePage(); }
-  } catch (e) { /* keep DEMO_TRACKS fallback */ }
+    if (tracks.length) { HOME_TRACKS = tracks; if (state.currentPage === 'home') renderRecommended(); }
+  } catch (e) { /* offline / blocked — section just stays empty */ }
 }
 
 function renderHomePage() {
@@ -2613,55 +2933,112 @@ function renderHomePage() {
   const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   document.getElementById('greeting-text').textContent = greet + ' ✦';
 
+  renderRecommended();
+  renderRecentlyPlayed();
+  loadHomeContent(false);          // top hits + made-for-you (cached)
+}
+
+function renderRecommended() {
+  const grid = document.getElementById('home-recommended');
+  if (!grid) return;
+  if (!HOME_TRACKS.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎧</div><h3>Loading free music…</h3><p>Streamable tracks from Jamendo appear here.</p></div>`;
+    return;
+  }
   let recommended = [...HOME_TRACKS];
   if (Object.keys(state.tasteProfile).length) {
-    recommended.sort((a,b) => (state.tasteProfile[b.genre]||0) - (state.tasteProfile[a.genre]||0));
+    recommended.sort((a, b) => (state.tasteProfile[b.genre] || 0) - (state.tasteProfile[a.genre] || 0));
   }
   recommended = recommended.slice(0, 8);
   recommended.forEach(registerTrack);
-
-  const grid = document.getElementById('home-recommended');
   grid.innerHTML = '';
   recommended.forEach((t, i) => grid.appendChild(makeCard(t, recommended, i)));
+}
 
-  // Trending
-  const trending = shuffleArr([...HOME_TRACKS]).slice(0, 8);
-  trending.forEach(registerTrack);
-  const row = document.getElementById('home-trending');
-  row.innerHTML = '';
-  trending.forEach((t, i) => {
-    const c = document.createElement('div');
-    c.className = 'hscroll-card';
-    c.innerHTML = `
-      <div class="card-thumb" style="height:100px;position:relative">
-        <img src="${t.thumb||''}" alt="${escapeHtml(t.title)}" onerror="this.style.display='none'">
-        <div class="card-play-overlay">
-          <div class="play-btn-circle">
-            <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="#0a0a0c"/></svg>
-          </div>
-        </div>
-      </div>
-      <div class="card-info">
-        <div class="card-title">${escapeHtml(t.title)}</div>
-        <div class="card-sub">${escapeHtml(t.artist)}</div>
-      </div>`;
-    c.addEventListener('mouseenter', () => {
-      c.querySelector('.card-play-overlay').style.opacity = '1';
-      c.querySelector('.play-btn-circle').style.transform = 'scale(1)';
-    });
-    c.addEventListener('mouseleave', () => {
-      c.querySelector('.card-play-overlay').style.opacity = '0';
-      c.querySelector('.play-btn-circle').style.transform = 'scale(.85)';
-    });
-    c.addEventListener('click', () => playQueue(trending, i));
-    row.appendChild(c);
-  });
-
-  // Quick picks
-  const picks = HOME_TRACKS.slice(0, 6);
-  const list = document.getElementById('home-quick-picks');
+function renderRecentlyPlayed() {
+  const hdr = document.getElementById('hdr-recent');
+  const list = document.getElementById('home-recent');
+  if (!list) return;
+  const recent = RECENT_PLAYED.slice(0, 5);
+  if (!recent.length) { hdr.style.display = 'none'; list.innerHTML = ''; return; }
+  hdr.style.display = 'flex';
+  recent.forEach(registerTrack);
   list.innerHTML = '';
-  picks.forEach((t, i) => list.appendChild(makeTrackRow(t, picks, i, { showAddToPlaylist: true })));
+  recent.forEach((t, i) => list.appendChild(makeTrackRow(t, RECENT_PLAYED, i, { showAddToPlaylist: true })));
+}
+
+function renderSkeleton(id, n = 6) {
+  const row = document.getElementById(id);
+  if (row) row.innerHTML = Array.from({ length: n }).map(() => '<div class="skel-card"></div>').join('');
+}
+function refreshHomeContent() { loadHomeContent(true); }
+
+async function loadHomeContent(force) {
+  const cached = Store.getJSON(HOME_CACHE_KEY, null);
+  const fresh = cached && (Date.now() - cached.ts < 6 * 3600 * 1000);
+  if (fresh && !force) { applyHomeContent(cached.tophits || [], cached.foryou || []); return; }
+
+  if (!SOURCES.youtube) { applyHomeContent([], []); return; }
+
+  const seeds = topArtists(2);
+  renderSkeleton('home-tophits');
+  if (seeds.length) renderSkeleton('home-foryou');
+
+  const topGenre = Object.keys(state.tasteProfile).sort((a, b) => state.tasteProfile[b] - state.tasteProfile[a])[0];
+  const forYouQuery = seeds.length ? `${seeds[0]} songs` : (topGenre ? `best ${topGenre} songs` : '');
+
+  let tophits = [], foryou = [];
+  try { tophits = await searchYouTube('top hits this week'); } catch (e) {}
+  try { if (forYouQuery) foryou = await searchYouTube(forYouQuery); } catch (e) {}
+  tophits = dedupeTracks(tophits).slice(0, 12);
+  foryou  = dedupeTracks(foryou).slice(0, 12);
+
+  if (tophits.length || foryou.length) Store.setJSON(HOME_CACHE_KEY, { ts: Date.now(), tophits, foryou });
+  applyHomeContent(tophits, foryou);
+}
+function dedupeTracks(arr) {
+  const seen = new Set(); const out = [];
+  (arr || []).forEach(t => { if (t && t.id && !seen.has(t.id)) { seen.add(t.id); out.push(t); } });
+  return out;
+}
+function applyHomeContent(tophits, foryou) {
+  // Top hits
+  const th = document.getElementById('home-tophits');
+  if (th) {
+    th.innerHTML = '';
+    if (tophits.length) { tophits.forEach(registerTrack); tophits.forEach((t, i) => th.appendChild(makeHScrollCard(t, tophits, i))); }
+    else th.innerHTML = `<div class="home-note">Couldn't reach YouTube right now. <span class="section-link" onclick="refreshHomeContent()">Retry</span></div>`;
+  }
+  // Made for you (only if we had taste signal)
+  const hdr = document.getElementById('hdr-foryou');
+  const fy = document.getElementById('home-foryou');
+  if (fy) {
+    if (foryou.length) {
+      hdr.style.display = 'flex'; fy.innerHTML = '';
+      foryou.forEach(registerTrack); foryou.forEach((t, i) => fy.appendChild(makeHScrollCard(t, foryou, i)));
+    } else { hdr.style.display = 'none'; fy.innerHTML = ''; }
+  }
+}
+
+// Reusable horizontal-scroll card.
+function makeHScrollCard(t, queue, i) {
+  const c = document.createElement('div');
+  c.className = 'hscroll-card';
+  c.innerHTML = `
+    <div class="card-thumb" style="height:150px;position:relative">
+      <img src="${t.thumb || ''}" alt="${escapeHtml(t.title)}" onerror="this.style.display='none'">
+      <div class="card-play-overlay"><div class="play-btn-circle">
+        <svg width="14" height="14" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="#0a0a0c"/></svg>
+      </div></div>
+    </div>
+    <div class="card-info">
+      <div class="card-title">${escapeHtml(t.title)}</div>
+      <div class="card-sub">${escapeHtml(t.artist)}</div>
+    </div>`;
+  c.addEventListener('mouseenter', () => { c.querySelector('.card-play-overlay').style.opacity = '1'; c.querySelector('.play-btn-circle').style.transform = 'scale(1)'; });
+  c.addEventListener('mouseleave', () => { c.querySelector('.card-play-overlay').style.opacity = '0'; c.querySelector('.play-btn-circle').style.transform = 'scale(.85)'; });
+  c.addEventListener('click', () => playQueue(queue, i));
+  return c;
 }
 
 // ─── MAKE CARD ────────────────────────────────────────────────────
@@ -2802,6 +3179,8 @@ async function loadAndPlayTrack(track) {
   if (!track) return;
   updateNowPlayingUI(track);
   updateAllTrackRows();
+  recordPlay(track);
+  if (state.currentPage === 'home') renderRecentlyPlayed();
   await playTrackResource(track);
   // Kick off analysis of the CURRENT track (for the outgoing-side grid/silence)
   // and the next one, so the transition plan is ready long before it triggers.
@@ -2844,7 +3223,11 @@ function stopPlayback() {
 
 function togglePlayPause() {
   if (!state.queue.length) {
-    if (DEMO_TRACKS.length) playQueue(DEMO_TRACKS, 0);
+    const starter = (HOME_TRACKS && HOME_TRACKS.length) ? HOME_TRACKS
+                  : (RECENT_PLAYED && RECENT_PLAYED.length) ? RECENT_PLAYED
+                  : DEMO_TRACKS;
+    if (starter.length) playQueue(starter, 0);
+    else showToast('Search for a song to start playing');
     return;
   }
   // Mid-mix: act on the whole transition (both decks) so pausing can't leave
@@ -2852,6 +3235,12 @@ function togglePlayPause() {
   if (isCrossfading && _xfade) {
     if (state.isPlaying) { pauseTransition(); state.isPlaying = false; }
     else { resumeTransition(); state.isPlaying = true; }
+    updatePlayPauseUI();
+    return;
+  }
+  if (isCrossfading && _ytX) {
+    if (state.isPlaying) { pauseYTTransition(); state.isPlaying = false; }
+    else { resumeYTTransition(); state.isPlaying = true; }
     updatePlayPauseUI();
     return;
   }
@@ -2864,41 +3253,47 @@ function setVolume(val) {
   backendSetVolume(val / 100);
 }
 
-// ─── DRAGGABLE PROGRESS BAR (scrub like the volume slider — no thumb) ──
-function _seekFracFromEvent(e) {
-  const bar = document.getElementById('progress-bar');
+// ─── DRAGGABLE PROGRESS BARS (scrub like the volume slider — no thumb) ──
+// Works for every element with [data-progress] (the mini player + the
+// expanded Now-Playing view share the same logic).
+let _scrubBar = null;
+function _seekFracFromEvent(e, bar) {
+  bar = bar || _scrubBar || document.querySelector('[data-progress]');
   const rect = bar.getBoundingClientRect();
   return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
 }
 function _scrubPreview(frac) {
-  document.getElementById('progress-fill').style.width = (frac * 100) + '%';
+  document.querySelectorAll('.progress-bar-fill').forEach(f => f.style.width = (frac * 100) + '%');
   let dur = 0;
-  if (state.backend === 'yt' && ytPlayer && ytPlayer.getDuration) dur = ytPlayer.getDuration() || 0;
+  if (state.backend === 'yt') dur = ytGetDuration();
   else dur = (audio && audio.duration) || 0;
-  if (dur) document.getElementById('current-time').textContent = formatTime(dur * frac);
+  if (dur) document.querySelectorAll('.js-current-time').forEach(e => e.textContent = formatTime(dur * frac));
 }
-(function wireProgressScrub() {
-  const bar = document.getElementById('progress-bar');
-  if (!bar) return;
+function wireProgressScrub(bar) {
+  if (!bar || bar._scrubWired) return;
+  bar._scrubWired = true;
   const onDown = (e) => {
     if (!state.queue.length) return;
-    _scrubbing = true;
+    _scrubbing = true; _scrubBar = bar;
     bar.classList.add('scrubbing');
-    _scrubPreview(_seekFracFromEvent(e));
+    _scrubPreview(_seekFracFromEvent(e, bar));
     if (e.pointerId != null && bar.setPointerCapture) { try { bar.setPointerCapture(e.pointerId); } catch (_) {} }
     e.preventDefault();
   };
-  const onMove = (e) => { if (_scrubbing) { _scrubPreview(_seekFracFromEvent(e)); e.preventDefault(); } };
-  const onUp = (e) => {
+  bar.addEventListener('pointerdown', onDown);
+}
+(function wireAllProgressBars() {
+  document.querySelectorAll('[data-progress]').forEach(wireProgressScrub);
+  // global move/up so the drag continues even if the pointer leaves the bar
+  window.addEventListener('pointermove', (e) => { if (_scrubbing) { _scrubPreview(_seekFracFromEvent(e)); e.preventDefault(); } });
+  window.addEventListener('pointerup', (e) => {
     if (!_scrubbing) return;
     const frac = _seekFracFromEvent(e);
     _scrubbing = false;
-    bar.classList.remove('scrubbing');
-    backendSeekFraction(frac);     // a simple tap (down+up, no move) still seeks here
-  };
-  bar.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
+    document.querySelectorAll('[data-progress]').forEach(b => b.classList.remove('scrubbing'));
+    backendSeekFraction(frac);
+    _scrubBar = null;
+  });
 })();
 // Back-compat shim in case anything still calls seekTo(event).
 function seekTo(e) { backendSeekFraction(_seekFracFromEvent(e)); }
@@ -2908,9 +3303,9 @@ function updateProgressUI(current, duration) {
   if (_scrubbing) return;          // don't fight the user's drag
   if (!duration || !isFinite(duration)) duration = 0;
   const pct = duration ? (current / duration) * 100 : 0;
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('current-time').textContent = formatTime(current);
-  document.getElementById('total-time').textContent = formatTime(duration);
+  document.querySelectorAll('.progress-bar-fill').forEach(f => f.style.width = pct + '%');
+  document.querySelectorAll('.js-current-time').forEach(e => e.textContent = formatTime(current));
+  document.querySelectorAll('.js-total-time').forEach(e => e.textContent = formatTime(duration));
 }
 // Stubs kept so older calls don't break
 function scheduleCrossfade(){}
@@ -3163,9 +3558,11 @@ function likeCurrentTrack() {
 function updateLikeCurrentBtn() {
   const track = state.queue[state.queueIndex];
   const btn = document.getElementById('like-current-btn');
-  if (!track) { btn.classList.remove('liked'); return; }
+  const npBtn = document.getElementById('np-like-btn');
+  if (!track) { btn.classList.remove('liked'); if (npBtn) npBtn.classList.remove('liked'); return; }
   const isLiked = state.likedTracks.some(l => l.id === track.id);
   btn.classList.toggle('liked', isLiked);
+  if (npBtn) npBtn.classList.toggle('liked', isLiked);
 }
 
 function saveLikes() {
@@ -3378,6 +3775,7 @@ function setTransitionMode(mode) {
   const stoggle = document.getElementById('crossfade-toggle');
   if (stoggle) stoggle.classList.toggle('on', mode !== 'off');
   syncCrossfadeBadge();
+  syncNPControls();
   const msg = mode === 'off' ? 'Transitions off' : mode === 'auto' ? '🎧 Automix (DJ) on — beatmatched, dynamic' : `🌊 Crossfade on (${state.crossfadeDuration}s)`;
   showToast(msg);
 }
@@ -3412,28 +3810,21 @@ function toggleNormalize() {
   showToast(state.normalize ? '🔊 Volume normalization on' : 'Normalization off');
 }
 
-// ─── MIX UI — Apple-style transition shown on the progress bar ─────
+// ─── MIX UI — Apple-style transition shown on the progress bar(s) ──
 function showMixUI() {
-  const bar = document.getElementById('progress-bar');
-  const mi  = document.getElementById('mix-indicator');
-  if (bar) bar.classList.add('mixing');
-  if (mi)  mi.classList.add('show');
+  document.querySelectorAll('[data-progress]').forEach(b => b.classList.add('mixing'));
+  document.querySelectorAll('.mix-indicator').forEach(m => m.classList.add('show'));
   setMixUIPaused(false);
 }
-function updateMixUI(_p) { /* sweep + flow are CSS-driven; hook kept for future use */ }
+function updateMixUI(_p) { /* flow + pulse are CSS-driven; hook kept for future use */ }
 function setMixUIPaused(paused) {
-  const bar = document.getElementById('progress-bar');
-  if (!bar) return;
   const val = paused ? 'paused' : 'running';
-  bar.querySelectorAll('.progress-glow, .progress-bar-fill, .mix-dot')
-     .forEach(el => { el.style.animationPlayState = val; });
+  document.querySelectorAll('.progress-bar-fill, .mix-indicator.show')
+    .forEach(el => { el.style.animationPlayState = val; });
 }
 function hideMixUI() {
-  const bar = document.getElementById('progress-bar');
-  const mi  = document.getElementById('mix-indicator');
-  if (bar) bar.classList.remove('mixing');
-  if (mi)  mi.classList.remove('show');
-  setMixUIPaused(false);
+  document.querySelectorAll('[data-progress]').forEach(b => b.classList.remove('mixing'));
+  document.querySelectorAll('.mix-indicator').forEach(m => { m.classList.remove('show'); m.style.animationPlayState = ''; });
 }
 
 // Legacy overlay entry-points now route to the on-bar mix UI (no top-right box).
@@ -3514,7 +3905,7 @@ function drawCrossfadePreview(waOut, waIn) {
   const W = canvas.width, H = canvas.height, mid = H/2;
   ctx.clearRect(0,0,W,H);
 
-  const accent  = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()  || '#c8ff57';
+  const accent  = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()  || '#8b5cf6';
   const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#7c6fff';
 
   // Work out the real overlap length & how much of each song we show.
@@ -3540,12 +3931,12 @@ function drawCrossfadePreview(waOut, waIn) {
 
   // Shaded overlap zone
   const grad = ctx.createLinearGradient(olStart,0,olEnd,0);
-  grad.addColorStop(0,'rgba(124,111,255,0.05)');
-  grad.addColorStop(0.5,'rgba(124,111,255,0.18)');
-  grad.addColorStop(1,'rgba(124,111,255,0.05)');
+  grad.addColorStop(0,'rgba(168,85,247,0.05)');
+  grad.addColorStop(0.5,'rgba(168,85,247,0.18)');
+  grad.addColorStop(1,'rgba(168,85,247,0.05)');
   ctx.fillStyle = grad;
   ctx.fillRect(olStart,0,olEnd-olStart,H);
-  ctx.strokeStyle='rgba(124,111,255,0.45)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(168,85,247,0.45)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
   ctx.beginPath(); ctx.moveTo(olStart,0); ctx.lineTo(olStart,H); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(olEnd,0);   ctx.lineTo(olEnd,H);   ctx.stroke();
   ctx.setLineDash([]);
@@ -3618,12 +4009,14 @@ function toggleShuffle() {
   state.isShuffle = !state.isShuffle;
   document.getElementById('shuffle-btn').classList.toggle('active', state.isShuffle);
   document.getElementById('shuffle-toggle').classList.toggle('on', state.isShuffle);
+  syncNPControls();
   showToast(state.isShuffle ? '🔀 Shuffle ON' : 'Shuffle OFF');
 }
 function toggleRepeat() {
   state.isRepeat = !state.isRepeat;
   document.getElementById('repeat-btn').classList.toggle('active', state.isRepeat);
   document.getElementById('repeat-toggle').classList.toggle('on', state.isRepeat);
+  syncNPControls();
   showToast(state.isRepeat ? '🔁 Repeat ON' : 'Repeat OFF');
 }
 
@@ -3634,6 +4027,8 @@ function updateNowPlayingUI(track) {
   const thumbEl = document.getElementById('now-playing-thumb');
   thumbEl.innerHTML = `<img src="${track.thumb}" alt="" onerror="this.parentElement.innerHTML='<div class=now-playing-thumb-placeholder>♪</div>'">`;
   updateLikeCurrentBtn();
+  updateExpandedNP(track);
+  if (npIsOpen()) renderNPQueue();
   // Update document title
   document.title = `${track.title} — AURA`;
 }
@@ -3643,7 +4038,80 @@ function updatePlayPauseUI() {
   btn.classList.toggle('playing', state.isPlaying);
   document.getElementById('play-icon').style.display = state.isPlaying ? 'none' : 'block';
   document.getElementById('pause-icon').style.display = state.isPlaying ? 'block' : 'none';
+  syncNPControls();
 }
+
+// ─── EXPANDED NOW PLAYING ─────────────────────────────────────────
+function openNowPlaying() {
+  if (!state.queue.length) { showToast('Nothing playing yet'); return; }
+  const scr = document.getElementById('np-screen');
+  scr.classList.add('open');
+  scr.setAttribute('aria-hidden', 'false');
+  const cur = state.queue[state.queueIndex];
+  if (cur) updateExpandedNP(cur);
+  syncNPControls();
+  renderNPQueue();
+}
+function closeNowPlaying() {
+  const scr = document.getElementById('np-screen');
+  scr.classList.remove('open');
+  scr.setAttribute('aria-hidden', 'true');
+}
+function npIsOpen() { const s = document.getElementById('np-screen'); return s && s.classList.contains('open'); }
+function updateExpandedNP(track) {
+  if (!track) return;
+  const art = document.getElementById('np-art');
+  if (art) art.innerHTML = track.thumb
+    ? `<img src="${track.thumb}" alt="" onerror="this.parentElement.innerHTML='<div class=np-art-ph>♪</div>'">`
+    : `<div class="np-art-ph">♪</div>`;
+  const t = document.getElementById('np-title'); if (t) t.textContent = track.title || '—';
+  const a = document.getElementById('np-artist'); if (a) a.textContent = track.artist || '';
+  const sub = document.getElementById('np-sub');
+  if (sub) {
+    const bits = [];
+    if (track.genre && track.genre !== 'youtube') bits.push(track.genre);
+    if (track.source) bits.push(track.source === 'yt' || track.source === 'youtube' ? 'YouTube' : track.source.charAt(0).toUpperCase() + track.source.slice(1));
+    if (track.duration) bits.push(formatTime(track.duration));
+    sub.textContent = bits.join('  ·  ');
+  }
+  const lb = document.getElementById('np-like-btn');
+  if (lb) lb.classList.toggle('liked', state.likedTracks.some(l => l.id === track.id));
+}
+function syncNPControls() {
+  const sh = document.getElementById('np-shuffle'); if (sh) sh.classList.toggle('active', state.isShuffle);
+  const rp = document.getElementById('np-repeat'); if (rp) rp.classList.toggle('active', state.isRepeat);
+  const pi = document.getElementById('np-play-icon'), pa = document.getElementById('np-pause-icon');
+  if (pi && pa) { pi.style.display = state.isPlaying ? 'none' : 'block'; pa.style.display = state.isPlaying ? 'block' : 'none'; }
+  const scr = document.getElementById('np-screen'); if (scr) scr.classList.toggle('paused', !state.isPlaying);
+  const mb = document.getElementById('np-mix-btn'), ml = document.getElementById('np-mix-label');
+  if (mb && ml) {
+    const mode = state.transitionMode;
+    ml.textContent = mode === 'auto' ? 'Auto Mix' : (mode === 'crossfade' ? 'Crossfade' : 'Gapless off');
+    mb.classList.toggle('mix-on', mode !== 'off');
+  }
+}
+function renderNPQueue() {
+  const list = document.getElementById('np-queue-list');
+  if (!list) return;
+  const upcoming = state.queue.slice(state.queueIndex);
+  if (!upcoming.length) { list.innerHTML = '<div class="np-q-empty">Queue is empty.</div>'; return; }
+  list.innerHTML = '';
+  upcoming.forEach((t, i) => {
+    const realIdx = state.queueIndex + i;
+    const isCur = realIdx === state.queueIndex;
+    const row = document.createElement('div');
+    row.className = 'np-q-item' + (isCur ? ' current' : '');
+    row.innerHTML = `
+      <img class="np-q-thumb" src="${t.thumb || ''}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="np-q-meta">
+        <div class="np-q-title ${isCur ? 'current' : ''}">${escapeHtml(t.title)}</div>
+        <div class="np-q-artist">${escapeHtml(t.artist || '')}</div>
+      </div>`;
+    row.addEventListener('click', () => { state.queueIndex = realIdx; loadAndPlayTrack(state.queue[realIdx]); });
+    list.appendChild(row);
+  });
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && npIsOpen()) closeNowPlaying(); });
 
 function updateAllTrackRows() {
   const currentTrack = state.queue[state.queueIndex];
