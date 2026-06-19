@@ -1,1258 +1,1907 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Drive Tracker Pro</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-    <style>
-        body, html { margin:0; padding:0; height:100%; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#050505; color:white; overflow:hidden; -webkit-user-select:none; user-select:none; }
-        #map-wrapper { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; z-index:1; background:#050505; }
-        #map { position:absolute; width:150%; height:150%; top:-25%; left:-25%; transform-origin:center center; transition:transform 0.3s linear; -webkit-tap-highlight-color:transparent; }
-        .leaflet-popup { transition:transform 0.3s linear; }
-        .leaflet-routing-container, .leaflet-control-zoom { display:none !important; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Speedy — Drive Tracker</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<style>
+:root{
+  --bg:#070b14;
+  --bg-soft:#0a0f1c;
+  --card:#101729;
+  --card-2:#0c1220;
+  --card-border:rgba(255,255,255,0.07);
+  --text:#f3f5f9;
+  --text-dim:#8d96ab;
+  --text-faint:#56607a;
+  --accent:#3ddc8a;
+  --accent-ink:#06140d;
+  --blue:#4d8dff;
+  --red:#ff5c5c;
+  --amber:#ffb13d;
+  --purple:#b07cff;
+  --r-xl:26px;
+  --r-lg:20px;
+  --r-md:14px;
+  --r-sm:10px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;overscroll-behavior:none;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit;}
+input{font-family:inherit;}
+::-webkit-scrollbar{display:none;}
+svg{display:block;}
+.icon{width:20px;height:20px;}
+.icon-sm{width:16px;height:16px;}
 
-        /* ── PORTRAIT UI ── */
-        #portrait-ui { display:flex; flex-direction:column; width:100%; height:100%; z-index:5000; position:absolute; pointer-events:none; }
-        @media (orientation:landscape) { #portrait-ui { display:none !important; } }
+/* ===== MAP ===== */
+#map-wrapper{position:absolute;inset:0;overflow:hidden;background:var(--bg);z-index:1;}
+#map{position:absolute;width:150%;height:150%;top:-25%;left:-25%;transform-origin:center center;transition:transform .25s linear;}
+.leaflet-routing-container{display:none !important;}
+.leaflet-control-zoom{display:none !important;}
+.leaflet-popup{transition:transform .25s linear;}
 
-        .nav-tabs { display:flex; background:rgba(10,10,10,0.85); border-bottom:1px solid rgba(255,255,255,0.05); backdrop-filter:blur(20px); pointer-events:auto; }
-        .tab-btn { flex:1; padding:16px; background:none; border:none; color:#666; font-size:0.95rem; font-weight:700; cursor:pointer; }
-        .tab-btn.active { color:#00ff88; }
-        .icon-btn { background:none; border:none; color:#666; font-size:1.1rem; cursor:pointer; padding:0 16px; border-left:1px solid rgba(255,255,255,0.05); }
+/* self location marker */
+.self-marker{position:relative;width:54px;height:54px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.self-pulse{position:absolute;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,var(--accent-pulse,rgba(61,220,138,.35)) 0%,rgba(61,220,138,0) 70%);animation:pulse-ring 2.4s ease-out infinite;}
+@keyframes pulse-ring{0%{transform:scale(.5);opacity:.9;}100%{transform:scale(1.5);opacity:0;}}
+.self-arrow{position:absolute;top:-2px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .15s linear;}
+.self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 10px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:11px;}
+.ghost-marker-icon{width:20px;height:20px;border-radius:50%;background:rgba(255,177,61,.85);border:2px solid #ffb13d;box-shadow:0 0 10px rgba(255,177,61,.7);}
 
-        .view { display:none; flex:1; position:relative; pointer-events:none; }
-        .view.active { display:block; }
+/* ===== APP UI WRAPPER ===== */
+#app-ui{position:absolute;inset:0;z-index:5000;pointer-events:none;display:flex;flex-direction:column;}
+.hidden{display:none !important;}
 
-        #p-top-layer { position:absolute; top:15px; left:50%; transform:translateX(-50%); width:92%; max-width:420px; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
-        #search-container { width:100%; pointer-events:auto; }
-        .leaflet-control-geocoder { width:100% !important; background:rgba(15,15,15,0.85) !important; border:1px solid rgba(255,255,255,0.08) !important; border-radius:14px !important; backdrop-filter:blur(20px); }
-        .leaflet-control-geocoder-icon { filter:invert(1); opacity:0.6; }
-        .leaflet-control-geocoder-form input { background:transparent !important; color:white !important; font-size:1rem !important; padding:12px 10px !important; font-weight:500; }
+/* ===== TOP BAR ===== */
+#top-bar{
+  pointer-events:auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:calc(14px + var(--safe-top)) 18px 10px;
+}
+#wordmark{font-size:1.7rem;font-weight:900;letter-spacing:-0.03em;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.6);}
+.top-actions{display:flex;gap:10px;}
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--card-border);
+  background:rgba(12,18,32,0.78);backdrop-filter:blur(16px);
+  display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;
+  transition:transform .15s ease, background .15s ease;
+}
+.icon-btn:active{transform:scale(.92);background:rgba(20,28,46,.9);}
 
-        #p-speed-container { display:flex; align-items:center; justify-content:space-between; background:rgba(15,15,15,0.8); padding:10px 22px; border-radius:16px; border:1px solid rgba(255,255,255,0.08); backdrop-filter:blur(20px); pointer-events:auto; }
-        #p-speed { font-size:3rem; font-weight:900; margin:0; line-height:1; color:#fff; font-variant-numeric:tabular-nums; }
-        .p-unit { font-size:0.8rem; color:#666; font-weight:700; text-transform:uppercase; }
-        .p-telemetry { display:flex; flex-direction:column; align-items:flex-end; font-size:0.8rem; font-weight:700; }
-        #p-rpm { color:#ff4444; } #p-gforce { color:#00ffff; }
+/* ===== TURN CARD ===== */
+#turn-card-wrap{padding:0 14px;pointer-events:none;}
+#turn-card{
+  pointer-events:auto;
+  display:flex;align-items:stretch;gap:0;
+  background:rgba(11,16,28,0.86);backdrop-filter:blur(20px);
+  border:1px solid var(--card-border);border-radius:var(--r-lg);
+  overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.45);
+  animation:slideDown .35s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes slideDown{from{opacity:0;transform:translateY(-14px);}to{opacity:1;transform:translateY(0);}}
+.turn-main{flex:1;display:flex;align-items:center;gap:12px;padding:14px 12px 14px 16px;min-width:0;}
+.turn-arrow-circle{width:42px;height:42px;border-radius:50%;background:rgba(77,141,255,.16);display:flex;align-items:center;justify-content:center;color:var(--blue);flex-shrink:0;}
+.turn-info{min-width:0;}
+.turn-dist{font-size:1.45rem;font-weight:900;line-height:1.05;color:#fff;}
+.turn-text{font-size:.86rem;font-weight:700;color:#cfd5e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.turn-sub{font-size:.72rem;color:var(--text-faint);font-weight:700;margin-top:2px;}
+.turn-status{
+  width:108px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  border-left:1px solid var(--card-border);padding:10px 8px;text-align:center;
+}
+.turn-status-icon{width:26px;height:26px;border-radius:50%;background:rgba(61,220,138,.16);display:flex;align-items:center;justify-content:center;color:var(--accent);}
+.turn-status-title{font-size:.62rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;}
+.turn-status-sub{font-size:.6rem;color:var(--text-faint);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px;}
+#turn-close{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;background:#1a2236;border:1px solid var(--card-border);color:#aab;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#turn-card-rel{position:relative;}
 
-        /* Speed limit badge — Waze-style circle */
-        #speed-limit-badge {
-            display:none; position:absolute; top:15px; right:4%;
-            width:48px; height:48px; border-radius:50%;
-            background:white; border:4px solid #cc0000;
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
-            pointer-events:none; z-index:5100;
-            box-shadow:0 2px 10px rgba(0,0,0,0.6);
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        #speed-limit-badge.speeding { border-color:#ff2200; box-shadow:0 0 0 3px rgba(255,34,0,0.5), 0 2px 10px rgba(0,0,0,0.6); animation:badge-pulse 0.8s infinite; }
-        @keyframes badge-pulse { 0%,100% { box-shadow:0 0 0 3px rgba(255,34,0,0.5); } 50% { box-shadow:0 0 0 6px rgba(255,34,0,0.2); } }
-        #speed-limit-val { font-size:1.1rem; font-weight:900; color:#111; line-height:1; }
-        #speed-limit-lbl { font-size:0.42rem; font-weight:800; color:#555; text-transform:uppercase; letter-spacing:0.5px; margin-top:1px; }
+/* ===== SPEED LIMIT BADGE ===== */
+#speed-limit-badge{
+  position:absolute;top:calc(82px + var(--safe-top));right:16px;
+  width:52px;height:52px;border-radius:50%;background:#fff;border:5px solid #d61f1f;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.5);
+  transition:border-color .25s, box-shadow .25s;
+}
+#speed-limit-badge.speeding{border-color:#ff2200;animation:badgePulse .8s infinite;}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 4px rgba(255,34,0,.45),0 6px 16px rgba(0,0,0,.5);}50%{box-shadow:0 0 0 9px rgba(255,34,0,.12),0 6px 16px rgba(0,0,0,.5);}}
+#sl-val{font-size:1.15rem;font-weight:900;color:#181818;line-height:1;}
+#sl-lbl{font-size:.4rem;font-weight:800;color:#777;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
 
-        /* Nav pill — collapsed, expandable */
-        #p-nav-pill {
-            display:none; pointer-events:auto; overflow:hidden;
-            background:rgba(0,120,255,0.13); border:1px solid rgba(0,120,255,0.4);
-            border-radius:14px; backdrop-filter:blur(20px);
-            transition: max-height 0.3s ease, opacity 0.2s;
-            max-height: 44px;
-        }
-        #p-nav-pill.expanded { max-height: 160px; }
-        #p-nav-pill-header {
-            display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer;
-        }
-        #p-nav-pill-dot { width:8px; height:8px; border-radius:50%; background:#0078ff; flex-shrink:0; }
-        #p-nav-pill-dest { flex:1; font-size:0.8rem; font-weight:700; color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        #p-nav-pill-dist { font-size:0.8rem; font-weight:900; color:#0078ff; }
-        #p-nav-pill-chevron { font-size:0.7rem; color:#555; transition:transform 0.3s; }
-        #p-nav-pill.expanded #p-nav-pill-chevron { transform:rotate(180deg); }
-        #p-nav-pill-body { padding:0 14px 12px; display:flex; flex-direction:column; gap:8px; }
-        .nav-mini-row { display:flex; gap:14px; }
-        .nav-mini-stat { text-align:center; flex:1; }
-        .nav-mini-val { font-size:1rem; font-weight:900; color:#0078ff; }
-        .nav-mini-lbl { font-size:0.55rem; color:#555; font-weight:700; text-transform:uppercase; margin-top:1px; }
-        .nav-mini-actions { display:flex; gap:8px; }
-        .nav-mini-btn { flex:1; padding:8px; border-radius:8px; font-weight:800; font-size:0.78rem; border:none; cursor:pointer; }
-        .nav-mini-go { background:#0078ff; color:white; }
-        .nav-mini-go.active { background:#00ff88; color:#0a0a0a; }
-        .nav-mini-cancel { background:rgba(255,68,68,0.15); color:#ff4444; border:1px solid rgba(255,68,68,0.3); }
+/* ===== RECENTER BUTTON ===== */
+#recenter-btn{
+  position:absolute;right:16px;bottom:0;
+  width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--accent);color:var(--accent-ink);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 26px rgba(61,220,138,.35);pointer-events:auto;
+  transition:transform .15s ease;
+}
+#recenter-btn:active{transform:scale(.9);}
 
-        #p-recenter-btn { position:absolute; top:150px; right:4%; background:#00ff88; color:#0a0a0a; border:none; padding:10px 16px; border-radius:20px; font-weight:800; font-size:0.75rem; display:none; cursor:pointer; pointer-events:auto; }
+/* ===== BOTTOM SHEET ===== */
+#sheet{
+  position:absolute;left:0;right:0;bottom:var(--tab-h,76px);
+  height:78vh;
+  background:linear-gradient(180deg,#101729 0%,#0b1120 100%);
+  border-top-left-radius:28px;border-top-right-radius:28px;
+  border:1px solid var(--card-border);border-bottom:none;
+  box-shadow:0 -14px 50px rgba(0,0,0,.55);
+  pointer-events:auto;
+  transform:translateY(calc(100% - var(--peek-h,188px)));
+  transition:transform .32s cubic-bezier(.2,.85,.25,1);
+  display:flex;flex-direction:column;
+  z-index:10;
+}
+#sheet.dragging{transition:none;}
+.sheet-handle-wrap{display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;flex-shrink:0;}
+.sheet-handle{width:38px;height:5px;border-radius:4px;background:#2a3349;}
+.sheet-peek{padding:2px 20px 16px;flex-shrink:0;cursor:pointer;}
+.peek-status-row{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(61,220,138,.2);animation:dotPulse 1.6s infinite;}
+.live-dot.idle{background:var(--text-faint);box-shadow:none;animation:none;}
+@keyframes dotPulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.peek-status-text{font-size:.72rem;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
+.peek-main-row{display:flex;align-items:center;justify-content:space-between;}
+.peek-speed-block{display:flex;align-items:baseline;gap:6px;cursor:pointer;}
+#peek-speed{font-size:3.1rem;font-weight:900;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.peek-unit{font-size:.78rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;}
+.peek-avatar-block{display:flex;align-items:center;gap:10px;}
+.avatar-circle{width:46px;height:46px;border-radius:50%;background:var(--card-2);border:2.5px solid var(--marker-col,var(--accent));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.05rem;flex-shrink:0;}
+.peek-name-col{text-align:right;}
+.peek-name{font-size:.92rem;font-weight:800;color:#fff;}
+.peek-car{font-size:.68rem;color:var(--text-faint);font-weight:700;margin-top:1px;}
+.peek-mini-row{display:flex;gap:8px;margin-top:14px;}
+.peek-mini{flex:1;background:rgba(255,255,255,.03);border:1px solid var(--card-border);border-radius:var(--r-sm);padding:8px 4px;text-align:center;}
+.peek-mini-val{font-size:.95rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
+.peek-mini-lbl{font-size:.55rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.3px;margin-top:1px;}
+.peek-cta{margin-top:12px;width:100%;padding:12px;border-radius:var(--r-md);border:none;background:var(--accent);color:var(--accent-ink);font-weight:900;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.peek-cta:active{transform:scale(.98);}
 
-        .p-controls { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; gap:10px; width:92%; max-width:420px; pointer-events:auto; }
-        .p-stats-row { display:flex; justify-content:space-between; background:rgba(15,15,15,0.85); padding:14px 10px; border-radius:16px; border:1px solid rgba(255,255,255,0.06); backdrop-filter:blur(20px); }
-        .p-stat-item { text-align:center; flex:1; border-right:1px solid rgba(255,255,255,0.05); }
-        .p-stat-item:last-child { border-right:none; }
-        .p-stat-val { font-size:1.15rem; font-weight:800; color:#00ff88; font-variant-numeric:tabular-nums; }
-        .p-stat-lbl { font-size:0.6rem; color:#666; margin-top:3px; font-weight:700; text-transform:uppercase; }
-        .p-action-row { display:flex; gap:10px; width:100%; }
-        .p-btn { flex:1; padding:15px; font-size:0.95rem; font-weight:800; color:#0a0a0a; background:#00ff88; border:none; border-radius:14px; cursor:pointer; }
-        .p-btn.stop { background:#ff4444; color:white; }
-        #p-launch-btn { background:#ffaa00; display:none; }
+.sheet-body{flex:1;overflow-y:auto;padding:4px 20px calc(28px + var(--safe-bottom));-webkit-overflow-scrolling:touch;}
+.sheet-section{margin-top:22px;}
+.sheet-section-title{font-size:.66rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.sheet-section-title .count{color:var(--text-dim);font-weight:700;}
 
-        /* ── LANDSCAPE UI ── */
-        #landscape-ui { display:none; width:100%; height:100%; z-index:5000; position:absolute; pointer-events:none; justify-content:space-between; font-family:"Eurostile","Arial Black",sans-serif; background:radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%); }
-        @media (orientation:landscape) { #landscape-ui { display:flex !important; } }
-        .bmw-gauge-container { width:32%; height:100%; position:relative; display:flex; justify-content:center; align-items:center; pointer-events:none; }
-        .svg-gauge { position:absolute; width:90%; height:90%; top:50%; left:50%; transform:translate(-50%,-50%); filter:drop-shadow(0 0 10px rgba(0,0,0,0.8)); }
-        .bmw-cluster-data { position:absolute; text-align:center; pointer-events:auto; }
-        .bmw-val { font-size:5rem; font-weight:900; line-height:1; text-shadow:0 0 20px rgba(255,255,255,0.2); font-variant-numeric:tabular-nums; font-style:italic; }
-        .bmw-unit { font-size:1rem; color:#666; font-weight:800; text-transform:uppercase; letter-spacing:2px; }
-        .bmw-sub { font-size:1.1rem; color:#aaa; margin-top:10px; font-weight:700; background:rgba(0,0,0,0.5); padding:4px 12px; border-radius:10px; }
-        .bmw-sub span { font-style:italic; }
-        .bmw-center-stack { flex:1; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:10px 0; pointer-events:none; }
-        #l-martor-recenter { pointer-events:auto; width:40px; height:40px; border-radius:50%; background:rgba(10,10,10,0.8); border:2px solid #00ff88; display:flex; justify-content:center; align-items:center; font-size:1.3rem; color:#00ff88; box-shadow:0 0 15px rgba(0,255,136,0.4); cursor:pointer; transition:0.3s; flex-shrink:0; }
-        #l-martor-recenter.warning { border-color:#ffaa00; color:#ffaa00; box-shadow:0 0 20px rgba(255,170,0,0.6); }
+.profile-header{display:flex;align-items:center;gap:14px;padding-bottom:4px;}
+.avatar-circle.big{width:64px;height:64px;font-size:1.5rem;}
+.profile-name{font-size:1.15rem;font-weight:900;color:#fff;}
+.profile-sub{font-size:.78rem;color:var(--text-dim);font-weight:600;margin-top:2px;}
+.profile-meta{margin-left:auto;text-align:right;}
+.profile-meta-lbl{font-size:.6rem;color:var(--text-faint);font-weight:800;text-transform:uppercase;}
+.profile-meta-val{font-size:.85rem;color:var(--accent);font-weight:800;margin-top:1px;}
 
-        /* Landscape speed limit */
-        #l-speed-limit-badge { display:none; width:44px; height:44px; border-radius:50%; background:white; border:4px solid #cc0000; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; box-shadow:0 2px 8px rgba(0,0,0,0.6); transition:border-color 0.3s; flex-shrink:0; }
-        #l-speed-limit-badge.speeding { border-color:#ff2200; animation:badge-pulse 0.8s infinite; }
-        #l-speed-limit-val { font-size:1rem; font-weight:900; color:#111; line-height:1; font-family:-apple-system,sans-serif; }
+.garage-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.car-card{position:relative;background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:12px;cursor:pointer;transition:transform .12s ease;border-left:3px solid var(--ccol,#333);}
+.car-card:active{transform:scale(.97);}
+.car-card.active{background:rgba(61,220,138,.07);}
+.car-make{font-size:.6rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.4px;}
+.car-model{font-size:.84rem;font-weight:800;color:#fff;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.car-badge{position:absolute;top:10px;right:10px;font-size:.55rem;font-weight:900;background:#fff;color:#0a0a0a;padding:2px 7px;border-radius:20px;letter-spacing:.3px;}
+.car-topspeed{margin-top:10px;padding-top:8px;border-top:1px solid var(--card-border);font-size:.6rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;}
+.car-topspeed span{display:block;color:var(--text-dim);font-weight:900;font-size:.95rem;margin-top:1px;}
+.car-add-tile{background:transparent;border:1.5px dashed #283050;border-radius:var(--r-md);padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--text-faint);min-height:88px;}
+.car-add-tile .icon{color:var(--text-faint);}
+.car-add-tile span{font-size:.72rem;font-weight:800;}
+.car-add-tile:active{transform:scale(.97);}
 
-        /* Landscape nav pill */
-        #l-nav-pill { display:none; width:88%; background:rgba(0,120,255,0.12); border:1px solid rgba(0,120,255,0.35); border-radius:12px; padding:7px 12px; pointer-events:auto; }
-        .l-nav-row { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px; }
-        .l-nav-dest { font-size:0.7rem; color:#888; font-weight:700; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .l-nav-dist-badge { font-size:0.85rem; font-weight:900; color:#0078ff; font-style:italic; }
-        .l-nav-btns { display:flex; gap:6px; }
-        .l-nav-btn { padding:5px 10px; border-radius:7px; font-weight:900; border:none; cursor:pointer; font-size:0.72rem; text-transform:uppercase; }
-        .l-nav-go { background:#0078ff; color:white; }
-        .l-nav-go.active { background:#00ff88; color:#0a0a0a; }
-        .l-nav-cancel { background:rgba(255,68,68,0.15); color:#ff4444; border:1px solid rgba(255,68,68,0.3); }
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-tile{background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:13px;display:flex;align-items:center;gap:10px;}
+.stat-tile-icon{width:32px;height:32px;border-radius:50%;background:rgba(61,220,138,.1);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;}
+.stat-tile-val{font-size:1.05rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;line-height:1;}
+.stat-tile-lbl{font-size:.6rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;margin-top:3px;}
 
-        .bmw-bottom-bar { width:90%; background:rgba(10,10,15,0.85); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:10px 20px; display:flex; align-items:center; justify-content:space-between; backdrop-filter:blur(15px); pointer-events:auto; box-shadow:0 10px 30px rgba(0,0,0,0.8); }
-        .bmw-stat-block { display:flex; gap:20px; }
-        .bmw-stat { text-align:center; }
-        .bmw-stat-val { font-size:1.2rem; font-weight:900; color:#0078ff; font-style:italic; font-variant-numeric:tabular-nums; }
-        .bmw-stat-lbl { font-size:0.6rem; color:#666; text-transform:uppercase; font-weight:800; }
-        .bmw-action-block { display:flex; gap:10px; align-items:center; }
-        .l-btn { padding:10px 20px; border-radius:12px; font-weight:900; border:none; cursor:pointer; text-transform:uppercase; font-size:0.9rem; letter-spacing:1px; }
-        .l-btn-start { background:#00ff88; color:#000; box-shadow:0 0 15px rgba(0,255,136,0.3); }
-        .l-btn-start.stop { background:#ff4444; color:#fff; box-shadow:0 0 15px rgba(255,68,68,0.3); }
-        #l-launch-btn { background:#ffaa00; color:#000; display:none; box-shadow:0 0 15px rgba(255,170,0,0.3); }
+.perf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.perf-tile{background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:10px;text-align:center;}
+.perf-val{font-size:1rem;font-weight:900;font-variant-numeric:tabular-nums;}
+.perf-lbl{font-size:.55rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;margin-top:2px;}
+.end-drive-btn{margin-top:12px;width:100%;padding:11px;border-radius:var(--r-md);border:1px solid rgba(255,92,92,.3);background:rgba(255,92,92,.08);color:var(--red);font-weight:800;font-size:.78rem;cursor:pointer;}
+.launch-btn{margin-top:10px;width:100%;padding:11px;border-radius:var(--r-md);border:none;background:var(--amber);color:#1a1100;font-weight:900;font-size:.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
 
-        /* ── HISTORY ── */
-        #history-view { position:absolute; top:53px; width:100%; height:calc(100% - 53px); padding:16px; overflow-y:auto; background:#0a0a0a; box-sizing:border-box; z-index:5500; pointer-events:auto; display:none; }
-        .drive-card { background:#121212; padding:14px; border-radius:14px; margin-bottom:12px; border:1px solid #1c1c1c; }
-        .drive-card.is-ghost { border-color:#ffaa00; }
-        .drive-header { display:flex; justify-content:space-between; margin-bottom:10px; color:#555; font-size:0.75rem; font-weight:700; }
-        .drive-card-content { display:flex; gap:12px; align-items:center; justify-content:space-between; }
-        .drive-stats-block { display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1; }
-        .data-point { background:#161616; padding:8px 12px; border-radius:8px; font-size:0.75rem; color:#666; font-weight:600; }
-        .data-point span { color:#00ff88; font-weight:800; display:block; font-size:1.05rem; margin-top:2px; }
-        .card-actions { display:flex; gap:8px; margin-top:12px; }
-        .card-btn { flex:1; padding:9px; border-radius:8px; font-size:0.8rem; font-weight:700; border:none; cursor:pointer; }
-        .btn-ghost-toggle { background:#222; color:#888; }
-        .btn-ghost-toggle.active { background:rgba(255,170,0,0.15); color:#ffaa00; border:1px solid rgba(255,170,0,0.3); }
-        .btn-replay { background:rgba(0,120,255,0.15); color:#0078ff; border:1px solid rgba(0,120,255,0.3); }
-        .btn-export { background:rgba(0,255,136,0.1); color:#00ff88; border:1px solid rgba(0,255,136,0.2); }
+.set-dest-btn{width:100%;padding:13px;border-radius:var(--r-md);border:1px solid var(--card-border);background:rgba(77,141,255,.08);color:var(--blue);font-weight:800;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 
-        /* ── TRIP SUMMARY OVERLAY ── */
-        #summary-overlay { display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:8500; background:rgba(0,0,0,0.92); backdrop-filter:blur(20px); pointer-events:auto; overflow-y:auto; }
-        .summary-panel { padding:20px 16px 40px; max-width:420px; margin:0 auto; }
-        .summary-close { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-        .summary-title { font-size:1rem; font-weight:800; color:#00ff88; text-transform:uppercase; letter-spacing:1px; }
-        .summary-close-btn { background:rgba(255,255,255,0.08); border:none; color:#888; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; }
-        #summary-map-canvas { width:100%; border-radius:16px; border:1px solid rgba(255,255,255,0.06); display:block; background:#111; }
-        .summary-stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:14px 0; }
-        .sum-stat { background:#121212; border:1px solid #1c1c1c; padding:12px 8px; border-radius:12px; text-align:center; }
-        .sum-stat-val { font-size:1.3rem; font-weight:900; color:#00ff88; font-variant-numeric:tabular-nums; }
-        .sum-stat-lbl { font-size:0.58rem; color:#555; font-weight:700; text-transform:uppercase; margin-top:3px; }
-        .sum-speed-chart { width:100%; height:80px; border-radius:10px; display:block; background:#111; border:1px solid rgba(255,255,255,0.04); margin-bottom:14px; }
-        .sum-actions { display:flex; gap:10px; }
-        .sum-btn { flex:1; padding:13px; border-radius:12px; font-weight:800; font-size:0.9rem; border:none; cursor:pointer; }
-        .sum-btn-share { background:#00ff88; color:#0a0a0a; }
-        .sum-btn-close { background:#1c1c1c; color:#888; }
+/* ===== TAB BAR ===== */
+#tab-bar{
+  position:absolute;left:0;right:0;bottom:0;height:var(--tab-h,76px);
+  display:flex;align-items:flex-start;justify-content:center;gap:48px;
+  padding-top:11px;padding-bottom:var(--safe-bottom);
+  background:rgba(8,11,20,.92);backdrop-filter:blur(22px);
+  border-top:1px solid var(--card-border);
+  pointer-events:auto;z-index:20;
+}
+.tab{background:none;border:none;color:var(--text-faint);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:2px 14px;}
+.tab .icon{transition:transform .15s ease;}
+.tab.active{color:var(--accent);}
+.tab.active .icon{transform:translateY(-1px);}
+.tab span{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;}
 
-        /* ── REPLAY OVERLAY ── */
-        #replay-overlay { display:none; position:absolute; bottom:0; left:0; width:100%; z-index:6000; pointer-events:auto; }
-        .replay-panel { background:rgba(8,8,12,0.96); border-top:1px solid rgba(0,120,255,0.3); padding:14px 16px 20px; backdrop-filter:blur(20px); }
-        .replay-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-        .replay-title { font-size:0.8rem; font-weight:800; color:#0078ff; text-transform:uppercase; letter-spacing:1px; }
-        .replay-speed-badge { font-size:1.4rem; font-weight:900; color:#00ff88; font-variant-numeric:tabular-nums; }
-        .replay-speed-unit { font-size:0.65rem; color:#555; font-weight:700; }
-        .replay-close-btn { background:rgba(255,255,255,0.08); border:none; color:#888; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; }
-        .replay-scrubber-wrap { position:relative; height:28px; margin-bottom:10px; cursor:pointer; }
-        .replay-scrubber-track { position:absolute; top:50%; transform:translateY(-50%); width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; }
-        .replay-scrubber-fill { height:100%; background:linear-gradient(90deg,#0078ff,#00ff88); border-radius:3px; transition:none; width:0%; }
-        .replay-scrubber-thumb { position:absolute; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; background:white; border-radius:50%; box-shadow:0 0 8px rgba(0,120,255,0.8); left:0%; transition:none; }
-        .replay-time-row { display:flex; justify-content:space-between; font-size:0.7rem; color:#555; font-weight:700; margin-bottom:10px; }
-        .replay-controls { display:flex; gap:10px; align-items:center; }
-        .replay-ctrl-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:700; font-size:0.85rem; }
-        .replay-ctrl-btn.play-pause { background:rgba(0,120,255,0.2); border-color:rgba(0,120,255,0.4); color:#0078ff; padding:8px 20px; }
-        .replay-ctrl-btn.play-pause.playing { background:rgba(0,255,136,0.15); border-color:rgba(0,255,136,0.3); color:#00ff88; }
-        .replay-speed-select { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#ccc; padding:8px 10px; border-radius:10px; font-size:0.8rem; font-weight:700; flex:1; text-align:center; cursor:pointer; }
-        .replay-speed-select.active { background:rgba(255,170,0,0.15); border-color:rgba(255,170,0,0.3); color:#ffaa00; }
+/* ===== HISTORY VIEW ===== */
+#history-view{
+  position:absolute;inset:0;top:0;background:var(--bg);z-index:200;
+  padding-top:calc(18px + var(--safe-top));
+  padding-bottom:var(--tab-h,76px);
+  pointer-events:auto;display:flex;flex-direction:column;
+}
+.history-title{font-size:1.7rem;font-weight:900;letter-spacing:-.02em;padding:0 20px 14px;}
+#history-list{flex:1;overflow-y:auto;padding:0 16px 30px;-webkit-overflow-scrolling:touch;}
+.drive-card{display:flex;gap:12px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--r-lg);padding:12px;margin-bottom:12px;cursor:pointer;}
+.drive-card:active{transform:scale(.985);}
+.drive-thumb{width:84px;height:84px;border-radius:var(--r-md);overflow:hidden;flex-shrink:0;background:#161d2e;}
+.drive-thumb svg{width:100%;height:100%;}
+.drive-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.drive-date{font-size:.66rem;color:var(--text-faint);font-weight:700;}
+.drive-route-name{font-size:.92rem;font-weight:800;color:#fff;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.drive-meta-row{font-size:.74rem;color:var(--text-dim);font-weight:600;margin-top:5px;}
+.drive-badge{display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:.66rem;font-weight:800;padding:3px 9px;border-radius:20px;}
+.drive-badge.faster{background:rgba(61,220,138,.12);color:var(--accent);}
+.drive-badge.slower{background:rgba(255,177,61,.12);color:var(--amber);}
+.drive-actions{display:flex;flex-direction:column;gap:6px;justify-content:center;}
+.drive-action-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;color:var(--text-dim);cursor:pointer;}
+.drive-action-btn.ghost-on{background:rgba(255,177,61,.14);color:var(--amber);border-color:rgba(255,177,61,.3);}
+.empty-state{text-align:center;color:var(--text-faint);padding:80px 30px;font-size:.9rem;}
+.empty-state .icon{width:40px;height:40px;margin:0 auto 14px;color:#2a3349;}
 
-        /* ── SETTINGS ── */
-        #settings-overlay { position:fixed; top:0; left:0; width:100%; height:100%; z-index:7000; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); display:none; justify-content:center; align-items:center; pointer-events:auto; }
-        .settings-card { background:#121212; padding:22px; border-radius:18px; width:82%; max-width:340px; border:1px solid #222; }
-        .setting-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
-        .switch { position:relative; display:inline-block; width:50px; height:28px; }
-        .switch input { opacity:0; width:0; height:0; }
-        .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ff4444; transition:.3s; border-radius:28px; }
-        .slider:before { position:absolute; content:""; height:22px; width:22px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; }
-        input:checked + .slider { background-color:#00ff88; }
-        input:checked + .slider:before { transform:translateX(22px); }
-        .btn-close-settings { width:100%; padding:12px; background:#222; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:700; }
+/* ===== ONBOARDING ===== */
+#onboarding{position:absolute;inset:0;z-index:9000;pointer-events:auto;}
+.ob-top{position:absolute;top:calc(16px + var(--safe-top));left:18px;right:18px;display:flex;align-items:center;gap:8px;z-index:2;}
+.ob-dots{flex:1;display:flex;gap:6px;}
+.ob-dot{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden;}
+.ob-dot.filled::after{content:'';display:block;width:100%;height:100%;background:#fff;}
+.ob-skip{background:rgba(0,0,0,.4);border:none;color:#fff;font-weight:800;font-size:.78rem;padding:7px 14px;border-radius:20px;cursor:pointer;}
+.ob-panel{position:absolute;left:0;right:0;bottom:0;height:74%;background:linear-gradient(180deg,#0c1220 0%,#070b14 100%);border-top-left-radius:30px;border-top-right-radius:30px;box-shadow:0 -20px 60px rgba(0,0,0,.6);border:1px solid var(--card-border);display:flex;flex-direction:column;}
+.ob-step{display:none;flex:1;flex-direction:column;padding:34px 26px calc(26px + var(--safe-bottom));overflow-y:auto;}
+.ob-step.active{display:flex;animation:obFade .35s ease;}
+@keyframes obFade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.ob-eyebrow{font-size:.72rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;text-align:center;}
+.ob-title{font-size:2.6rem;font-weight:900;text-align:center;letter-spacing:-.03em;line-height:1.02;margin:6px 0 10px;}
+.ob-subtitle{font-size:.95rem;color:var(--text-dim);text-align:center;font-weight:500;margin-bottom:24px;}
+.ob-check-row{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.04);border:1px solid var(--card-border);border-radius:var(--r-md);padding:14px;margin-bottom:12px;cursor:pointer;}
+.ob-checkbox{width:22px;height:22px;border-radius:6px;border:2px solid #444f6b;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:.15s;}
+.ob-checkbox.checked{background:var(--accent);border-color:var(--accent);}
+.ob-check-text{font-size:.84rem;color:#dadfeb;font-weight:600;line-height:1.4;}
+.ob-check-text b{color:#fff;}
+.ob-spacer{flex:1;}
+.ob-primary-btn{width:100%;padding:16px;border-radius:18px;border:none;background:var(--accent);color:var(--accent-ink);font-weight:900;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s, transform .15s;}
+.ob-primary-btn:disabled{opacity:.35;}
+.ob-primary-btn:active:not(:disabled){transform:scale(.98);}
+.ob-secondary-btn{width:100%;padding:14px;border-radius:18px;border:1px solid var(--card-border);background:transparent;color:var(--text-dim);font-weight:800;font-size:.88rem;cursor:pointer;margin-top:10px;}
+.ob-field-label{font-size:.68rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;}
+.ob-input{width:100%;padding:13px 14px;border-radius:var(--r-md);border:1px solid var(--card-border);background:var(--card-2);color:#fff;font-size:.95rem;font-weight:700;outline:none;}
+.ob-input::placeholder{color:var(--text-faint);font-weight:500;}
+.ob-row3{display:flex;gap:8px;}
+.color-swatch-row{display:flex;gap:10px;margin-top:8px;}
+.color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;}
+.color-swatch.selected{border-color:#fff;transform:scale(1.12);}
+.ob-icon-circle{width:72px;height:72px;border-radius:50%;background:rgba(61,220,138,.1);display:flex;align-items:center;justify-content:center;color:var(--accent);margin:0 auto 18px;}
 
-        #debug-banner { position:absolute; top:62px; left:50%; transform:translateX(-50%); z-index:8000; background:#ffaa00; color:#0a0a0a; font-weight:800; padding:4px 14px; border-radius:20px; font-size:0.65rem; display:none; }
-        #toast { position:absolute; bottom:200px; left:50%; transform:translateX(-50%); z-index:9000; background:rgba(10,10,10,0.9); color:#fff; border:1px solid #222; padding:8px 18px; border-radius:30px; display:none; text-align:center; font-size:0.85rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.6); }
-        .empty-state { text-align:center; color:#444; padding:40px 20px; font-size:0.9rem; }
-    </style>
+/* ===== MODALS (settings / search / car) ===== */
+.modal-overlay{position:fixed;inset:0;z-index:8000;background:rgba(2,4,9,.7);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center;pointer-events:auto;}
+.modal-overlay.show{display:flex;}
+.modal-overlay.center{align-items:center;}
+.modal-card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--card-border);border-top-left-radius:26px;border-top-right-radius:26px;padding:22px 22px calc(24px + var(--safe-bottom));max-height:88vh;overflow-y:auto;animation:modalUp .28s cubic-bezier(.2,.85,.25,1);}
+.modal-overlay.center .modal-card{border-radius:24px;margin:0 16px;}
+@keyframes modalUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal-title{font-size:1.05rem;font-weight:900;}
+.modal-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);border:none;color:#aab;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--card-border);}
+.setting-row:last-of-type{border-bottom:none;}
+.setting-label{font-size:.9rem;font-weight:700;color:#fff;}
+.setting-sub{font-size:.7rem;color:var(--text-faint);margin-top:2px;}
+.switch{position:relative;display:inline-block;width:48px;height:27px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:#2a3349;transition:.25s;border-radius:28px;}
+.slider:before{position:absolute;content:"";height:21px;width:21px;left:3px;bottom:3px;background:#fff;transition:.25s;border-radius:50%;}
+input:checked + .slider{background:var(--accent);}
+input:checked + .slider:before{transform:translateX(21px);}
+.sens-slider{width:100%;accent-color:var(--accent);}
+.danger-btn{width:100%;padding:14px;border-radius:var(--r-md);border:1px solid rgba(255,92,92,.3);background:rgba(255,92,92,.08);color:var(--red);font-weight:800;font-size:.88rem;cursor:pointer;margin-top:18px;}
+.settings-footer{font-size:.66rem;color:var(--text-faint);text-align:center;margin-top:18px;font-weight:600;}
+
+.search-input-wrap{display:flex;align-items:center;gap:10px;background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:14px;}
+.search-input-wrap input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:.95rem;font-weight:600;}
+.search-input-wrap input::placeholder{color:var(--text-faint);}
+.search-result-row{display:flex;align-items:center;gap:12px;padding:13px 6px;border-bottom:1px solid var(--card-border);cursor:pointer;}
+.search-result-row:active{background:rgba(255,255,255,.03);}
+.search-result-icon{width:34px;height:34px;border-radius:50%;background:rgba(77,141,255,.12);color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.search-result-name{font-size:.86rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.search-empty{text-align:center;color:var(--text-faint);padding:40px 10px;font-size:.85rem;}
+
+/* ===== SUMMARY OVERLAY ===== */
+#summary-overlay{position:absolute;inset:0;z-index:8500;background:rgba(3,5,10,.94);backdrop-filter:blur(16px);display:none;overflow-y:auto;pointer-events:auto;}
+#summary-overlay.show{display:block;}
+.summary-panel{padding:calc(20px + var(--safe-top)) 18px calc(40px + var(--safe-bottom));max-width:460px;margin:0 auto;}
+.summary-eyebrow{font-size:.7rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1.2px;}
+.summary-title{font-size:1.5rem;font-weight:900;margin-top:2px;}
+#summary-map-canvas{width:100%;border-radius:var(--r-lg);border:1px solid var(--card-border);display:block;background:var(--card-2);margin-top:16px;}
+.summary-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0;}
+.sum-stat{background:var(--card-2);border:1px solid var(--card-border);padding:13px 8px;border-radius:var(--r-md);text-align:center;}
+.sum-stat-val{font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;}
+.sum-stat-lbl{font-size:.58rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;margin-top:3px;}
+.sum-speed-chart{width:100%;height:80px;border-radius:var(--r-md);display:block;background:var(--card-2);border:1px solid var(--card-border);margin-bottom:16px;}
+.sum-actions{display:flex;gap:10px;}
+.sum-btn{flex:1;padding:14px;border-radius:var(--r-md);font-weight:800;font-size:.9rem;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+.sum-btn-share{background:var(--accent);color:var(--accent-ink);}
+.sum-btn-close{background:var(--card-2);color:var(--text-dim);border:1px solid var(--card-border);}
+
+/* ===== REPLAY OVERLAY ===== */
+#replay-overlay{position:absolute;bottom:0;left:0;right:0;z-index:6000;pointer-events:auto;display:none;}
+#replay-overlay.show{display:block;}
+.replay-panel{background:rgba(8,11,20,.97);border-top:1px solid var(--card-border);border-top-left-radius:24px;border-top-right-radius:24px;padding:16px 18px calc(22px + var(--safe-bottom));backdrop-filter:blur(20px);}
+.replay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.replay-title{font-size:.78rem;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:1px;}
+.replay-date{font-size:.68rem;color:var(--text-faint);margin-top:2px;}
+.replay-speed-badge{font-size:1.5rem;font-weight:900;font-variant-numeric:tabular-nums;}
+.replay-speed-unit{font-size:.62rem;color:var(--text-faint);font-weight:700;}
+.replay-close-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);border:none;color:#aab;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.replay-scrubber-wrap{position:relative;height:26px;margin-bottom:10px;cursor:pointer;}
+.replay-scrubber-track{position:absolute;top:50%;transform:translateY(-50%);width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.replay-scrubber-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:3px;width:0%;}
+.replay-scrubber-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 0 8px rgba(77,141,255,.8);left:0%;}
+.replay-time-row{display:flex;justify-content:space-between;font-size:.68rem;color:var(--text-faint);font-weight:700;margin-bottom:12px;}
+.replay-controls{display:flex;gap:8px;align-items:center;}
+.replay-ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;padding:10px 14px;border-radius:var(--r-sm);cursor:pointer;font-weight:700;font-size:.8rem;}
+.replay-ctrl-btn.play-pause{background:rgba(77,141,255,.16);border-color:rgba(77,141,255,.3);color:var(--blue);padding:10px 22px;}
+.replay-ctrl-btn.play-pause.playing{background:rgba(61,220,138,.14);border-color:rgba(61,220,138,.3);color:var(--accent);}
+.replay-speed-select{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;padding:10px;border-radius:var(--r-sm);font-size:.78rem;font-weight:800;flex:1;text-align:center;cursor:pointer;}
+.replay-speed-select.active{background:rgba(255,177,61,.14);border-color:rgba(255,177,61,.3);color:var(--amber);}
+
+/* ===== MISC ===== */
+#debug-banner{position:absolute;top:calc(64px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9999;background:var(--amber);color:#1a1100;font-weight:800;padding:5px 14px;border-radius:20px;font-size:.62rem;display:none;letter-spacing:.5px;}
+#toast{position:absolute;bottom:calc(var(--tab-h,76px) + 16px);left:50%;transform:translateX(-50%);z-index:9500;background:rgba(14,18,30,.95);color:#fff;border:1px solid var(--card-border);padding:10px 20px;border-radius:30px;display:none;text-align:center;font-size:.84rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#toast.show{display:block;animation:toastIn .25s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+</style>
 </head>
 <body>
-<div id="debug-banner">SIMULATION ENGINE LABS</div>
+
+<div id="debug-banner">SIMULATION MODE</div>
 <div id="toast"></div>
 
-<div id="settings-overlay">
-    <div class="settings-card">
-        <h3 style="margin:0 0 18px 0;text-align:center;font-size:1.1rem;">Control Panel</h3>
-        <div class="setting-row">
-            <span style="font-weight:600;font-size:0.95rem;">Auto-Start Drive (&gt;5km/h)</span>
-            <label class="switch"><input type="checkbox" id="auto-start-toggle" onchange="window.toggleAutoStart(this)"><span class="slider"></span></label>
-        </div>
-        <button class="btn-close-settings" onclick="document.getElementById('settings-overlay').style.display='none'">Close</button>
+<div id="map-wrapper"><div id="map"></div></div>
+
+<div id="app-ui">
+  <div id="top-bar">
+    <div id="wordmark">Speedy</div>
+    <div class="top-actions">
+      <button class="icon-btn" onclick="window.openSearch()" aria-label="Search">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="icon-btn" onclick="window.openSettings()" aria-label="Settings">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.29l.06.06A1.65 1.65 0 0 0 8.92 4.6 1.65 1.65 0 0 0 9.92 3.1V3a2 2 0 0 1 4 0v.09c0 .69.39 1.32 1 1.51.6.25 1.34.12 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06c-.45.48-.58 1.22-.33 1.82.19.6.82 1 1.51 1H21a2 2 0 0 1 0 4h-.09c-.69 0-1.32.4-1.51 1z"/></svg>
+      </button>
     </div>
+  </div>
+
+  <div id="turn-card-wrap">
+    <div id="turn-card-rel" class="turn-card-rel">
+      <div id="turn-card" class="hidden">
+        <div class="turn-main">
+          <div class="turn-arrow-circle"><svg class="icon" id="turn-arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          <div class="turn-info">
+            <div class="turn-dist" id="turn-dist">--</div>
+            <div class="turn-text" id="turn-text">--</div>
+            <div class="turn-sub" id="turn-sub">-- · --</div>
+          </div>
+        </div>
+        <div class="turn-status">
+          <div class="turn-status-icon">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13v4H3v-4z"/></svg>
+          </div>
+          <div class="turn-status-title" id="turn-status-title">LIVE</div>
+          <div class="turn-status-sub" id="turn-status-sub">Tracking</div>
+        </div>
+        <button id="turn-close" onclick="window.cancelNavigation()" aria-label="Cancel">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="speed-limit-badge" class="hidden">
+    <div id="sl-val">--</div>
+    <div id="sl-lbl">km/h</div>
+  </div>
+
+  <button id="recenter-btn" class="hidden" onclick="window.forceRecenter()" aria-label="Recenter">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+  </button>
+
+  <!-- Bottom sheet -->
+  <div id="sheet">
+    <div class="sheet-handle-wrap" id="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+    <div class="sheet-peek" id="sheet-peek" onclick="window.toggleSheet()">
+      <div class="peek-status-row">
+        <div class="live-dot idle" id="live-dot"></div>
+        <div class="peek-status-text" id="peek-status-text">Idle — drive to start tracking</div>
+      </div>
+      <div class="peek-main-row">
+        <div class="peek-speed-block" id="peek-speed-block" onclick="event.stopPropagation();window.handleSpeedTap()">
+          <div id="peek-speed">0</div><div class="peek-unit">km/h</div>
+        </div>
+        <div class="peek-avatar-block">
+          <div class="peek-name-col">
+            <div class="peek-name" id="peek-username">Driver</div>
+            <div class="peek-car" id="peek-carline">No vehicle added</div>
+          </div>
+          <div class="avatar-circle" id="peek-avatar">D</div>
+        </div>
+      </div>
+      <div class="peek-mini-row">
+        <div class="peek-mini"><div class="peek-mini-val" id="peek-max">0</div><div class="peek-mini-lbl">Top speed</div></div>
+        <div class="peek-mini"><div class="peek-mini-val" id="peek-dist">0.0</div><div class="peek-mini-lbl">Distance km</div></div>
+        <div class="peek-mini"><div class="peek-mini-val" id="peek-time">00:00</div><div class="peek-mini-lbl">Time</div></div>
+      </div>
+    </div>
+
+    <div class="sheet-body">
+      <div class="sheet-section" id="nav-set-dest-wrap">
+        <button class="set-dest-btn" onclick="window.openSearch()">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 19 21 12 17 5 21 12 2"/></svg>
+          Set a destination
+        </button>
+      </div>
+
+      <div class="sheet-section hidden" id="perf-section">
+        <div class="sheet-section-title">Performance</div>
+        <div class="perf-grid">
+          <div class="perf-tile"><div class="perf-val" id="perf-rpm" style="color:var(--red);">780</div><div class="perf-lbl">RPM</div></div>
+          <div class="perf-tile"><div class="perf-val" id="perf-gear" style="color:#fff;">P</div><div class="perf-lbl">Gear</div></div>
+          <div class="perf-tile"><div class="perf-val" id="perf-gforce" style="color:var(--blue);">0.00</div><div class="perf-lbl">G-Force</div></div>
+        </div>
+        <button class="launch-btn hidden" id="launch-btn" onclick="window.triggerManualLaunch()">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+          Launch Control — Stage
+        </button>
+        <button class="end-drive-btn" onclick="window.endDriveNow()">End drive now</button>
+      </div>
+
+      <div class="sheet-section">
+        <div class="sheet-section-title">Garage<span class="count" id="garage-count">0 cars</span></div>
+        <div class="garage-grid" id="garage-grid"></div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="sheet-section-title">Your stats</div>
+        <div class="stats-grid">
+          <div class="stat-tile">
+            <div class="stat-tile-icon"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 14 16 10"/><circle cx="12" cy="12" r="9"/></svg></div>
+            <div><div class="stat-tile-val" id="all-top-speed">0 km/h</div><div class="stat-tile-lbl">Top speed</div></div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 9 5h2l-1 14"/><path d="M20 19 15 5h-2l1 14"/></svg></div>
+            <div><div class="stat-tile-val" id="all-distance">0.0 km</div><div class="stat-tile-lbl">Total distance</div></div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H6"/></svg></div>
+            <div><div class="stat-tile-val" id="all-drives">0</div><div class="stat-tile-lbl">Drives logged</div></div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/></svg></div>
+            <div><div class="stat-tile-val" id="all-060">--</div><div class="stat-tile-lbl">Best 0–60</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="height:10px;"></div>
+    </div>
+  </div>
+
+  <!-- History view -->
+  <div id="history-view" class="hidden">
+    <div class="history-title">Drives</div>
+    <div id="history-list"></div>
+  </div>
+
+  <div id="tab-bar">
+    <button class="tab active" id="tab-drive" onclick="window.switchTab('drive')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13v4H3v-4z"/></svg>
+      <span>Drive</span>
+    </button>
+    <button class="tab" id="tab-history" onclick="window.switchTab('history')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19 9 5h2l-1 14"/><path d="M20 19 15 5h-2l1 14"/><line x1="12" y1="9" x2="12" y2="11"/><line x1="12" y1="14" x2="12" y2="16"/></svg>
+      <span>History</span>
+    </button>
+  </div>
+</div>
+
+<!-- Onboarding -->
+<div id="onboarding">
+  <div class="ob-top">
+    <div class="ob-dots">
+      <div class="ob-dot filled" id="ob-dot-1"></div>
+      <div class="ob-dot" id="ob-dot-2"></div>
+      <div class="ob-dot" id="ob-dot-3"></div>
+    </div>
+    <button class="ob-skip" onclick="window.obSkip()">Skip</button>
+  </div>
+  <div class="ob-panel">
+    <div class="ob-step active" id="ob-step-1">
+      <div class="ob-spacer"></div>
+      <div class="ob-eyebrow">Welcome to</div>
+      <div class="ob-title">Speedy</div>
+      <div class="ob-subtitle">Automatic drive tracking. Live speed, routes &amp; performance stats.</div>
+      <div class="ob-check-row" onclick="window.obToggleCheck(1)">
+        <div class="ob-checkbox checked" id="ob-check-1"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="#06140d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="ob-check-text">I have read and agree to Speedy's <b>Terms of Use</b> and <b>Privacy Policy</b>.</div>
+      </div>
+      <div class="ob-check-row" onclick="window.obToggleCheck(2)">
+        <div class="ob-checkbox checked" id="ob-check-2"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="#06140d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="ob-check-text">I agree to obey all traffic laws and not use Speedy for racing, speeding, stunts, or reckless driving.</div>
+      </div>
+      <div class="ob-spacer"></div>
+      <button class="ob-primary-btn" id="ob-next-1" onclick="window.obGoStep(2)">Continue</button>
+    </div>
+
+    <div class="ob-step" id="ob-step-2">
+      <div class="ob-eyebrow">Set up your profile</div>
+      <div class="ob-title" style="font-size:1.9rem;">Tell us about you</div>
+      <div class="ob-subtitle">This stays on your device only.</div>
+      <div class="ob-field-label">Your name</div>
+      <input class="ob-input" id="ob-username-input" placeholder="Driver name" maxlength="18">
+      <div class="ob-field-label">Your car (optional)</div>
+      <div class="ob-row3">
+        <input class="ob-input" id="ob-car-year" placeholder="Year" maxlength="4" style="max-width:90px;">
+        <input class="ob-input" id="ob-car-make" placeholder="Make">
+        <input class="ob-input" id="ob-car-model" placeholder="Model">
+      </div>
+      <div class="ob-field-label">Marker color</div>
+      <div class="color-swatch-row" id="ob-color-row"></div>
+      <div class="ob-spacer"></div>
+      <button class="ob-primary-btn" onclick="window.obGoStep(3)">Continue</button>
+      <button class="ob-secondary-btn" onclick="window.obGoStep(1)">Back</button>
+    </div>
+
+    <div class="ob-step" id="ob-step-3">
+      <div class="ob-spacer"></div>
+      <div class="ob-icon-circle">
+        <svg class="icon" style="width:32px;height:32px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+      </div>
+      <div class="ob-title" style="font-size:1.9rem;text-align:center;">Fully automatic</div>
+      <div class="ob-subtitle" style="text-align:center;">No buttons to tap. Speedy detects when you start driving and begins tracking automatically — and wraps up the drive once you've parked.</div>
+      <div class="ob-spacer"></div>
+      <button class="ob-primary-btn" onclick="window.obFinish()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+        Enable location &amp; finish
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settings-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">Settings</div>
+      <button class="modal-close" onclick="window.closeSettings()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ob-field-label" style="margin-top:0;">Display name</div>
+    <input class="ob-input" id="settings-username-input" maxlength="18" oninput="window.updateUsername(this.value)">
+    <div class="setting-row" style="margin-top:6px;">
+      <div>
+        <div class="setting-label">Auto-detect sensitivity</div>
+        <div class="setting-sub" id="sens-sub">Starts tracking above 8 km/h</div>
+      </div>
+    </div>
+    <input class="sens-slider" type="range" min="3" max="20" id="sens-slider" oninput="window.setSensitivity(this.value)">
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Speed camera alerts</div>
+        <div class="setting-sub">Shows nearby fixed cameras while driving</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="radar-toggle" checked onchange="window.setRadarEnabled(this.checked)"><span class="slider"></span></label>
+    </div>
+    <button class="danger-btn" onclick="window.resetAppData()">Reset app data</button>
+    <div class="settings-footer">Speedy stores everything locally on this device.</div>
+  </div>
+</div>
+
+<!-- Search modal -->
+<div class="modal-overlay" id="search-overlay">
+  <div class="modal-card" style="height:78vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div class="modal-title">Set destination</div>
+      <button class="modal-close" onclick="window.closeSearch()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="search-input-wrap">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--text-faint);flex-shrink:0;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search-input" placeholder="Search for a place or address" oninput="window.searchInputHandler(this.value)" autocomplete="off">
+    </div>
+    <div id="search-results" style="flex:1;overflow-y:auto;">
+      <div class="search-empty">Start typing to search</div>
+    </div>
+  </div>
+</div>
+
+<!-- Car add/edit modal -->
+<div class="modal-overlay center" id="car-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title" id="car-modal-title">Add your car</div>
+      <button class="modal-close" onclick="window.closeCarModal()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ob-row3">
+      <input class="ob-input" id="car-year" placeholder="Year" maxlength="4" style="max-width:90px;">
+      <input class="ob-input" id="car-make" placeholder="Make">
+    </div>
+    <div style="height:8px;"></div>
+    <input class="ob-input" id="car-model" placeholder="Model">
+    <div class="ob-field-label">Marker color</div>
+    <div class="color-swatch-row" id="car-color-row"></div>
+    <button class="ob-primary-btn" style="margin-top:18px;" onclick="window.saveCarModal()">Save car</button>
+    <button class="danger-btn hidden" id="car-delete-btn" onclick="window.deleteCarModal()">Remove this car</button>
+  </div>
 </div>
 
 <!-- Trip Summary Overlay -->
 <div id="summary-overlay">
-    <div class="summary-panel">
-        <div class="summary-close">
-            <div class="summary-title">🏁 Drive Summary</div>
-            <button class="summary-close-btn" onclick="window.closeSummary()">✕</button>
-        </div>
-        <canvas id="summary-map-canvas" height="200"></canvas>
-        <div class="summary-stats-grid">
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-max">0</div><div class="sum-stat-lbl">Max km/h</div></div>
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-dist">0</div><div class="sum-stat-lbl">km</div></div>
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-time">0:00</div><div class="sum-stat-lbl">Duration</div></div>
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-060">--</div><div class="sum-stat-lbl">0-60 s</div></div>
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-0100">--</div><div class="sum-stat-lbl">0-100 s</div></div>
-            <div class="sum-stat"><div class="sum-stat-val" id="sum-avg">0</div><div class="sum-stat-lbl">Avg km/h</div></div>
-        </div>
-        <canvas class="sum-speed-chart" id="sum-speed-canvas" height="80"></canvas>
-        <div class="sum-actions">
-            <button class="sum-btn sum-btn-share" onclick="window.exportDriveImage()">📤 Save Image</button>
-            <button class="sum-btn sum-btn-close" onclick="window.closeSummary()">Close</button>
-        </div>
+  <div class="summary-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="summary-eyebrow">Drive complete</div>
+        <div class="summary-title">Trip summary</div>
+      </div>
+      <button class="modal-close" onclick="window.closeSummary()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
+    <canvas id="summary-map-canvas" height="200"></canvas>
+    <div class="summary-stats-grid">
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-max" style="color:var(--accent);">0</div><div class="sum-stat-lbl">Max km/h</div></div>
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-dist" style="color:var(--accent);">0</div><div class="sum-stat-lbl">Km</div></div>
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-time" style="color:var(--accent);">0:00</div><div class="sum-stat-lbl">Duration</div></div>
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-060" style="color:#fff;">--</div><div class="sum-stat-lbl">0-60 s</div></div>
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-0100" style="color:#fff;">--</div><div class="sum-stat-lbl">0-100 s</div></div>
+      <div class="sum-stat"><div class="sum-stat-val" id="sum-avg" style="color:#fff;">0</div><div class="sum-stat-lbl">Avg km/h</div></div>
+    </div>
+    <canvas class="sum-speed-chart" id="sum-speed-canvas" height="80"></canvas>
+    <div class="sum-actions">
+      <button class="sum-btn sum-btn-share" onclick="window.exportDriveImage()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Save image
+      </button>
+      <button class="sum-btn sum-btn-close" onclick="window.closeSummary()">Close</button>
+    </div>
+  </div>
 </div>
 
-<div id="map-wrapper"><div id="map"></div></div>
-
-<!-- PORTRAIT UI -->
-<div id="portrait-ui">
-    <div class="nav-tabs">
-        <button class="tab-btn active" onclick="window.switchTab('tracker')">Tracker</button>
-        <button class="tab-btn" onclick="window.switchTab('history')">History</button>
-        <button class="icon-btn" onclick="window.showToast('OBD-II Hook Active')">⚙️</button>
-        <button class="icon-btn" onclick="document.getElementById('settings-overlay').style.display='flex'">≡</button>
+<!-- Replay Overlay -->
+<div id="replay-overlay">
+  <div class="replay-panel">
+    <div class="replay-header">
+      <div>
+        <div class="replay-title">Drive replay</div>
+        <div class="replay-date" id="replay-date-label"></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end;">
+          <span class="replay-speed-badge" id="replay-cur-speed" style="color:var(--blue);">0</span>
+          <span class="replay-speed-unit">km/h</span>
+        </div>
+        <div style="font-size:.6rem;color:var(--text-faint);font-weight:700;" id="replay-progress-label">0 / 0 pts</div>
+      </div>
+      <button class="replay-close-btn" onclick="window.closeReplay()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-
-    <div id="tracker-view" class="view active">
-        <!-- Speed Limit Badge -->
-        <div id="speed-limit-badge" style="display:none;">
-            <div id="speed-limit-val">--</div>
-            <div id="speed-limit-lbl">km/h</div>
-        </div>
-
-        <div id="p-top-layer">
-            <div id="search-container"></div>
-            <div id="p-speed-container" onclick="window.handleSpeedometerTap()">
-                <div style="display:flex;align-items:baseline;gap:4px;">
-                    <div id="p-speed">0</div><div class="p-unit">km/h</div>
-                </div>
-                <div class="p-telemetry">
-                    <span id="p-rpm">RPM: 780</span>
-                    <span id="p-gforce">0.00 G</span>
-                </div>
-            </div>
-            <!-- Compact collapsible nav pill -->
-            <div id="p-nav-pill">
-                <div id="p-nav-pill-header" onclick="window.toggleNavPill()">
-                    <div id="p-nav-pill-dot"></div>
-                    <div id="p-nav-pill-dest">Destination</div>
-                    <div id="p-nav-pill-dist">--</div>
-                    <div id="p-nav-pill-chevron">▾</div>
-                </div>
-                <div id="p-nav-pill-body">
-                    <div class="nav-mini-row">
-                        <div class="nav-mini-stat"><div class="nav-mini-val" id="p-nav-time">--</div><div class="nav-mini-lbl">Est. Time</div></div>
-                        <div class="nav-mini-stat"><div class="nav-mini-val" id="p-nav-eta">--</div><div class="nav-mini-lbl">ETA</div></div>
-                    </div>
-                    <div class="nav-mini-actions">
-                        <button class="nav-mini-btn nav-mini-go" id="p-nav-go-btn" onclick="window.startNavigation()">▶ START</button>
-                        <button class="nav-mini-btn nav-mini-cancel" onclick="window.cancelNavigation()">✕ CANCEL</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button id="p-recenter-btn" onclick="window.forceRecenter()">🎯 RE-CENTER</button>
-
-        <div class="p-controls">
-            <div class="p-stats-row">
-                <div class="p-stat-item"><div class="p-stat-val" id="p-max">0</div><div class="p-stat-lbl">MAX (km/h)</div></div>
-                <div class="p-stat-item"><div class="p-stat-val" id="p-dist">0.0</div><div class="p-stat-lbl">DIST (km)</div></div>
-                <div class="p-stat-item"><div class="p-stat-val" id="p-time">00:00</div><div class="p-stat-lbl">TIME</div></div>
-            </div>
-            <div class="p-action-row">
-                <button id="p-toggle-btn" class="p-btn" onclick="window.toggleDrive()">START DRIVE</button>
-                <button id="p-launch-btn" class="p-btn" onclick="window.triggerManualLaunch()">🚀 LAUNCH</button>
-            </div>
-        </div>
+    <div class="replay-scrubber-wrap" id="replay-scrubber-wrap">
+      <canvas id="replay-heatmap-canvas" style="position:absolute;top:50%;transform:translateY(-50%);width:100%;height:6px;border-radius:3px;pointer-events:none;"></canvas>
+      <div class="replay-scrubber-track"><div class="replay-scrubber-fill" id="replay-fill"></div></div>
+      <div class="replay-scrubber-thumb" id="replay-thumb"></div>
     </div>
-
-    <div id="history-view" class="view">
-        <div id="history-container"><div class="empty-state">No drives saved yet.</div></div>
+    <div class="replay-time-row">
+      <span id="replay-cur-time">0:00</span>
+      <span id="replay-total-time">0:00</span>
     </div>
-
-    <!-- Replay Overlay -->
-    <div id="replay-overlay">
-        <div class="replay-panel">
-            <div class="replay-header">
-                <div>
-                    <div class="replay-title">▶ DRIVE REPLAY</div>
-                    <div style="font-size:0.7rem;color:#555;margin-top:2px;" id="replay-date-label"></div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;">
-                        <span class="replay-speed-badge" id="replay-cur-speed">0</span>
-                        <span class="replay-speed-unit">km/h</span>
-                    </div>
-                    <div style="font-size:0.65rem;color:#555;font-weight:700;" id="replay-progress-label">0 / 0 pts</div>
-                </div>
-                <button class="replay-close-btn" onclick="window.closeReplay()">✕</button>
-            </div>
-            <div class="replay-scrubber-wrap" id="replay-scrubber-wrap">
-                <canvas id="replay-heatmap-canvas" style="position:absolute;top:50%;transform:translateY(-50%);width:100%;height:6px;border-radius:3px;pointer-events:none;"></canvas>
-                <div class="replay-scrubber-track"><div class="replay-scrubber-fill" id="replay-fill"></div></div>
-                <div class="replay-scrubber-thumb" id="replay-thumb"></div>
-            </div>
-            <div class="replay-time-row">
-                <span id="replay-cur-time">0:00</span>
-                <span id="replay-total-time">0:00</span>
-            </div>
-            <div class="replay-controls">
-                <button class="replay-ctrl-btn" onclick="window.replaySkip(-10)">−10s</button>
-                <button class="replay-ctrl-btn play-pause" id="replay-play-btn" onclick="window.replayTogglePlay()">▶ PLAY</button>
-                <button class="replay-ctrl-btn" onclick="window.replaySkip(10)">+10s</button>
-                <button class="replay-speed-select" id="replay-speed-btn" onclick="window.replayCycleSpeed()">1× Speed</button>
-            </div>
-        </div>
+    <div class="replay-controls">
+      <button class="replay-ctrl-btn" onclick="window.replaySkip(-10)">−10s</button>
+      <button class="replay-ctrl-btn play-pause" id="replay-play-btn" onclick="window.replayTogglePlay()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
+      <button class="replay-ctrl-btn" onclick="window.replaySkip(10)">+10s</button>
+      <button class="replay-speed-select" id="replay-speed-btn" onclick="window.replayCycleSpeed()">1× Speed</button>
     </div>
-</div>
-
-<!-- LANDSCAPE UI -->
-<div id="landscape-ui">
-    <div class="bmw-gauge-container">
-        <svg class="svg-gauge" viewBox="0 0 200 200">
-            <path d="M 10 180 L 10 100 L 70 20 L 180 20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
-            <path id="l-svg-speed" d="M 10 180 L 10 100 L 70 20 L 180 20" fill="none" stroke="#0078ff" stroke-width="8" stroke-linecap="round" stroke-dasharray="290" stroke-dashoffset="290" style="transition:stroke-dashoffset 0.1s linear;"/>
-        </svg>
-        <div class="bmw-cluster-data">
-            <div class="bmw-val" id="l-speed">0</div>
-            <div class="bmw-unit">km/h</div>
-            <div class="bmw-sub">DIST <span id="l-dist" style="color:#0078ff">0.00</span></div>
-        </div>
-    </div>
-
-    <div class="bmw-center-stack">
-        <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
-            <div id="l-martor-recenter" onclick="window.forceRecenter()">⌖</div>
-            <div id="l-speed-limit-badge" style="display:none;flex;">
-                <div id="l-speed-limit-val">--</div>
-            </div>
-        </div>
-
-        <div id="l-nav-pill">
-            <div class="l-nav-row">
-                <div class="l-nav-dest" id="l-nav-dest">--</div>
-                <div class="l-nav-dist-badge" id="l-nav-dist">--</div>
-            </div>
-            <div class="l-nav-row" style="margin-bottom:0;">
-                <span style="font-size:0.65rem;color:#555;">ETA <span id="l-nav-eta" style="color:#0078ff;">--</span> · <span id="l-nav-time" style="color:#0078ff;">--</span></span>
-                <div class="l-nav-btns">
-                    <button class="l-nav-btn l-nav-go" id="l-nav-go-btn" onclick="window.startNavigation()">▶ GO</button>
-                    <button class="l-nav-btn l-nav-cancel" onclick="window.cancelNavigation()">✕</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bmw-bottom-bar">
-            <div class="bmw-stat-block">
-                <div class="bmw-stat"><div class="bmw-stat-val" id="l-max">0</div><div class="bmw-stat-lbl">MAX</div></div>
-                <div class="bmw-stat"><div class="bmw-stat-val" id="l-time">00:00</div><div class="bmw-stat-lbl">TIME</div></div>
-            </div>
-            <div class="bmw-action-block">
-                <button id="l-launch-btn" class="l-btn" onclick="window.triggerManualLaunch()">🚀</button>
-                <button id="l-toggle-btn" class="l-btn l-btn-start" onclick="window.toggleDrive()">START</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="bmw-gauge-container">
-        <svg class="svg-gauge" viewBox="0 0 200 200">
-            <path d="M 190 180 L 190 100 L 130 20 L 20 20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" stroke-linecap="round"/>
-            <path id="l-svg-rpm" d="M 190 180 L 190 100 L 130 20 L 20 20" fill="none" stroke="#ff2a2a" stroke-width="8" stroke-linecap="round" stroke-dasharray="290" stroke-dashoffset="290" style="transition:stroke-dashoffset 0.1s linear;"/>
-        </svg>
-        <div class="bmw-cluster-data">
-            <div class="bmw-unit" style="color:#ff2a2a;">GEAR <span id="l-gear" style="font-size:1.5rem;color:#fff;font-style:italic;">P</span></div>
-            <div class="bmw-val" id="l-rpm" style="font-size:3.5rem;margin-top:5px;">780</div>
-            <div class="bmw-sub">G-FORCE <span id="l-gforce" style="color:#ff2a2a">0.00</span></div>
-        </div>
-    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 <script>
-// =============================================
-// SETTINGS
-// =============================================
-let settings = { autoStart: true };
-(function() {
-    try { const s = JSON.parse(localStorage.getItem('speedy_settings') || '{}'); if (typeof s.autoStart === 'boolean') settings.autoStart = s.autoStart; } catch(e) {}
-})();
-function saveSettings() { localStorage.setItem('speedy_settings', JSON.stringify(settings)); }
-window.toggleAutoStart = function(cb) { settings.autoStart = cb.checked; saveSettings(); };
+'use strict';
+/* =========================================================================
+   STORAGE / STATE
+   ========================================================================= */
+const CAR_COLORS = ['#3ddc8a','#4d8dff','#ff5c5c','#ffb13d','#b07cff','#ffffff'];
 
-let currentMapHeading = 0, isUserPanning = false, panTimeout = null;
+function loadJSON(key, fallback){ try{ const v = JSON.parse(localStorage.getItem(key)); return v===null||v===undefined ? fallback : v; }catch(e){ return fallback; } }
+function saveJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 
-// =============================================
-// TAB SWITCHING
-// =============================================
-window.switchTab = function(tab) {
-    const histView = document.getElementById('history-view');
-    const trackView = document.getElementById('tracker-view');
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    if (tab === 'history') {
-        histView.style.display = 'block'; trackView.classList.remove('active'); histView.classList.add('active');
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        window.renderHistory();
-    } else {
-        histView.style.display = 'none'; histView.classList.remove('active');
-        trackView.classList.add('active'); trackView.style.display = 'block';
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        if (window.historyPathLine) { map.removeLayer(window.historyPathLine); window.historyPathLine = null; }
-        if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
-    }
+let appSettings = loadJSON('sd_settings', { sensitivity:8, radarEnabled:true });
+let username   = loadJSON('sd_username', 'Driver');
+let cars       = loadJSON('sd_cars', []);
+let activeCarId= loadJSON('sd_active_car', null);
+let onboarded  = loadJSON('sd_onboarded', false);
+if (onboarded) document.getElementById('onboarding').classList.add('hidden');
+
+function saveSettings(){ saveJSON('sd_settings', appSettings); }
+function saveCars(){ saveJSON('sd_cars', cars); }
+function saveUsername(){ saveJSON('sd_username', username); }
+function saveActiveCarId(){ saveJSON('sd_active_car', activeCarId); }
+
+function getActiveCar(){ return cars.find(c => c.id === activeCarId) || null; }
+function getMarkerColor(){ const c = getActiveCar(); return c ? c.color : '#3ddc8a'; }
+
+window.showToast = function(msg){
+  const el = document.getElementById('toast');
+  el.innerText = msg; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
 };
 
-// =============================================
-// MAP SETUP
-// =============================================
+window.formatTime = function(s){ s = Math.max(0, Math.floor(s)); return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
+
+function formatRelativeDate(ts){
+  const d = new Date(ts), now = new Date();
+  const isSameDay = a=>a.getFullYear()===now.getFullYear() && a.getMonth()===now.getMonth() && a.getDate()===now.getDate();
+  const yest = new Date(now); yest.setDate(yest.getDate()-1);
+  const timeStr = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  if (isSameDay(d)) return `Today · ${timeStr}`;
+  if (isSameDay(yest) && d.getDate()===yest.getDate() && d.getMonth()===yest.getMonth() && d.getFullYear()===yest.getFullYear()) return `Yesterday · ${timeStr}`;
+  return `${d.toLocaleDateString([], {day:'numeric', month:'short', year: d.getFullYear()!==now.getFullYear() ? 'numeric' : undefined})} · ${timeStr}`;
+}
+
+/* =========================================================================
+   ONBOARDING
+   ========================================================================= */
+let obStep = 1;
+let obChecks = { 1:true, 2:true };
+
+(function initColorRows(){
+  ['ob-color-row','car-color-row'].forEach(rowId=>{
+    const row = document.getElementById(rowId);
+    if(!row) return;
+    CAR_COLORS.forEach((col,i)=>{
+      const sw = document.createElement('div');
+      sw.className = 'color-swatch'+(i===0?' selected':'');
+      sw.style.background = col;
+      sw.dataset.color = col;
+      sw.onclick = ()=>{
+        row.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+        sw.classList.add('selected');
+      };
+      row.appendChild(sw);
+    });
+  });
+})();
+function getSelectedColor(rowId){ const sel = document.querySelector('#'+rowId+' .color-swatch.selected'); return sel ? sel.dataset.color : CAR_COLORS[0]; }
+function setSelectedColor(rowId, color){
+  const row = document.getElementById(rowId);
+  row.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected', s.dataset.color===color));
+}
+
+window.obToggleCheck = function(n){
+  obChecks[n] = !obChecks[n];
+  document.getElementById('ob-check-'+n).classList.toggle('checked', obChecks[n]);
+  document.getElementById('ob-next-1').disabled = !(obChecks[1] && obChecks[2]);
+};
+document.getElementById('ob-next-1').disabled = !(obChecks[1] && obChecks[2]);
+
+window.obGoStep = function(n){
+  if (n===2 && !(obChecks[1] && obChecks[2])) return;
+  document.querySelectorAll('.ob-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ob-step-'+n).classList.add('active');
+  document.querySelectorAll('.ob-dot').forEach((d,i)=>d.classList.toggle('filled', i < n));
+  obStep = n;
+};
+
+window.obSkip = function(){
+  username = (document.getElementById('ob-username-input').value || 'Driver').trim() || 'Driver';
+  saveUsername();
+  window.completeOnboarding();
+};
+
+window.obFinish = function(){
+  // commit profile fields from step 2 (in case user came via continue, not skip)
+  const uname = document.getElementById('ob-username-input').value.trim();
+  username = uname || username || 'Driver';
+  saveUsername();
+  const yr = document.getElementById('ob-car-year').value.trim();
+  const mk = document.getElementById('ob-car-make').value.trim();
+  const md = document.getElementById('ob-car-model').value.trim();
+  if (mk || md) {
+    const car = { id: Date.now(), year: yr, make: mk || 'Unknown', model: md || '', color: getSelectedColor('ob-color-row'), topSpeed: 0 };
+    cars.push(car); activeCarId = car.id; saveCars(); saveActiveCarId();
+  }
+  // trigger location permission prompt, then go
+  try {
+    navigator.geolocation.getCurrentPosition(
+      ()=>window.completeOnboarding(),
+      ()=>window.completeOnboarding(),
+      { enableHighAccuracy:true, timeout:6000 }
+    );
+  } catch(e) { window.completeOnboarding(); }
+};
+
+window.completeOnboarding = function(){
+  onboarded = true; saveJSON('sd_onboarded', true);
+  document.getElementById('onboarding').classList.add('hidden');
+  window.initGeolocation();
+  window.refreshProfileUI();
+};
+
+/* =========================================================================
+   SETTINGS / SEARCH / CAR MODALS
+   ========================================================================= */
+window.openSettings = function(){
+  document.getElementById('settings-username-input').value = username;
+  document.getElementById('sens-slider').value = appSettings.sensitivity;
+  document.getElementById('sens-sub').textContent = `Starts tracking above ${appSettings.sensitivity} km/h`;
+  document.getElementById('radar-toggle').checked = appSettings.radarEnabled !== false;
+  document.getElementById('settings-overlay').classList.add('show');
+};
+window.closeSettings = function(){ document.getElementById('settings-overlay').classList.remove('show'); };
+window.updateUsername = function(v){ username = (v||'').trim() || 'Driver'; saveUsername(); window.refreshProfileUI(); };
+window.setSensitivity = function(v){ appSettings.sensitivity = parseInt(v,10); saveSettings(); document.getElementById('sens-sub').textContent = `Starts tracking above ${v} km/h`; };
+window.setRadarEnabled = function(v){ appSettings.radarEnabled = v; saveSettings(); };
+
+window.resetAppData = function(){
+  if (!confirm('Reset all app data? This clears your profile, garage, settings and drive history. This cannot be undone.')) return;
+  ['sd_settings','sd_username','sd_cars','sd_active_car','sd_onboarded','drives'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+};
+
+let geocoderService = null;
+let searchDebounce = null;
+let searchResultsCache = [];
+window.openSearch = function(){
+  document.getElementById('search-overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('search-input').focus(), 150);
+};
+window.closeSearch = function(){ document.getElementById('search-overlay').classList.remove('show'); };
+window.searchInputHandler = function(q){
+  clearTimeout(searchDebounce);
+  const box = document.getElementById('search-results');
+  if (!q || q.trim().length < 2) { box.innerHTML = '<div class="search-empty">Start typing to search</div>'; return; }
+  box.innerHTML = '<div class="search-empty">Searching…</div>';
+  searchDebounce = setTimeout(()=>{
+    if (!geocoderService) geocoderService = L.Control.Geocoder.nominatim();
+    geocoderService.geocode(q, results=>{
+      searchResultsCache = results || [];
+      if (!results || results.length===0) { box.innerHTML = '<div class="search-empty">No results found</div>'; return; }
+      box.innerHTML = results.map((r,i)=>`
+        <div class="search-result-row" onclick="window.selectSearchResult(${i})">
+          <div class="search-result-icon"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="search-result-name">${r.name}</div>
+        </div>`).join('');
+    });
+  }, 380);
+};
+window.selectSearchResult = function(i){
+  const r = searchResultsCache[i]; if (!r) return;
+  window.closeSearch();
+  window.buildNavigationRoute(r.center, r.name);
+};
+
+let carModalMode = 'add';
+let carModalEditingId = null;
+window.openGarageAdd = function(){
+  carModalMode = 'add'; carModalEditingId = null;
+  document.getElementById('car-modal-title').textContent = 'Add your car';
+  document.getElementById('car-year').value = '';
+  document.getElementById('car-make').value = '';
+  document.getElementById('car-model').value = '';
+  setSelectedColor('car-color-row', CAR_COLORS[0]);
+  document.getElementById('car-delete-btn').classList.add('hidden');
+  document.getElementById('car-overlay').classList.add('show');
+};
+window.editCar = function(id){
+  const car = cars.find(c=>c.id===id); if(!car) return;
+  carModalMode = 'edit'; carModalEditingId = id;
+  document.getElementById('car-modal-title').textContent = 'Edit car';
+  document.getElementById('car-year').value = car.year || '';
+  document.getElementById('car-make').value = car.make || '';
+  document.getElementById('car-model').value = car.model || '';
+  setSelectedColor('car-color-row', car.color);
+  document.getElementById('car-delete-btn').classList.remove('hidden');
+  document.getElementById('car-overlay').classList.add('show');
+};
+window.closeCarModal = function(){ document.getElementById('car-overlay').classList.remove('show'); };
+window.saveCarModal = function(){
+  const yr = document.getElementById('car-year').value.trim();
+  const mk = document.getElementById('car-make').value.trim();
+  const md = document.getElementById('car-model').value.trim();
+  if (!mk) { window.showToast('Enter at least a make'); return; }
+  const color = getSelectedColor('car-color-row');
+  if (carModalMode === 'add') {
+    const car = { id: Date.now(), year: yr, make: mk, model: md, color, topSpeed: 0 };
+    cars.push(car);
+    if (!activeCarId) { activeCarId = car.id; saveActiveCarId(); }
+  } else {
+    const car = cars.find(c=>c.id===carModalEditingId);
+    if (car) { car.year=yr; car.make=mk; car.model=md; car.color=color; }
+  }
+  saveCars();
+  window.closeCarModal();
+  window.renderGarage();
+  window.refreshProfileUI();
+};
+window.deleteCarModal = function(){
+  cars = cars.filter(c=>c.id !== carModalEditingId);
+  if (activeCarId === carModalEditingId) activeCarId = cars.length ? cars[0].id : null;
+  saveCars(); saveActiveCarId();
+  window.closeCarModal();
+  window.renderGarage();
+  window.refreshProfileUI();
+};
+window.selectCar = function(id){
+  if (id === activeCarId) { window.editCar(id); return; }
+  activeCarId = id; saveActiveCarId();
+  window.renderGarage(); window.refreshProfileUI();
+  const car = cars.find(c=>c.id===id);
+  window.showToast(`Switched to ${car ? car.make+' '+car.model : 'car'}`);
+};
+
+window.renderGarage = function(){
+  const grid = document.getElementById('garage-grid');
+  document.getElementById('garage-count').textContent = `${cars.length} car${cars.length===1?'':'s'}`;
+  let html = cars.map(c=>{
+    const active = c.id === activeCarId;
+    return `<div class="car-card ${active?'active':''}" style="--ccol:${c.color}" onclick="window.selectCar(${c.id})">
+      ${active?'<div class="car-badge">ACTIVE</div>':''}
+      <div class="car-make">${c.year ? c.year+' ' : ''}${c.make}</div>
+      <div class="car-model">${c.model || c.make}</div>
+      <div class="car-topspeed">Top speed<span>${c.topSpeed ? c.topSpeed+' km/h' : '—'}</span></div>
+    </div>`;
+  }).join('');
+  html += `<div class="car-add-tile" onclick="window.openGarageAdd()">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Add your car</span>
+    </div>`;
+  grid.innerHTML = html;
+};
+
+window.refreshProfileUI = function(){
+  document.getElementById('peek-username').textContent = username;
+  document.getElementById('peek-avatar').textContent = (username||'D').trim().charAt(0).toUpperCase();
+  const car = getActiveCar();
+  document.getElementById('peek-carline').textContent = car ? `${car.year?car.year+' ':''}${car.make} ${car.model}`.trim() : 'No vehicle added';
+  const col = getMarkerColor();
+  document.documentElement.style.setProperty('--marker-col-global', col);
+  document.querySelectorAll('.avatar-circle').forEach(el=>el.style.setProperty('--marker-col', col));
+  document.getElementById('peek-avatar').textContent = (username||'D').trim().charAt(0).toUpperCase();
+  window.updateAllTimeStats();
+  window.updateSelfMarkerColor();
+};
+
+window.updateAllTimeStats = function(){
+  const drives = loadJSON('drives', []);
+  const top = drives.reduce((m,d)=>Math.max(m, d.maxSpeed||0), 0);
+  const dist = drives.reduce((s,d)=>s+(d.distance||0), 0)/1000;
+  const best60 = drives.reduce((m,d)=>{ const v = parseFloat(d.best0to60); return (!isNaN(v) && (m===null || v<m)) ? v : m; }, null);
+  document.getElementById('all-top-speed').textContent = `${top} km/h`;
+  document.getElementById('all-distance').textContent = `${dist.toFixed(1)} km`;
+  document.getElementById('all-drives').textContent = drives.length;
+  document.getElementById('all-060').textContent = best60!==null ? best60.toFixed(1)+'s' : '--';
+};
+
+/* =========================================================================
+   TAB SWITCHING
+   ========================================================================= */
+window.switchTab = function(tab){
+  const hist = document.getElementById('history-view');
+  document.getElementById('tab-drive').classList.toggle('active', tab==='drive');
+  document.getElementById('tab-history').classList.toggle('active', tab==='history');
+  if (tab === 'history') {
+    hist.classList.remove('hidden');
+    window.renderHistory();
+  } else {
+    hist.classList.add('hidden');
+    if (window.historyPathLine) { map.removeLayer(window.historyPathLine); window.historyPathLine = null; }
+    if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
+  }
+};
+
+/* =========================================================================
+   BOTTOM SHEET DRAG
+   ========================================================================= */
+const sheet = document.getElementById('sheet');
+const PEEK_H = 188, TAB_H = 76;
+document.documentElement.style.setProperty('--peek-h', PEEK_H+'px');
+document.documentElement.style.setProperty('--tab-h', TAB_H+'px');
+let sheetExpanded = false;
+let dragStartY = 0, dragStartTransform = 0, isDragging = false;
+
+function sheetExpandedY(){ return 0; }
+function sheetPeekY(){ return Math.max(0, sheet.offsetHeight - PEEK_H); }
+
+window.setSheetState = function(expanded, animate=true){
+  sheetExpanded = expanded;
+  sheet.classList.toggle('dragging', !animate);
+  sheet.style.transform = `translateY(${expanded ? sheetExpandedY() : sheetPeekY()}px)`;
+  if (!animate) requestAnimationFrame(()=>sheet.classList.remove('dragging'));
+};
+window.toggleSheet = function(){ if (isDragging) return; window.setSheetState(!sheetExpanded); };
+
+(function setupSheetDrag(){
+  const handle = document.getElementById('sheet-handle-wrap');
+  let startTY = 0;
+  function getY(e){ return e.touches ? e.touches[0].clientY : e.clientY; }
+  function onStart(e){
+    isDragging = true; dragStartY = getY(e);
+    const cur = sheetExpanded ? sheetExpandedY() : sheetPeekY();
+    startTY = cur;
+    sheet.classList.add('dragging');
+    document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, {passive:false}); document.addEventListener('touchend', onEnd);
+  }
+  function onMove(e){
+    if (!isDragging) return;
+    if (e.cancelable) e.preventDefault();
+    const dy = getY(e) - dragStartY;
+    let ty = startTY + dy;
+    ty = Math.max(sheetExpandedY(), Math.min(sheetPeekY(), ty));
+    sheet.style.transform = `translateY(${ty}px)`;
+  }
+  function onEnd(e){
+    if (!isDragging) return;
+    isDragging = false;
+    document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd);
+    const cur = sheet.style.transform.match(/-?\d+(\.\d+)?/);
+    const ty = cur ? parseFloat(cur[0]) : sheetPeekY();
+    const mid = (sheetExpandedY() + sheetPeekY()) / 2;
+    window.setSheetState(ty < mid);
+  }
+  handle.addEventListener('mousedown', onStart);
+  handle.addEventListener('touchstart', onStart, {passive:true});
+})();
+window.addEventListener('resize', ()=>window.setSheetState(sheetExpanded, false));
+window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, false), 50));
+
+/* =========================================================================
+   MAP SETUP
+   ========================================================================= */
 const map = L.map('map', { zoomControl:false }).setView([44.4782, 26.1481], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
 
+let isUserPanning = false, panTimeout = null;
 map.on('dragstart', () => {
-    isUserPanning = true;
-    document.getElementById('p-recenter-btn').style.display = 'block';
-    document.getElementById('l-martor-recenter').classList.add('warning');
-    clearTimeout(panTimeout);
+  isUserPanning = true;
+  document.getElementById('recenter-btn').classList.remove('hidden');
+  clearTimeout(panTimeout);
 });
 map.on('dragend', () => { panTimeout = setTimeout(window.forceRecenter, 10000); });
 
-window.forceRecenter = function() {
-    isUserPanning = false;
-    document.getElementById('p-recenter-btn').style.display = 'none';
-    document.getElementById('l-martor-recenter').classList.remove('warning');
-    if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
+window.forceRecenter = function(){
+  isUserPanning = false;
+  document.getElementById('recenter-btn').classList.add('hidden');
+  if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
 };
 window.addEventListener('orientationchange', () => setTimeout(() => { map.invalidateSize(); window.forceRecenter(); }, 250));
 
-// =============================================
-// SPEED LIMIT
-// =============================================
-let currentSpeedLimit = null;
-let speedLimitTimeout = null;
-
-window.fetchSpeedLimit = async function(lat, lng) {
-    const query = `
-        [out:json][timeout:8];
-        way(around:75,${lat},${lng})["highway"];
-        out tags center 5;
-    `;
-
-    try {
-        const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-        const data = await r.json();
-
-        currentSpeedLimit = null;
-
-        if (data.elements && data.elements.length > 0) {
-            const el = data.elements.find(w =>
-                w.tags &&
-                (
-                    w.tags.maxspeed ||
-                    w.tags["maxspeed:type"] ||
-                    w.tags.highway
-                )
-            );
-
-            if (el && el.tags) {
-                const tags = el.tags;
-                const raw = tags.maxspeed;
-
-                if (raw) {
-                    const num = parseInt(raw, 10);
-
-                    if (!isNaN(num)) {
-                        currentSpeedLimit = raw.toLowerCase().includes("mph")
-                            ? Math.round(num * 1.609)
-                            : num;
-                    } else {
-                        const lower = raw.toLowerCase();
-
-                        if (lower.includes("urban")) currentSpeedLimit = 50;
-                        else if (lower.includes("rural")) currentSpeedLimit = 90;
-                        else if (lower.includes("motorway")) currentSpeedLimit = 130;
-                    }
-                }
-
-                // Fallback for Romania if maxspeed is missing
-                if (currentSpeedLimit === null) {
-                    const type = tags["maxspeed:type"] || tags["source:maxspeed"] || "";
-
-                    if (type.includes("RO:urban")) currentSpeedLimit = 50;
-                    else if (type.includes("RO:rural")) currentSpeedLimit = 90;
-                    else if (type.includes("RO:motorway")) currentSpeedLimit = 130;
-                    else if (tags.highway === "motorway") currentSpeedLimit = 130;
-                    else if (tags.highway === "trunk") currentSpeedLimit = 100;
-                    else if (["primary", "secondary", "tertiary"].includes(tags.highway)) currentSpeedLimit = 50;
-                    else if (["residential", "living_street", "service"].includes(tags.highway)) currentSpeedLimit = 50;
-                }
-            }
-        }
-    } catch (e) {
-        console.warn("Speed limit fetch failed:", e);
-        currentSpeedLimit = null;
-    }
-
-    window.updateSpeedLimitBadge(lastCurrentSpeed || 0);
-};
-
-let speedLimitFetchTimer = null;
-let lastSpeedLimitPos = null;
-
-window.updateSpeedLimitBadge = function(speed) {
-    const badge = document.getElementById('speed-limit-badge');
-    const val = document.getElementById('speed-limit-val');
-    const lBadge = document.getElementById('l-speed-limit-badge');
-    const lVal = document.getElementById('l-speed-limit-val');
-
-    badge.style.display = 'flex';
-    lBadge.style.display = 'flex';
-
-    if (currentSpeedLimit !== null) {
-        val.textContent = currentSpeedLimit;
-        lVal.textContent = currentSpeedLimit;
-        const speeding = speed > currentSpeedLimit;
-        badge.classList.toggle('speeding', speeding);
-        lBadge.classList.toggle('speeding', speeding);
-    } else {
-        // When data is missing, show a question mark
-        val.textContent = '?';
-        lVal.textContent = '?';
-        badge.classList.remove('speeding');
-        lBadge.classList.remove('speeding');
-    }
-};
-
-// =============================================
-// NAVIGATION
-// =============================================
-const geocoder = L.Control.geocoder({ defaultMarkGeocode:false, placeholder:'Search destination...' }).addTo(map);
-document.getElementById('search-container').appendChild(geocoder.getContainer());
-geocoder.on('markgeocode', e => window.buildNavigationRoute(e.geocode.center || e.geocode.bbox.getCenter(), e.geocode.name));
-map.on('contextmenu', e => window.buildNavigationRoute(e.latlng, 'Custom location'));
-
-let routingControl = null, pendingDestination = null, isNavigationActive = false;
-let pendingDestName = '';
-let navPillExpanded = false;
-
-window.toggleNavPill = function() {
-    navPillExpanded = !navPillExpanded;
-    document.getElementById('p-nav-pill').classList.toggle('expanded', navPillExpanded);
-};
-
-window.buildNavigationRoute = function(dest, name) {
-    if (!lastPos) { window.showToast('Waiting for GPS lock...'); return; }
-    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-    isNavigationActive = false;
-    pendingDestination = dest;
-    pendingDestName = name || 'Destination';
-    // Reset GO buttons
-    document.getElementById('p-nav-go-btn').classList.remove('active');
-    document.getElementById('p-nav-go-btn').textContent = '▶ START';
-    document.getElementById('l-nav-go-btn').classList.remove('active');
-    document.getElementById('l-nav-go-btn').textContent = '▶ GO';
-
-    routingControl = L.Routing.control({
-        waypoints:[L.latLng(lastPos.lat, lastPos.lng), dest],
-        routeWhileDragging:false, addWaypoints:false, show:false,
-        lineOptions:{ styles:[{ color:'#0078ff', weight:6, opacity:0.85 }] }
-    }).addTo(map);
-
-    routingControl.on('routesfound', e => {
-        const s = e.routes[0].summary;
-        const distStr = (s.totalDistance / 1000).toFixed(1) + ' km';
-        const mins = Math.round(s.totalTime / 60);
-        const timeStr = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60}m` : `${mins} min`;
-        const eta = new Date(Date.now() + s.totalTime*1000).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
-
-        // Portrait pill
-        document.getElementById('p-nav-pill-dest').textContent = pendingDestName;
-        document.getElementById('p-nav-pill-dist').textContent = distStr;
-        document.getElementById('p-nav-time').textContent = timeStr;
-        document.getElementById('p-nav-eta').textContent = eta;
-        const pill = document.getElementById('p-nav-pill');
-        pill.style.display = 'block';
-        // Auto-expand briefly then collapse
-        pill.classList.add('expanded');
-        navPillExpanded = true;
-        setTimeout(() => { pill.classList.remove('expanded'); navPillExpanded = false; }, 4000);
-
-        // Landscape
-        document.getElementById('l-nav-dest').textContent = pendingDestName;
-        document.getElementById('l-nav-dist').textContent = distStr;
-        document.getElementById('l-nav-time').textContent = timeStr;
-        document.getElementById('l-nav-eta').textContent = eta;
-        document.getElementById('l-nav-pill').style.display = 'block';
-    });
-    routingControl.on('routingerror', () => { window.showToast('Could not find route.'); window.cancelNavigation(); });
-};
-
-window.startNavigation = function() {
-    if (!pendingDestination) return;
-    isNavigationActive = true;
-    document.getElementById('p-nav-go-btn').classList.add('active');
-    document.getElementById('p-nav-go-btn').textContent = '✓ ACTIVE';
-    document.getElementById('l-nav-go-btn').classList.add('active');
-    document.getElementById('l-nav-go-btn').textContent = '✓ ON';
-    // Collapse the pill after confirming
-    document.getElementById('p-nav-pill').classList.remove('expanded');
-    navPillExpanded = false;
-    window.showToast('🧭 Navigation Started');
-};
-
-window.cancelNavigation = function() {
-    isNavigationActive = false; pendingDestination = null;
-    if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-    document.getElementById('p-nav-pill').style.display = 'none';
-    document.getElementById('l-nav-pill').style.display = 'none';
-    window.showToast('Navigation cancelled');
-};
-
-// =============================================
-// MAP MARKERS & DRIVE STATE
-// =============================================
-const marker = L.circleMarker([44.4782, 26.1481], { radius:8, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1, zIndexOffset:1000 }).addTo(map);
-let pathLine = L.polyline([], { color:'#00ff88', weight:5, opacity:0.8 }).addTo(map);
-const ghostStartZone = L.circle([0,0], { radius:40, color:'#ffaa00', fillColor:'#ffaa00', fillOpacity:0.15 });
-const ghostMarker = L.circleMarker([0,0], { radius:8, color:'#ffaa00', fillColor:'#ffaa00', fillOpacity:0.9, weight:2 });
+/* Self marker (custom divIcon) */
+function buildSelfIcon(){
+  return L.divIcon({
+    className:'',
+    html:`<div class="self-marker"><div class="self-pulse"></div><div class="self-arrow" id="self-arrow"></div><div class="self-dot" id="self-dot">🚗</div></div>`,
+    iconSize:[54,54], iconAnchor:[27,27]
+  });
+}
+const marker = L.marker([44.4782, 26.1481], { icon: buildSelfIcon(), zIndexOffset:1000 }).addTo(map);
+let pathLine = L.polyline([], { color:'#3ddc8a', weight:5, opacity:0.85 }).addTo(map);
+const ghostStartZone = L.circle([0,0], { radius:40, color:'#ffb13d', fillColor:'#ffb13d', fillOpacity:0.15 });
+const ghostMarker = L.marker([0,0], { icon: L.divIcon({className:'', html:'<div class="ghost-marker-icon"></div>', iconSize:[20,20], iconAnchor:[10,10]}) });
 let activeGhostLap = null, ghostStaged = false;
 const radarLayer = L.layerGroup().addTo(map);
 
-let isDriving = false, driveStartTime = 0, driveTimerInterval;
+window.updateSelfMarkerColor = function(){
+  const col = getMarkerColor();
+  const dot = document.getElementById('self-dot');
+  const arrow = document.getElementById('self-arrow');
+  if (dot) dot.style.setProperty('--marker-col', col);
+  if (arrow) arrow.style.setProperty('--marker-col', col);
+  pathLine.setStyle({ color: col });
+};
+
+/* =========================================================================
+   SPEED LIMIT
+   ========================================================================= */
+let currentSpeedLimit = null;
+let speedLimitFetchTimer = null, lastSpeedLimitPos = null;
+
+window.fetchSpeedLimit = async function(lat, lng){
+  const query = `[out:json][timeout:8];way(around:75,${lat},${lng})["highway"];out tags center 5;`;
+  try {
+    const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+    const data = await r.json();
+    currentSpeedLimit = null;
+    if (data.elements && data.elements.length > 0) {
+      const el = data.elements.find(w => w.tags && (w.tags.maxspeed || w.tags["maxspeed:type"] || w.tags.highway));
+      if (el && el.tags) {
+        const tags = el.tags; const raw = tags.maxspeed;
+        if (raw) {
+          const num = parseInt(raw, 10);
+          if (!isNaN(num)) currentSpeedLimit = raw.toLowerCase().includes("mph") ? Math.round(num * 1.609) : num;
+          else {
+            const lower = raw.toLowerCase();
+            if (lower.includes("urban")) currentSpeedLimit = 50;
+            else if (lower.includes("rural")) currentSpeedLimit = 90;
+            else if (lower.includes("motorway")) currentSpeedLimit = 130;
+          }
+        }
+        if (currentSpeedLimit === null) {
+          const type = tags["maxspeed:type"] || tags["source:maxspeed"] || "";
+          if (type.includes("RO:urban")) currentSpeedLimit = 50;
+          else if (type.includes("RO:rural")) currentSpeedLimit = 90;
+          else if (type.includes("RO:motorway")) currentSpeedLimit = 130;
+          else if (tags.highway === "motorway") currentSpeedLimit = 130;
+          else if (tags.highway === "trunk") currentSpeedLimit = 100;
+          else if (["primary","secondary","tertiary"].includes(tags.highway)) currentSpeedLimit = 50;
+          else if (["residential","living_street","service"].includes(tags.highway)) currentSpeedLimit = 50;
+        }
+      }
+    }
+  } catch(e) { currentSpeedLimit = null; }
+  window.updateSpeedLimitBadge(lastCurrentSpeed || 0);
+};
+
+window.updateSpeedLimitBadge = function(speed){
+  const badge = document.getElementById('speed-limit-badge');
+  const val = document.getElementById('sl-val');
+  badge.classList.remove('hidden');
+  if (currentSpeedLimit !== null) {
+    val.textContent = currentSpeedLimit;
+    badge.classList.toggle('speeding', speed > currentSpeedLimit);
+  } else {
+    val.textContent = '?';
+    badge.classList.remove('speeding');
+  }
+};
+
+/* =========================================================================
+   NAVIGATION + TURN-BY-TURN
+   ========================================================================= */
+let routingControl = null, pendingDestination = null, isNavigationActive = false, pendingDestName = '';
+let routeCoords = [], routeCumDist = [], routeInstructions = [], routeTotalDist = 0, routeTotalTime = 0;
+
+map.on('contextmenu', e => window.buildNavigationRoute(e.latlng, 'Custom location'));
+
+function buildCumDist(coords){
+  const cum = [0];
+  for (let i=1;i<coords.length;i++){
+    cum.push(cum[i-1] + window.calculateDistance(coords[i-1].lat, coords[i-1].lng, coords[i].lat, coords[i].lng));
+  }
+  return cum;
+}
+
+window.buildNavigationRoute = function(dest, name){
+  if (!lastPos) { window.showToast('Waiting for GPS lock…'); return; }
+  if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+  isNavigationActive = false;
+  pendingDestination = dest; pendingDestName = name || 'Destination';
+
+  routingControl = L.Routing.control({
+    waypoints:[L.latLng(lastPos.lat, lastPos.lng), dest],
+    routeWhileDragging:false, addWaypoints:false, show:false,
+    lineOptions:{ styles:[{ color:'#4d8dff', weight:6, opacity:0.85 }] }
+  }).addTo(map);
+
+  routingControl.on('routesfound', e => {
+    const route = e.routes[0];
+    routeCoords = route.coordinates;
+    routeCumDist = buildCumDist(routeCoords);
+    routeInstructions = (route.instructions || []).map(ins => ({ ...ins }));
+    routeTotalDist = route.summary.totalDistance;
+    routeTotalTime = route.summary.totalTime;
+    document.getElementById('turn-card').classList.remove('hidden');
+    document.getElementById('turn-status-title').textContent = 'READY';
+    document.getElementById('turn-status-sub').textContent = pendingDestName;
+    window.updateTurnCard(lastPos.lat, lastPos.lng, lastCurrentSpeed||0);
+  });
+  routingControl.on('routingerror', () => { window.showToast('Could not find a route'); window.cancelNavigation(); });
+};
+
+window.startNavigation = function(){
+  if (!pendingDestination) return;
+  isNavigationActive = true;
+  window.showToast('Navigation started');
+};
+
+window.cancelNavigation = function(){
+  isNavigationActive = false; pendingDestination = null;
+  if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+  routeCoords = []; routeInstructions = []; routeCumDist = [];
+  document.getElementById('turn-card').classList.add('hidden');
+};
+
+function nearestRouteIndex(lat, lng){
+  let bestI = 0, bestD = Infinity;
+  for (let i=0;i<routeCoords.length;i++){
+    const d = window.calculateDistance(lat, lng, routeCoords[i].lat, routeCoords[i].lng);
+    if (d < bestD) { bestD = d; bestI = i; }
+  }
+  return bestI;
+}
+
+window.updateTurnCard = function(lat, lng, speedKmh){
+  if (!routeCoords.length) return;
+  if (!isNavigationActive) window.startNavigation();
+  const idx = nearestRouteIndex(lat, lng);
+  const remainingToDest = Math.max(0, routeCumDist[routeCumDist.length-1] - routeCumDist[idx]);
+
+  if (remainingToDest < 25) {
+    document.getElementById('turn-dist').textContent = 'Arrived';
+    document.getElementById('turn-text').textContent = pendingDestName;
+    document.getElementById('turn-sub').textContent = '';
+    document.getElementById('turn-status-title').textContent = 'DONE';
+    document.getElementById('turn-status-sub').textContent = '🏁';
+    setTimeout(()=>window.cancelNavigation(), 4000);
+    return;
+  }
+
+  let nextIns = routeInstructions.find(ins => ins.index >= idx + 1) || routeInstructions[routeInstructions.length-1];
+  let distToTurn = nextIns ? Math.max(0, routeCumDist[Math.min(nextIns.index, routeCumDist.length-1)] - routeCumDist[idx]) : remainingToDest;
+  const distStr = distToTurn < 1000 ? `${Math.round(distToTurn/10)*10} m` : `${(distToTurn/1000).toFixed(1)} km`;
+  document.getElementById('turn-dist').textContent = distStr;
+  document.getElementById('turn-text').textContent = nextIns ? nextIns.text.replace(/^Head\s/, 'Continue ') : 'Continue straight';
+
+  const remMin = speedKmh > 4 ? Math.round((remainingToDest/1000) / (speedKmh/60)) : Math.round(routeTotalTime/60);
+  const remKm = (remainingToDest/1000).toFixed(1);
+  document.getElementById('turn-sub').textContent = `${remMin} min · ${remKm} km`;
+
+  const stepNo = routeInstructions.findIndex(ins => ins === nextIns) + 1;
+  document.getElementById('turn-status-title').textContent = isDriving ? 'LIVE' : 'READY';
+  document.getElementById('turn-status-sub').textContent = `Step ${Math.max(1,stepNo)} of ${routeInstructions.length}`;
+
+  const arrowSvg = document.getElementById('turn-arrow-svg');
+  const mod = (nextIns && nextIns.modifier) || '';
+  let rot = 0;
+  if (/Left/.test(mod)) rot = -55; else if (/Right/.test(mod)) rot = 55; else if (/Sharp Left/.test(mod)) rot = -90; else if (/Sharp Right/.test(mod)) rot = 90;
+  arrowSvg.style.transform = `rotate(${rot}deg)`;
+};
+
+/* =========================================================================
+   DRIVE STATE / TELEMETRY
+   ========================================================================= */
+let isDriving = false, driveStartTime = 0, driveTimerInterval = null, stopWatchInterval = null;
 let lastPos = { lat:44.4782, lng:26.1481 }, radarsLoaded = false;
-let currentDrive = { id:null, isGhost:false, date:null, duration:0, distance:0, maxSpeed:0, best0to60:null, best0to100:null, route:[], telemetry:[], speedLog:[] };
+let currentDrive = { id:null, isGhost:false, date:null, duration:0, distance:0, maxSpeed:0, best0to60:null, best0to100:null, route:[], telemetry:[], speedLog:[], carId:null };
 let previousSpeed = 0, pullStartMs = null, hit60 = false, hit100 = false, ghostReleasedMs = null;
 let maxGForce = 0, speedTapCount = 0, speedTapTimeout = null, isDebugMode = false, debugInterval = null;
-let lastCurrentSpeed = 0;
+let lastCurrentSpeed = 0, lastMovingTime = 0;
+const STOP_TIMEOUT_MS = 90000;
 
-function calculateGear(s) {
-    if (s===0) return 'P'; if (s<20) return 'D1'; if (s<45) return 'D2';
-    if (s<75) return 'D3'; if (s<110) return 'D4'; if (s<150) return 'D5';
-    if (s<200) return 'D6'; return 'D7';
-}
-
-window.showToast = function(msg) {
-    const el = document.getElementById('toast'); el.innerText = msg; el.style.display = 'block';
-    setTimeout(() => el.style.display = 'none', 2500);
-};
+function calculateGear(s){ if (s===0) return 'P'; if (s<20) return 'D1'; if (s<45) return 'D2'; if (s<75) return 'D3'; if (s<110) return 'D4'; if (s<150) return 'D5'; if (s<200) return 'D6'; return 'D7'; }
 
 if (typeof DeviceMotionEvent !== 'undefined') {
-    window.addEventListener('devicemotion', e => {
-        if (!isDriving) return;
-        const acc = e.acceleration || e.accelerationIncludingGravity; if (!acc) return;
-        const g = Math.sqrt(acc.x*acc.x+acc.y*acc.y+acc.z*acc.z)/9.81;
-        const ng = e.acceleration ? g : Math.abs(g-1);
-        if (ng > maxGForce && ng > 0.05) {
-            maxGForce = ng; const f = maxGForce.toFixed(2);
-            document.getElementById('p-gforce').innerText = f + ' G';
-            document.getElementById('l-gforce').innerText = f;
-        }
-    });
+  window.addEventListener('devicemotion', e => {
+    if (!isDriving) return;
+    const acc = e.acceleration || e.accelerationIncludingGravity; if (!acc) return;
+    const g = Math.sqrt(acc.x*acc.x+acc.y*acc.y+acc.z*acc.z)/9.81;
+    const ng = e.acceleration ? g : Math.abs(g-1);
+    if (ng > maxGForce && ng > 0.05) {
+      maxGForce = ng;
+      document.getElementById('perf-gforce').textContent = maxGForce.toFixed(2);
+    }
+  });
 }
 
-window.triggerManualLaunch = function() {
-    pullStartMs = Date.now(); hit60 = false; hit100 = false;
-    document.getElementById('p-launch-btn').style.display = 'none';
-    document.getElementById('l-launch-btn').style.display = 'none';
-    window.showToast('🚀 Manual Launch Staged!');
+window.triggerManualLaunch = function(){
+  pullStartMs = Date.now(); hit60 = false; hit100 = false;
+  document.getElementById('launch-btn').classList.add('hidden');
+  window.showToast('🚀 Launch staged!');
 };
 
-window.scanForRadars = async function(lat, lng) {
-    const q = `[out:json];node["highway"="speed_camera"](around:10000,${lat},${lng});out;`;
+window.scanForRadars = async function(lat, lng){
+  if (appSettings.radarEnabled === false) return;
+  const q = `[out:json];node["highway"="speed_camera"](around:10000,${lat},${lng});out;`;
+  try {
+    const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    data.elements.forEach(c => L.circleMarker([c.lat,c.lon],{radius:7,color:'#ff5c5c',fillColor:'#ff2222',fillOpacity:0.85}).addTo(radarLayer).bindPopup('⚠️ Speed camera'));
+  } catch(e) {}
+};
+
+window.calculateBearing = function(la1,lo1,la2,lo2){
+  const r=Math.PI/180, dl=(lo2-lo1)*r;
+  const y=Math.sin(dl)*Math.cos(la2*r);
+  const x=Math.cos(la1*r)*Math.sin(la2*r)-Math.sin(la1*r)*Math.cos(la2*r)*Math.cos(dl);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+};
+window.calculateDistance = function(la1,lo1,la2,lo2){
+  const R=6371e3,p1=la1*Math.PI/180,p2=la2*Math.PI/180,dp=(la2-la1)*Math.PI/180,dl=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+};
+
+window.generateSVGPreview = function(route, speeds){
+  if (!route || route.length < 2) return '';
+  const lats=route.map(p=>p[0]),lngs=route.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const latR=maxLat-minLat||0.001,lngR=maxLng-minLng||0.001;
+  const w=84,h=84,pad=8;
+  const pts=route.map(p=>`${pad+((p[1]-minLng)/lngR)*(w-pad*2)},${pad+(1-(p[0]-minLat)/latR)*(h-pad*2)}`);
+  if (speeds && speeds.length === route.length) {
+    const maxS = Math.max(...speeds,1);
+    let segs = '';
+    for (let i=0;i<pts.length-1;i++){
+      const r = speeds[i]/maxS;
+      let col = r > 0.7 ? '#ff5c5c' : r > 0.4 ? '#ffb13d' : '#3ddc8a';
+      segs += `<line x1="${pts[i].split(',')[0]}" y1="${pts[i].split(',')[1]}" x2="${pts[i+1].split(',')[0]}" y2="${pts[i+1].split(',')[1]}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
+    }
+    return `<svg viewBox="0 0 ${w} ${h}" style="background:#161d2e;">${segs}</svg>`;
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" style="background:#161d2e;"><polyline points="${pts.join(' ')}" fill="none" stroke="#3ddc8a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+};
+
+/* =========================================================================
+   AUTO START / STOP DRIVE
+   ========================================================================= */
+window.startDrive = function(){
+  if (isDriving) return;
+  isDriving = true;
+  document.getElementById('live-dot').classList.remove('idle');
+  document.getElementById('peek-status-text').textContent = 'Tracking your drive';
+  document.getElementById('perf-section').classList.remove('hidden');
+  driveStartTime = Date.now(); pathLine.setLatLngs([]); radarLayer.clearLayers();
+  pullStartMs = null; ghostReleasedMs = null; radarsLoaded = false; maxGForce = 0;
+  lastMovingTime = Date.now();
+  document.getElementById('perf-gforce').textContent = '0.00';
+  currentDrive = { id:Date.now(), isGhost:false, date:new Date().toISOString(), duration:0, distance:0, maxSpeed:0, best0to60:null, best0to100:null, route:[], telemetry:[], speedLog:[], carId:activeCarId };
+  document.getElementById('peek-max').textContent = '0';
+  document.getElementById('peek-dist').textContent = '0.0';
+  document.getElementById('launch-btn').classList.remove('hidden');
+
+  let drives = loadJSON('drives', []);
+  activeGhostLap = drives.find(d=>d.isGhost && d.telemetry && d.telemetry.length>0);
+  if (!activeGhostLap) {
+    let el = drives.filter(d=>d.telemetry && d.telemetry.length>0);
+    if (el.length>0) { el.sort((a,b)=>(parseFloat(a.best0to100)||999)-(parseFloat(b.best0to100)||999)); activeGhostLap=el[0]; }
+  }
+  if (isDebugMode && !activeGhostLap) activeGhostLap = { telemetry: a3HighwayRoutePoints.map((pt,i)=>({lat:pt[0],lng:pt[1],t:i*2000})) };
+  if (activeGhostLap && activeGhostLap.telemetry.length>0) { ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); ghostStaged=false; }
+
+  driveTimerInterval = setInterval(() => {
+    currentDrive.duration = Math.floor((Date.now()-driveStartTime)/1000);
+    const fTime = window.formatTime(currentDrive.duration);
+    document.getElementById('peek-time').textContent = fTime;
+    if (ghostStaged && ghostReleasedMs && activeGhostLap && activeGhostLap.telemetry) {
+      const ms=Date.now()-ghostReleasedMs, tel=activeGhostLap.telemetry;
+      for (let i=0;i<tel.length-1;i++) {
+        if (ms>=tel[i].t && ms<tel[i+1].t) {
+          const p=(ms-tel[i].t)/(tel[i+1].t-tel[i].t);
+          ghostMarker.setLatLng([tel[i].lat+(tel[i+1].lat-tel[i].lat)*p, tel[i].lng+(tel[i+1].lng-tel[i].lng)*p]);
+          if (!ghostMarker._map) ghostMarker.addTo(map);
+          break;
+        }
+      }
+    }
+  }, 100);
+
+  stopWatchInterval = setInterval(()=>{
+    if (isDriving && Date.now()-lastMovingTime > STOP_TIMEOUT_MS) window.stopDrive();
+  }, 4000);
+
+  if (isDebugMode) window.runHighwaySimulation();
+  window.showToast('🚗 Drive started — tracking automatically');
+};
+
+window.stopDrive = function(){
+  if (!isDriving) return;
+  isDriving = false;
+  document.getElementById('live-dot').classList.add('idle');
+  document.getElementById('peek-status-text').textContent = 'Idle — drive to start tracking';
+  document.getElementById('perf-section').classList.add('hidden');
+  document.getElementById('launch-btn').classList.add('hidden');
+  clearInterval(driveTimerInterval); clearInterval(stopWatchInterval);
+  if (debugInterval) clearInterval(debugInterval);
+  ghostMarker.removeFrom(map); ghostStartZone.removeFrom(map);
+  if (currentDrive.distance>0 || currentDrive.maxSpeed>0) {
+    window.saveDrive(currentDrive);
+    window.showTripSummary(currentDrive);
+  }
+};
+window.endDriveNow = function(){ window.stopDrive(); };
+
+window.saveDrive = function(d){
+  const car = cars.find(c=>c.id===d.carId);
+  if (car && d.maxSpeed > (car.topSpeed||0)) { car.topSpeed = d.maxSpeed; saveCars(); }
+  let drives = loadJSON('drives', []); drives.unshift(d);
+  saveJSON('drives', [...drives.filter(x=>x.isGhost), ...drives.filter(x=>!x.isGhost).slice(0,40)]);
+  window.updateAllTimeStats();
+  window.renderGarage();
+};
+
+/* =========================================================================
+   TRIP SUMMARY
+   ========================================================================= */
+window.showTripSummary = function(d){
+  const speeds = window.getReplaySpeeds(d);
+  document.getElementById('sum-max').textContent = d.maxSpeed;
+  document.getElementById('sum-dist').textContent = (d.distance/1000).toFixed(2);
+  document.getElementById('sum-time').textContent = window.formatTime(d.duration);
+  document.getElementById('sum-060').textContent = d.best0to60 ? d.best0to60+'s' : '--';
+  document.getElementById('sum-0100').textContent = d.best0to100 ? d.best0to100+'s' : '--';
+  const avgSpd = speeds.length>0 ? Math.round(speeds.reduce((a,b)=>a+b,0)/speeds.length) : 0;
+  document.getElementById('sum-avg').textContent = avgSpd;
+  window.renderSummaryMap(document.getElementById('summary-map-canvas'), d.route, speeds);
+  window.renderSpeedChart(document.getElementById('sum-speed-canvas'), speeds, d.duration);
+  document.getElementById('summary-overlay').classList.add('show');
+  window._summaryDrive = d; window._summarySpeeds = speeds;
+};
+window.closeSummary = function(){ document.getElementById('summary-overlay').classList.remove('show'); };
+
+window.renderSummaryMap = function(canvas, route, speeds){
+  if (!route || route.length<2) return;
+  const W = canvas.offsetWidth || 360, H = 200;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0c1220'; ctx.fillRect(0,0,W,H);
+  const lats=route.map(p=>p[0]),lngs=route.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const latR=maxLat-minLat||0.001,lngR=maxLng-minLng||0.001, pad=20;
+  const toX=lng=>pad+((lng-minLng)/lngR)*(W-pad*2);
+  const toY=lat=>pad+(1-(lat-minLat)/latR)*(H-pad*2);
+  const maxS=Math.max(...speeds,1);
+  ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.lineJoin='round';
+  for (let i=1;i<route.length;i++) {
+    const r=(speeds[i]||0)/maxS;
+    let col = r>0.7?'#ff5c5c':r>0.4?'#ffb13d':'#3ddc8a';
+    ctx.strokeStyle=col;
+    ctx.beginPath(); ctx.moveTo(toX(route[i-1][1]),toY(route[i-1][0])); ctx.lineTo(toX(route[i][1]),toY(route[i][0])); ctx.stroke();
+  }
+  ctx.fillStyle='#3ddc8a'; ctx.beginPath(); ctx.arc(toX(route[0][1]),toY(route[0][0]),5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ff5c5c'; ctx.beginPath(); ctx.arc(toX(route[route.length-1][1]),toY(route[route.length-1][0]),5,0,Math.PI*2); ctx.fill();
+};
+
+window.renderSpeedChart = function(canvas, speeds, duration){
+  if (!speeds || speeds.length<2) return;
+  const W = canvas.offsetWidth || 360, H = 80;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle='#0c1220'; ctx.fillRect(0,0,W,H);
+  const maxS=Math.max(...speeds,1), pad=8;
+  const toX=i=>pad+(i/(speeds.length-1))*(W-pad*2);
+  const toY=s=>H-pad-(s/maxS)*(H-pad*2);
+  ctx.beginPath(); ctx.moveTo(toX(0),H);
+  speeds.forEach((s,i)=>ctx.lineTo(toX(i),toY(s)));
+  ctx.lineTo(toX(speeds.length-1),H); ctx.closePath();
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(77,141,255,0.4)'); grad.addColorStop(1,'rgba(77,141,255,0.02)');
+  ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath(); ctx.strokeStyle='#4d8dff'; ctx.lineWidth=2.2; ctx.lineJoin='round';
+  speeds.forEach((s,i)=>{ if(i===0) ctx.moveTo(toX(0),toY(s)); else ctx.lineTo(toX(i),toY(s)); });
+  ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='bold 10px sans-serif';
+  ctx.fillText(maxS+' km/h', pad+2, pad+10);
+};
+
+window.exportDriveImage = function(){
+  const d = window._summaryDrive, speeds = window._summarySpeeds || [];
+  if (!d) return;
+  const W=800, H=500;
+  const off = document.createElement('canvas'); off.width=W; off.height=H;
+  const ctx=off.getContext('2d');
+  ctx.fillStyle='#070b14'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0c1220'; window.roundRect(ctx,20,20,W-40,H-40,20); ctx.fill();
+  ctx.fillStyle='#3ddc8a'; ctx.font='bold 15px sans-serif'; ctx.fillText('SPEEDY', 44,56);
+  ctx.fillStyle='#56607a'; ctx.font='12px sans-serif'; ctx.fillText(new Date(d.id||Date.now()).toLocaleString(), 44,74);
+  const mapOff = document.createElement('canvas'); mapOff.width=380; mapOff.height=300;
+  window.renderSummaryMap(mapOff, d.route, speeds);
+  ctx.drawImage(mapOff, 44, 90, 380, 270);
+  ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=1; window.roundRect(ctx,44,90,380,270,12); ctx.stroke();
+  const stats=[['MAX SPEED', d.maxSpeed+' km/h'],['DISTANCE', (d.distance/1000).toFixed(2)+' km'],['DURATION', window.formatTime(d.duration)],['0-60', d.best0to60?d.best0to60+'s':'--'],['0-100', d.best0to100?d.best0to100+'s':'--'],['AVG SPEED', (speeds.length>0?Math.round(speeds.reduce((a,b)=>a+b,0)/speeds.length):0)+' km/h']];
+  stats.forEach(([lbl,val],i)=>{
+    const x=460, y=110+i*52;
+    ctx.fillStyle='#101729'; window.roundRect(ctx,x,y,280,38,8); ctx.fill();
+    ctx.fillStyle='#56607a'; ctx.font='bold 9px sans-serif'; ctx.fillText(lbl,x+12,y+14);
+    ctx.fillStyle='#3ddc8a'; ctx.font='bold 18px sans-serif'; ctx.fillText(val,x+12,y+32);
+  });
+  const chartOff=document.createElement('canvas'); chartOff.width=380; chartOff.height=60;
+  window.renderSpeedChart(chartOff,speeds,d.duration);
+  ctx.drawImage(chartOff,44,376,380,60);
+  ctx.fillStyle='rgba(61,220,138,0.18)'; ctx.font='bold 11px sans-serif'; ctx.fillText('🚗 Speedy', W-130, H-28);
+  const a=document.createElement('a'); a.download=`drive_${d.id||Date.now()}.png`; a.href=off.toDataURL('image/png'); a.click();
+  window.showToast('📸 Image saved');
+};
+
+window.roundRect = function(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+};
+
+/* =========================================================================
+   HISTORY RENDERING (with reverse-geocode caching + vs-average comparison)
+   ========================================================================= */
+let geocodeService2 = null;
+async function reverseLabel(lat, lng){
+  if (!geocodeService2) geocodeService2 = L.Control.Geocoder.nominatim();
+  return new Promise(resolve=>{
     try {
-        const r = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
-        const data = await r.json();
-        data.elements.forEach(c => L.circleMarker([c.lat,c.lon],{radius:7,color:'#ff4444',fillColor:'#ff0000',fillOpacity:0.8}).addTo(radarLayer).bindPopup('⚠️ Camera'));
-    } catch(e) {
-        if (isDebugMode) L.circleMarker([44.4800,26.1500],{radius:7,color:'#ff4444',fillColor:'#ff0000',fillOpacity:0.8}).addTo(radarLayer).bindPopup('Mock Camera');
-    }
-};
-
-window.calculateBearing = function(la1,lo1,la2,lo2) {
-    const r=Math.PI/180, dl=(lo2-lo1)*r;
-    const y=Math.sin(dl)*Math.cos(la2*r);
-    const x=Math.cos(la1*r)*Math.sin(la2*r)-Math.sin(la1*r)*Math.cos(la2*r)*Math.cos(dl);
-    return (Math.atan2(y,x)*180/Math.PI+360)%360;
-};
-
-window.calculateDistance = function(la1,lo1,la2,lo2) {
-    const R=6371e3,p1=la1*Math.PI/180,p2=la2*Math.PI/180,dp=(la2-la1)*Math.PI/180,dl=(lo2-lo1)*Math.PI/180;
-    const a=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
-    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-};
-
-window.formatTime = function(s) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; };
-
-window.generateSVGPreview = function(route, speeds) {
-    if (!route || route.length < 2) return '';
-    const lats=route.map(p=>p[0]),lngs=route.map(p=>p[1]);
-    const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-    const latR=maxLat-minLat||0.001,lngR=maxLng-minLng||0.001;
-    const w=110,h=65,pad=6;
-    const pts=route.map(p=>`${pad+((p[1]-minLng)/lngR)*(w-pad*2)},${pad+(1-(p[0]-minLat)/latR)*(h-pad*2)}`);
-    // If we have speeds, colour segments
-    if (speeds && speeds.length === route.length) {
-        const maxS = Math.max(...speeds,1);
-        let segs = '';
-        for (let i=0; i<pts.length-1; i++) {
-            const r = speeds[i]/maxS;
-            let col = r > 0.7 ? '#ff4444' : r > 0.4 ? '#ffaa00' : '#00ff88';
-            segs += `<line x1="${pts[i].split(',')[0]}" y1="${pts[i].split(',')[1]}" x2="${pts[i+1].split(',')[0]}" y2="${pts[i+1].split(',')[1]}" stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>`;
-        }
-        return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#161616;border-radius:10px;border:1px solid rgba(255,255,255,0.04);">${segs}</svg>`;
-    }
-    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background:#161616;border-radius:10px;border:1px solid rgba(255,255,255,0.04);"><polyline points="${pts.join(' ')}" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-};
-
-// =============================================
-// TOGGLE DRIVE
-// =============================================
-window.toggleDrive = function(isAutoStart=false) {
-    if (!isDriving) {
-        isDriving = true;
-        document.getElementById('p-toggle-btn').innerText = 'STOP';
-        document.getElementById('p-toggle-btn').classList.add('stop');
-        document.getElementById('l-toggle-btn').innerText = 'STOP';
-        document.getElementById('l-toggle-btn').classList.add('stop');
-        driveStartTime = Date.now(); pathLine.setLatLngs([]); radarLayer.clearLayers();
-        pullStartMs = null; ghostReleasedMs = null; radarsLoaded = false; maxGForce = 0;
-        document.getElementById('p-gforce').innerText = '0.00 G';
-        document.getElementById('l-gforce').innerText = '0.00';
-        currentDrive = { id:Date.now(), isGhost:false, date:new Date().toLocaleString('ro-RO'), duration:0, distance:0, maxSpeed:0, best0to60:null, best0to100:null, route:[], telemetry:[], speedLog:[] };
-        document.getElementById('p-max').innerText = '0'; document.getElementById('p-dist').innerText = '0.0';
-        document.getElementById('l-max').innerText = '0'; document.getElementById('l-dist').innerText = '0.00';
-        document.getElementById('p-launch-btn').style.display = 'block';
-        document.getElementById('l-launch-btn').style.display = 'block';
-        let drives = JSON.parse(localStorage.getItem('drives')||'[]');
-        activeGhostLap = drives.find(d=>d.isGhost&&d.telemetry&&d.telemetry.length>0);
-        if (!activeGhostLap) {
-            let el = drives.filter(d=>d.telemetry&&d.telemetry.length>0);
-            if (el.length>0) { el.sort((a,b)=>(parseFloat(a.best0to100)||999)-(parseFloat(b.best0to100)||999)); activeGhostLap=el[0]; }
-        }
-        if (isDebugMode&&!activeGhostLap) activeGhostLap={telemetry:a3HighwayRoutePoints.map((pt,i)=>({lat:pt[0],lng:pt[1],t:i*2000}))};
-        if (activeGhostLap&&activeGhostLap.telemetry.length>0) { ghostStartZone.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); ghostStaged=false; }
-        driveTimerInterval = setInterval(() => {
-            currentDrive.duration = Math.floor((Date.now()-driveStartTime)/1000);
-            const fTime = window.formatTime(currentDrive.duration);
-            document.getElementById('p-time').innerText = fTime;
-            document.getElementById('l-time').innerText = fTime;
-            if (ghostStaged&&ghostReleasedMs&&activeGhostLap&&activeGhostLap.telemetry) {
-                const ms=Date.now()-ghostReleasedMs, tel=activeGhostLap.telemetry;
-                for (let i=0;i<tel.length-1;i++) {
-                    if (ms>=tel[i].t&&ms<tel[i+1].t) {
-                        const p=(ms-tel[i].t)/(tel[i+1].t-tel[i].t);
-                        ghostMarker.setLatLng([tel[i].lat+(tel[i+1].lat-tel[i].lat)*p,tel[i].lng+(tel[i+1].lng-tel[i].lng)*p]);
-                        if (!ghostMarker._map) ghostMarker.addTo(map);
-                        break;
-                    }
-                }
-            }
-        }, 100);
-        if (isDebugMode&&!isAutoStart) window.runHighwaySimulation();
-    } else {
-        isDriving = false;
-        document.getElementById('p-toggle-btn').innerText = 'START DRIVE'; document.getElementById('p-toggle-btn').classList.remove('stop');
-        document.getElementById('l-toggle-btn').innerText = 'START'; document.getElementById('l-toggle-btn').classList.remove('stop');
-        document.getElementById('p-launch-btn').style.display = 'none';
-        document.getElementById('l-launch-btn').style.display = 'none';
-        clearInterval(driveTimerInterval); if (debugInterval) clearInterval(debugInterval);
-        ghostMarker.removeFrom(map); ghostStartZone.removeFrom(map);
-        if (currentDrive.distance>0||currentDrive.maxSpeed>0) {
-            window.saveDrive(currentDrive);
-            window.showTripSummary(currentDrive);
-        }
-    }
-};
-
-window.saveDrive = function(d) {
-    let drives = JSON.parse(localStorage.getItem('drives')||'[]'); drives.unshift(d);
-    localStorage.setItem('drives', JSON.stringify([...drives.filter(x=>x.isGhost),...drives.filter(x=>!x.isGhost).slice(0,10)]));
-};
-
-// =============================================
-// TRIP SUMMARY
-// =============================================
-window.showTripSummary = function(d) {
-    const speeds = window.getReplaySpeeds(d);
-    document.getElementById('sum-max').textContent = d.maxSpeed;
-    document.getElementById('sum-dist').textContent = (d.distance/1000).toFixed(2);
-    document.getElementById('sum-time').textContent = window.formatTime(d.duration);
-    document.getElementById('sum-060').textContent = d.best0to60 ? d.best0to60+'s' : '--';
-    document.getElementById('sum-0100').textContent = d.best0to100 ? d.best0to100+'s' : '--';
-    const avgSpd = speeds.length>0 ? Math.round(speeds.reduce((a,b)=>a+b,0)/speeds.length) : 0;
-    document.getElementById('sum-avg').textContent = avgSpd;
-    // Render route map
-    const mapCanvas = document.getElementById('summary-map-canvas');
-    window.renderSummaryMap(mapCanvas, d.route, speeds);
-    // Render speed chart
-    window.renderSpeedChart(document.getElementById('sum-speed-canvas'), speeds, d.duration);
-    document.getElementById('summary-overlay').style.display = 'block';
-    window._summaryDrive = d;
-    window._summarySpeeds = speeds;
-};
-
-window.closeSummary = function() {
-    document.getElementById('summary-overlay').style.display = 'none';
-};
-
-window.renderSummaryMap = function(canvas, route, speeds) {
-    if (!route||route.length<2) return;
-    const W = canvas.offsetWidth || 360;
-    const H = 200;
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H);
-    const lats=route.map(p=>p[0]),lngs=route.map(p=>p[1]);
-    const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-    const latR=maxLat-minLat||0.001,lngR=maxLng-minLng||0.001;
-    const pad=20;
-    const toX=lng=>pad+((lng-minLng)/lngR)*(W-pad*2);
-    const toY=lat=>pad+(1-(lat-minLat)/latR)*(H-pad*2);
-    const maxS=Math.max(...speeds,1);
-    ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round';
-    for (let i=1;i<route.length;i++) {
-        const r=(speeds[i]||0)/maxS;
-        let col;
-        if (r>0.7) col='#ff4444'; else if (r>0.4) col='#ffaa00'; else col='#00ff88';
-        ctx.strokeStyle=col;
-        ctx.beginPath();
-        ctx.moveTo(toX(route[i-1][1]),toY(route[i-1][0]));
-        ctx.lineTo(toX(route[i][1]),toY(route[i][0]));
-        ctx.stroke();
-    }
-    // Start/end dots
-    ctx.fillStyle='#00ff88'; ctx.beginPath(); ctx.arc(toX(route[0][1]),toY(route[0][0]),5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ff4444'; ctx.beginPath(); ctx.arc(toX(route[route.length-1][1]),toY(route[route.length-1][0]),5,0,Math.PI*2); ctx.fill();
-};
-
-window.renderSpeedChart = function(canvas, speeds, duration) {
-    if (!speeds||speeds.length<2) return;
-    const W = canvas.offsetWidth || 360;
-    const H = 80;
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle='#0a0a0a'; ctx.fillRect(0,0,W,H);
-    const maxS=Math.max(...speeds,1);
-    const pad=8;
-    const toX=i=>pad+(i/(speeds.length-1))*(W-pad*2);
-    const toY=s=>H-pad-(s/maxS)*(H-pad*2);
-    // Fill area
-    ctx.beginPath();
-    ctx.moveTo(toX(0),H);
-    speeds.forEach((s,i)=>ctx.lineTo(toX(i),toY(s)));
-    ctx.lineTo(toX(speeds.length-1),H);
-    ctx.closePath();
-    const grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,'rgba(0,120,255,0.4)');
-    grad.addColorStop(1,'rgba(0,120,255,0.02)');
-    ctx.fillStyle=grad; ctx.fill();
-    // Line
-    ctx.beginPath(); ctx.strokeStyle='#0078ff'; ctx.lineWidth=2; ctx.lineJoin='round';
-    speeds.forEach((s,i)=>{ if(i===0) ctx.moveTo(toX(0),toY(s)); else ctx.lineTo(toX(i),toY(s)); });
-    ctx.stroke();
-    // Max label
-    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='bold 10px sans-serif';
-    ctx.fillText(maxS+' km/h',pad+2,pad+10);
-};
-
-window.exportDriveImage = function() {
-    const d = window._summaryDrive;
-    const speeds = window._summarySpeeds || [];
-    if (!d) return;
-    const W=800, H=500;
-    const off = document.createElement('canvas');
-    off.width=W; off.height=H;
-    const ctx=off.getContext('2d');
-    // Background
-    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#0a0a0a'; window.roundRect(ctx,20,20,W-40,H-40,20); ctx.fill();
-    // Header
-    ctx.fillStyle='#00ff88'; ctx.font='bold 14px sans-serif';
-    ctx.fillText('DRIVE TRACKER PRO', 44,56);
-    ctx.fillStyle='#444'; ctx.font='12px sans-serif';
-    ctx.fillText(d.date, 44,74);
-    // Route map (left)
-    const mapOff = document.createElement('canvas'); mapOff.width=380; mapOff.height=300;
-    window.renderSummaryMap(mapOff, d.route, speeds);
-    ctx.drawImage(mapOff, 44, 90, 380, 270);
-    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
-    window.roundRect(ctx,44,90,380,270,12); ctx.stroke();
-    // Stats (right)
-    const stats=[
-        ['MAX SPEED', d.maxSpeed+' km/h'],
-        ['DISTANCE', (d.distance/1000).toFixed(2)+' km'],
-        ['DURATION', window.formatTime(d.duration)],
-        ['0-60', d.best0to60?d.best0to60+'s':'--'],
-        ['0-100', d.best0to100?d.best0to100+'s':'--'],
-        ['AVG SPEED', (speeds.length>0?Math.round(speeds.reduce((a,b)=>a+b,0)/speeds.length):0)+' km/h'],
-    ];
-    stats.forEach(([lbl,val],i)=>{
-        const x=460, y=110+i*52;
-        ctx.fillStyle='#111'; window.roundRect(ctx,x,y,280,38,8); ctx.fill();
-        ctx.fillStyle='#555'; ctx.font='bold 9px sans-serif'; ctx.fillText(lbl,x+12,y+14);
-        ctx.fillStyle='#00ff88'; ctx.font='bold 18px sans-serif'; ctx.fillText(val,x+12,y+32);
-    });
-    // Speed chart at bottom
-    const chartOff=document.createElement('canvas'); chartOff.width=380; chartOff.height=60;
-    window.renderSpeedChart(chartOff,speeds,d.duration);
-    ctx.drawImage(chartOff,44,376,380,60);
-    // Watermark
-    ctx.fillStyle='rgba(0,255,136,0.15)'; ctx.font='bold 11px sans-serif';
-    ctx.fillText('🚗 Speedy Drive Tracker', W-200, H-28);
-    // Download
-    const a=document.createElement('a');
-    a.download=`drive_${d.id||Date.now()}.png`;
-    a.href=off.toDataURL('image/png');
-    a.click();
-    window.showToast('📸 Image saved!');
-};
-
-window.roundRect = function(ctx,x,y,w,h,r) {
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
-    ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
-    ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
-    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
-    ctx.closePath();
-};
-
-// =============================================
-// HISTORY RENDERING
-// =============================================
-window.renderHistory = function() {
-    const container=document.getElementById('history-container');
-    let drives=JSON.parse(localStorage.getItem('drives')||'[]');
-    if (drives.length===0) { container.innerHTML='<div class="empty-state">No drives saved yet.</div>'; return; }
-    container.innerHTML=drives.map((d,i)=>{
-        const speeds=window.getReplaySpeeds(d);
-        return `<div class="drive-card ${d.isGhost?'is-ghost':''}">
-            <div class="drive-header"><span>${d.date}</span><span>${window.formatTime(d.duration)}</span></div>
-            <div class="drive-card-content">
-                <div class="drive-stats-block">
-                    <div class="data-point">Max<br><span>${d.maxSpeed} km/h</span></div>
-                    <div class="data-point">Dist<br><span>${(d.distance/1000).toFixed(2)} km</span></div>
-                    <div class="data-point">0-60<br><span>${d.best0to60?d.best0to60+'s':'--'}</span></div>
-                    <div class="data-point">0-100<br><span>${d.best0to100?d.best0to100+'s':'--'}</span></div>
-                </div>
-                <div style="cursor:pointer;" onclick="window.startReplay(${i})">${window.generateSVGPreview(d.route,speeds)}</div>
-            </div>
-            <div class="card-actions">
-                <button class="card-btn btn-replay" onclick="window.startReplay(${i})">▶ Replay</button>
-                <button class="card-btn btn-export" onclick="window.showTripSummary(JSON.parse(localStorage.getItem('drives')||'[]')[${i}])">📊 Summary</button>
-                <button class="card-btn btn-ghost-toggle ${d.isGhost?'active':''}" onclick="event.stopPropagation();let a=JSON.parse(localStorage.getItem('drives')||'[]');let t=a.find(x=>x.id===${d.id});if(t){t.isGhost=!t.isGhost;localStorage.setItem('drives',JSON.stringify(a));window.renderHistory();}">${d.isGhost?'🌟 GHOST':'Ghost'}</button>
-            </div>
-        </div>`;
-    }).join('');
-};
-
-// =============================================
-// TELEMETRY PROCESSOR
-// =============================================
-window.processTelemetry = function(lat, lng, speedKmh, providedHeading) {
-    lastCurrentSpeed = speedKmh;
-    if (!isDriving&&speedKmh>=5&&settings.autoStart) { window.toggleDrive(true); window.showToast('🚗 Auto-Start Engaged!'); }
-    document.getElementById('p-speed').innerText = speedKmh;
-    document.getElementById('l-speed').innerText = speedKmh;
-    const calcRPM=speedKmh===0?780:Math.min(6800,Math.floor(speedKmh*38+1100));
-    document.getElementById('p-rpm').innerText=`RPM: ${calcRPM}`;
-    document.getElementById('l-rpm').innerText=calcRPM;
-    document.getElementById('l-gear').innerText=calculateGear(speedKmh);
-    document.getElementById('l-svg-speed').style.strokeDashoffset=290-(Math.min(speedKmh,260)/260*290);
-    document.getElementById('l-svg-rpm').style.strokeDashoffset=290-(Math.min(calcRPM,7000)/7000*290);
-    if (lastPos&&speedKmh>3) {
-        currentMapHeading=providedHeading!==null&&!isNaN(providedHeading)?providedHeading:window.calculateBearing(lastPos.lat,lastPos.lng,lat,lng);
-        document.getElementById('map').style.transform=`rotate(${-currentMapHeading}deg)`;
-        document.querySelectorAll('.leaflet-popup').forEach(p=>p.style.transform=`rotate(${currentMapHeading}deg) translateY(-15px)`);
-    }
-    lastPos={lat,lng}; marker.setLatLng([lat,lng]);
-    if (!isUserPanning) map.panTo([lat,lng]);
-    // Speed limit update — fetch every ~100m of movement or when first starting
-    window.updateSpeedLimitBadge(speedKmh);
-    if (isDriving || speedKmh > 3) {
-        if (!lastSpeedLimitPos || window.calculateDistance(lat,lng,lastSpeedLimitPos.lat,lastSpeedLimitPos.lng)>100) {
-            lastSpeedLimitPos={lat,lng};
-            clearTimeout(speedLimitFetchTimer);
-            speedLimitFetchTimer=setTimeout(()=>window.fetchSpeedLimit(lat,lng), 500);
-        }
-    }
-    if (isDriving) {
-        if (!radarsLoaded) { radarsLoaded=true; window.scanForRadars(lat,lng); }
-        currentDrive.route.push([lat,lng]);
-        currentDrive.speedLog.push(speedKmh);
-        if (previousSpeed===0&&speedKmh>0) {
-            pullStartMs=Date.now(); hit60=false; hit100=false;
-            if (ghostStaged&&activeGhostLap) { ghostReleasedMs=Date.now(); ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); ghostStartZone.removeFrom(map); window.showToast('🏁 GHOST RELEASED!'); }
-        } else if (speedKmh===0) { pullStartMs=null; }
-        if (pullStartMs) {
-            currentDrive.telemetry.push({lat,lng,t:Date.now()-pullStartMs});
-            const pTime=((Date.now()-pullStartMs)/1000).toFixed(1);
-            if (speedKmh>=60&&!hit60) { hit60=true; if (!currentDrive.best0to60||parseFloat(pTime)<parseFloat(currentDrive.best0to60)) { currentDrive.best0to60=pTime; window.showToast(`New Best 0-60: ${pTime}s`); } }
-            if (speedKmh>=100&&!hit100) { hit100=true; if (!currentDrive.best0to100||parseFloat(pTime)<parseFloat(currentDrive.best0to100)) { currentDrive.best0to100=pTime; window.showToast(`New Best 0-100: ${pTime}s`); } }
-        }
-        if (!ghostStaged&&!ghostReleasedMs&&activeGhostLap&&speedKmh===0) {
-            if (window.calculateDistance(lat,lng,activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng)<40) { ghostStaged=true; window.showToast('👻 Ghost Staged!'); ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); }
-        }
-        pathLine.addLatLng([lat,lng]);
-        if (currentDrive.route.length>1) {
-            const prev=currentDrive.route[currentDrive.route.length-2];
-            currentDrive.distance+=window.calculateDistance(prev[0],prev[1],lat,lng);
-            const dStr=(currentDrive.distance/1000).toFixed(2);
-            document.getElementById('p-dist').innerText=dStr;
-            document.getElementById('l-dist').innerText=dStr;
-        }
-        if (speedKmh>currentDrive.maxSpeed) {
-            currentDrive.maxSpeed=speedKmh;
-            document.getElementById('p-max').innerText=speedKmh;
-            document.getElementById('l-max').innerText=speedKmh;
-        }
-        if (speedKmh>5&&document.getElementById('p-launch-btn').style.display==='block') {
-            document.getElementById('p-launch-btn').style.display='none';
-            document.getElementById('l-launch-btn').style.display='none';
-        }
-    }
-    previousSpeed=speedKmh;
-};
-
-if ('geolocation' in navigator) {
-    navigator.geolocation.watchPosition(p=>{
-        if (isDebugMode) return;
-        window.processTelemetry(p.coords.latitude,p.coords.longitude,Math.round((p.coords.speed||0)*3.6),p.coords.heading);
-    }, e=>console.error(e.message), {enableHighAccuracy:true,maximumAge:0,timeout:5000});
+      geocodeService2.reverse({lat,lng}, map.options.crs ? map.options.crs.scale(map.getZoom()) : 100000, results=>{
+        if (results && results[0] && results[0].name) {
+          const short = results[0].name.split(',')[0];
+          resolve(short);
+        } else resolve(null);
+      });
+    } catch(e) { resolve(null); }
+  });
 }
 
-window.handleSpeedometerTap = function() {
-    speedTapCount++; clearTimeout(speedTapTimeout); speedTapTimeout=setTimeout(()=>speedTapCount=0,1500);
-    if (speedTapCount>=5) { speedTapCount=0; isDebugMode=!isDebugMode; document.getElementById('debug-banner').style.display=isDebugMode?'block':'none'; if (!isDebugMode&&debugInterval){clearInterval(debugInterval);if(isDriving)window.toggleDrive();} }
+async function ensureDriveLabel(d, allDrives){
+  if (d.startName && d.endName) return;
+  if (!d.route || d.route.length<2) return;
+  const [sLat,sLng] = d.route[0];
+  const [eLat,eLng] = d.route[d.route.length-1];
+  const [s,e] = await Promise.all([reverseLabel(sLat,sLng), reverseLabel(eLat,eLng)]);
+  d.startName = s || 'Start'; d.endName = e || 'Destination';
+  const idx = allDrives.findIndex(x=>x.id===d.id);
+  if (idx>-1) { allDrives[idx] = d; saveJSON('drives', allDrives); }
+}
+
+function computeVsAverage(d, allDrives){
+  if (!d.distance) return null;
+  const comparable = allDrives.filter(x=> x.id !== d.id && x.distance>0 && Math.abs(x.distance - d.distance) < d.distance*0.2 );
+  if (comparable.length < 1) return null;
+  const avgDur = comparable.reduce((s,x)=>s+x.duration,0)/comparable.length;
+  const diff = avgDur - d.duration;
+  if (Math.abs(diff) < 5) return null;
+  return { faster: diff > 0, seconds: Math.abs(Math.round(diff)) };
+}
+
+window.renderHistory = function(){
+  const container = document.getElementById('history-list');
+  let drives = loadJSON('drives', []);
+  if (drives.length===0) {
+    container.innerHTML = `<div class="empty-state">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 19 9 5h2l-1 14"/><path d="M20 19 15 5h-2l1 14"/></svg>
+      No drives yet.<br>Start driving and Speedy will log it automatically.</div>`;
+    return;
+  }
+  container.innerHTML = drives.map((d,i)=>{
+    const speeds = window.getReplaySpeeds(d);
+    const cmp = computeVsAverage(d, drives);
+    const badge = cmp ? `<div class="drive-badge ${cmp.faster?'faster':'slower'}">${cmp.faster?'↓':'↑'} ${window.formatTime(cmp.seconds)} ${cmp.faster?'faster':'slower'} than usual</div>` : '';
+    const routeName = (d.startName && d.endName) ? `${d.startName} → ${d.endName}` : 'Locating route…';
+    const ts = d.id || Date.parse(d.date) || Date.now();
+    return `<div class="drive-card" onclick="window.openHistorySummary(${i})">
+      <div class="drive-thumb">${window.generateSVGPreview(d.route, speeds)}</div>
+      <div class="drive-main">
+        <div class="drive-date">${formatRelativeDate(ts)}</div>
+        <div class="drive-route-name" id="drive-name-${d.id}">${routeName}</div>
+        <div class="drive-meta-row">${(d.distance/1000).toFixed(1)} km · ${window.formatTime(d.duration)} · ${d.maxSpeed} km/h max</div>
+        ${badge}
+      </div>
+      <div class="drive-actions">
+        <div class="drive-action-btn" onclick="event.stopPropagation();window.startReplay(${i})" title="Replay">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+        </div>
+        <div class="drive-action-btn ${d.isGhost?'ghost-on':''}" onclick="event.stopPropagation();window.toggleGhost(${d.id})" title="Ghost">👻</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // kick off reverse-geocode for any drive missing labels
+  drives.forEach(d=>{
+    if (!d.startName || !d.endName) {
+      ensureDriveLabel(d, drives).then(()=>{
+        const el = document.getElementById('drive-name-'+d.id);
+        if (el && d.startName && d.endName) el.textContent = `${d.startName} → ${d.endName}`;
+      });
+    }
+  });
+};
+
+window.toggleGhost = function(id){
+  let drives = loadJSON('drives', []);
+  const t = drives.find(x=>x.id===id);
+  if (t) { t.isGhost = !t.isGhost; saveJSON('drives', drives); window.renderHistory(); window.showToast(t.isGhost ? '👻 Set as ghost lap' : 'Ghost lap removed'); }
+};
+window.openHistorySummary = function(idx){
+  const drives = loadJSON('drives', []);
+  if (drives[idx]) window.showTripSummary(drives[idx]);
+};
+
+/* =========================================================================
+   TELEMETRY PROCESSOR
+   ========================================================================= */
+window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
+  lastCurrentSpeed = speedKmh;
+  if (speedKmh > 0) lastMovingTime = Date.now();
+  if (!isDriving && speedKmh >= appSettings.sensitivity) window.startDrive();
+
+  document.getElementById('peek-speed').textContent = speedKmh;
+  const calcRPM = speedKmh===0 ? 780 : Math.min(6800, Math.floor(speedKmh*38+1100));
+  document.getElementById('perf-rpm').textContent = calcRPM;
+  document.getElementById('perf-gear').textContent = calculateGear(speedKmh);
+
+  if (lastPos && speedKmh > 3) {
+    const heading = providedHeading!==null && !isNaN(providedHeading) ? providedHeading : window.calculateBearing(lastPos.lat,lastPos.lng,lat,lng);
+    document.getElementById('map').style.transform = `rotate(${-heading}deg)`;
+    const arrow = document.getElementById('self-arrow');
+    if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+  }
+  lastPos = {lat,lng};
+  marker.setLatLng([lat,lng]);
+  if (!isUserPanning) map.panTo([lat,lng]);
+
+  window.updateSpeedLimitBadge(speedKmh);
+  if (isDriving || speedKmh > 3) {
+    if (!lastSpeedLimitPos || window.calculateDistance(lat,lng,lastSpeedLimitPos.lat,lastSpeedLimitPos.lng) > 100) {
+      lastSpeedLimitPos = {lat,lng};
+      clearTimeout(speedLimitFetchTimer);
+      speedLimitFetchTimer = setTimeout(()=>window.fetchSpeedLimit(lat,lng), 500);
+    }
+  }
+
+  if (isNavigationActive && routeCoords.length) window.updateTurnCard(lat, lng, speedKmh);
+
+  if (isDriving) {
+    if (!radarsLoaded) { radarsLoaded = true; window.scanForRadars(lat,lng); }
+    currentDrive.route.push([lat,lng]);
+    currentDrive.speedLog.push(speedKmh);
+    if (previousSpeed===0 && speedKmh>0) {
+      pullStartMs = Date.now(); hit60=false; hit100=false;
+      if (ghostStaged && activeGhostLap) { ghostReleasedMs=Date.now(); ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); ghostStartZone.removeFrom(map); window.showToast('🏁 Ghost released!'); }
+    } else if (speedKmh===0) { pullStartMs = null; }
+
+    if (pullStartMs) {
+      currentDrive.telemetry.push({lat,lng,t:Date.now()-pullStartMs});
+      const pTime = ((Date.now()-pullStartMs)/1000).toFixed(1);
+      if (speedKmh>=60 && !hit60) { hit60=true; if (!currentDrive.best0to60 || parseFloat(pTime)<parseFloat(currentDrive.best0to60)) { currentDrive.best0to60=pTime; window.showToast(`New best 0–60: ${pTime}s`); } }
+      if (speedKmh>=100 && !hit100) { hit100=true; if (!currentDrive.best0to100 || parseFloat(pTime)<parseFloat(currentDrive.best0to100)) { currentDrive.best0to100=pTime; window.showToast(`New best 0–100: ${pTime}s`); } }
+    }
+    if (!ghostStaged && !ghostReleasedMs && activeGhostLap && speedKmh===0) {
+      if (window.calculateDistance(lat,lng,activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng) < 40) { ghostStaged=true; window.showToast('👻 Ghost staged'); ghostMarker.setLatLng([activeGhostLap.telemetry[0].lat,activeGhostLap.telemetry[0].lng]).addTo(map); }
+    }
+    pathLine.addLatLng([lat,lng]);
+    if (currentDrive.route.length>1) {
+      const prev = currentDrive.route[currentDrive.route.length-2];
+      currentDrive.distance += window.calculateDistance(prev[0],prev[1],lat,lng);
+      document.getElementById('peek-dist').textContent = (currentDrive.distance/1000).toFixed(2);
+    }
+    if (speedKmh > currentDrive.maxSpeed) {
+      currentDrive.maxSpeed = speedKmh;
+      document.getElementById('peek-max').textContent = speedKmh;
+    }
+    if (speedKmh > 5) document.getElementById('launch-btn').classList.add('hidden');
+  }
+  previousSpeed = speedKmh;
+};
+
+window.initGeolocation = function(){
+  if (window._geoStarted) return; window._geoStarted = true;
+  if ('geolocation' in navigator) {
+    navigator.geolocation.watchPosition(p=>{
+      if (isDebugMode) return;
+      window.processTelemetry(p.coords.latitude, p.coords.longitude, Math.round((p.coords.speed||0)*3.6), p.coords.heading);
+    }, e=>console.warn(e.message), {enableHighAccuracy:true, maximumAge:0, timeout:8000});
+  }
+};
+if (onboarded) window.initGeolocation();
+
+window.handleSpeedTap = function(){
+  speedTapCount++; clearTimeout(speedTapTimeout); speedTapTimeout = setTimeout(()=>speedTapCount=0, 1500);
+  if (speedTapCount>=5) {
+    speedTapCount = 0; isDebugMode = !isDebugMode;
+    document.getElementById('debug-banner').style.display = isDebugMode ? 'block' : 'none';
+    if (isDebugMode) { if (!isDriving) window.startDrive(); }
+    else { if (debugInterval) clearInterval(debugInterval); if (isDriving) window.stopDrive(); }
+  }
 };
 
 const a3HighwayRoutePoints=[[44.47820,26.14810],[44.47845,26.14838],[44.47875,26.14865],[44.47910,26.14900],[44.47950,26.14940],[44.47990,26.14980],[44.48035,26.15025],[44.48085,26.15075],[44.48140,26.15125],[44.48200,26.15175],[44.48265,26.15230],[44.48335,26.15285]];
 
-window.runHighwaySimulation = function() {
-    let ticks=0,simSpeed=0,sIdx=0;
-    let exactLat=a3HighwayRoutePoints[0][0],exactLng=a3HighwayRoutePoints[0][1];
-    window.processTelemetry(exactLat,exactLng,0,0);
-    debugInterval=setInterval(()=>{
-        ticks++;
-        if(ticks<6){simSpeed+=24;maxGForce=Math.max(maxGForce,Math.random()*0.2+0.55);}
-        else if(ticks<18){simSpeed=Math.min(135,simSpeed+6);maxGForce=Math.max(maxGForce,Math.random()*0.1+0.15);}
-        else if(ticks<25){simSpeed=Math.max(0,simSpeed-15);}else{simSpeed=0;}
-        const gStr=maxGForce.toFixed(2);
-        document.getElementById('p-gforce').innerText=gStr+' G';
-        document.getElementById('l-gforce').innerText=gStr;
-        const mps=simSpeed/3.6;
-        if(simSpeed>0&&sIdx<a3HighwayRoutePoints.length-1){
-            const next=a3HighwayRoutePoints[sIdx+1],dist=window.calculateDistance(exactLat,exactLng,next[0],next[1]);
-            if(mps>=dist){sIdx++;exactLat=next[0];exactLng=next[1];}
-            else{const p=mps/dist;exactLat+=(next[0]-exactLat)*p;exactLng+=(next[1]-exactLng)*p;}
-        }
-        const simH=sIdx<a3HighwayRoutePoints.length-1?window.calculateBearing(exactLat,exactLng,a3HighwayRoutePoints[sIdx+1][0],a3HighwayRoutePoints[sIdx+1][1]):null;
-        window.processTelemetry(exactLat,exactLng,simSpeed,simH);
-        if(ticks>=28||sIdx>=a3HighwayRoutePoints.length-1){clearInterval(debugInterval);if(isDriving)window.toggleDrive();}
-    },1000);
-};
-
-// =============================================
-// REPLAY ENGINE
-// =============================================
-let replayDrive=null,replayDerivedSpeeds=null,replayFrame=null,replayIdxFloat=0;
-let replayPlaying=false,replaySpeed=1,replayLastTick=0;
-let replayMarker=null,replayPathLine=null;
-const replaySpeedSpeeds=[1,2,4,8];
-let replaySpeedIdx=0;
-
-window.deriveSpeedsFromRoute = function(route, dur) {
-    if (!route||route.length<2) return [];
-    const n=route.length, secPP=dur/Math.max(n-1,1);
-    const raw=[0];
-    for (let i=1;i<n;i++) {
-        const d=window.calculateDistance(route[i-1][0],route[i-1][1],route[i][0],route[i][1]);
-        raw.push(secPP>0?Math.round((d/secPP)*3.6):0);
+window.runHighwaySimulation = function(){
+  let ticks=0, simSpeed=0, sIdx=0;
+  let exactLat=a3HighwayRoutePoints[0][0], exactLng=a3HighwayRoutePoints[0][1];
+  window.processTelemetry(exactLat, exactLng, 0, 0);
+  debugInterval = setInterval(()=>{
+    ticks++;
+    if (ticks<6) { simSpeed+=24; maxGForce=Math.max(maxGForce, Math.random()*0.2+0.55); }
+    else if (ticks<18) { simSpeed=Math.min(135, simSpeed+6); maxGForce=Math.max(maxGForce, Math.random()*0.1+0.15); }
+    else if (ticks<25) { simSpeed=Math.max(0, simSpeed-15); } else { simSpeed=0; }
+    document.getElementById('perf-gforce').textContent = maxGForce.toFixed(2);
+    const mps = simSpeed/3.6;
+    if (simSpeed>0 && sIdx<a3HighwayRoutePoints.length-1) {
+      const next=a3HighwayRoutePoints[sIdx+1], dist=window.calculateDistance(exactLat,exactLng,next[0],next[1]);
+      if (mps>=dist) { sIdx++; exactLat=next[0]; exactLng=next[1]; }
+      else { const p=mps/dist; exactLat+=(next[0]-exactLat)*p; exactLng+=(next[1]-exactLng)*p; }
     }
-    return raw.map((_,i)=>{const w=raw.slice(Math.max(0,i-2),i+3);return Math.round(w.reduce((a,b)=>a+b,0)/w.length);});
+    const simH = sIdx<a3HighwayRoutePoints.length-1 ? window.calculateBearing(exactLat,exactLng,a3HighwayRoutePoints[sIdx+1][0],a3HighwayRoutePoints[sIdx+1][1]) : null;
+    window.processTelemetry(exactLat, exactLng, simSpeed, simH);
+    if (ticks>=28 || sIdx>=a3HighwayRoutePoints.length-1) { clearInterval(debugInterval); if (isDriving) window.stopDrive(); }
+  }, 1000);
 };
 
-window.getReplaySpeeds = function(d) {
-    if (d.speedLog&&d.speedLog.length===d.route.length) return d.speedLog;
-    return window.deriveSpeedsFromRoute(d.route,d.duration);
+/* =========================================================================
+   REPLAY ENGINE
+   ========================================================================= */
+let replayDrive=null, replayDerivedSpeeds=null, replayFrame=null, replayIdxFloat=0;
+let replayPlaying=false, replaySpeed=1, replayLastTick=0;
+let replayMarker=null, replayPathLine=null;
+const replaySpeedSpeeds=[1,2,4,8]; let replaySpeedIdx=0;
+
+window.deriveSpeedsFromRoute = function(route, dur){
+  if (!route || route.length<2) return [];
+  const n=route.length, secPP=dur/Math.max(n-1,1);
+  const raw=[0];
+  for (let i=1;i<n;i++) { const d=window.calculateDistance(route[i-1][0],route[i-1][1],route[i][0],route[i][1]); raw.push(secPP>0?Math.round((d/secPP)*3.6):0); }
+  return raw.map((_,i)=>{ const w=raw.slice(Math.max(0,i-2), i+3); return Math.round(w.reduce((a,b)=>a+b,0)/w.length); });
+};
+window.getReplaySpeeds = function(d){
+  if (d.speedLog && d.speedLog.length===d.route.length) return d.speedLog;
+  return window.deriveSpeedsFromRoute(d.route, d.duration);
 };
 
-window.startReplay = function(idx) {
-    const drives=JSON.parse(localStorage.getItem('drives')||'[]');
-    const d=drives[idx];
-    if (!d||!d.route||d.route.length<2) { window.showToast('Not enough GPS data for replay.'); return; }
-    window.closeReplay(true);
-    replayDrive=d; replayDerivedSpeeds=window.getReplaySpeeds(d);
-    replayIdxFloat=0; replayPlaying=false; replaySpeed=1; replaySpeedIdx=0;
-    window.switchTab('tracker');
-    if (replayPathLine) map.removeLayer(replayPathLine);
-    replayPathLine=L.polyline(d.route,{color:'rgba(0,120,255,0.2)',weight:5,opacity:1}).addTo(map);
-    map.fitBounds(replayPathLine.getBounds());
-    if (replayMarker) map.removeLayer(replayMarker);
-    replayMarker=L.circleMarker(d.route[0],{radius:10,color:'#0078ff',fillColor:'#0078ff',fillOpacity:1,zIndexOffset:2000}).addTo(map);
-    document.getElementById('replay-overlay').style.display='block';
-    document.getElementById('replay-date-label').textContent=d.date;
-    document.getElementById('replay-total-time').textContent=window.formatTime(d.duration);
-    document.getElementById('replay-play-btn').textContent='▶ PLAY';
-    document.getElementById('replay-play-btn').classList.remove('playing');
-    document.getElementById('replay-speed-btn').textContent='1× Speed';
-    document.getElementById('replay-speed-btn').classList.remove('active');
-    setTimeout(()=>window.drawReplayHeatmap(d,replayDerivedSpeeds),50);
-    window.updateReplayUI();
-    const wrap=document.getElementById('replay-scrubber-wrap');
-    wrap.ontouchstart=wrap.onmousedown=function(e) {
-        e.preventDefault();
-        const wasPlaying=replayPlaying; replayPlaying=false;
-        const getPos=ev=>{const r=wrap.getBoundingClientRect(),cx=ev.touches?ev.touches[0].clientX:ev.clientX;return Math.max(0,Math.min(1,(cx-r.left)/r.width));};
-        const move=ev=>{replayIdxFloat=getPos(ev)*(replayDrive.route.length-1);window.updateReplayUI();};
-        const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);if(wasPlaying){replayPlaying=true;replayLastTick=performance.now();replayFrame=requestAnimationFrame(window.replayTick);}};
-        move(e);
-        document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
-        document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up);
+window.startReplay = function(idx){
+  const drives = loadJSON('drives', []);
+  const d = drives[idx];
+  if (!d || !d.route || d.route.length<2) { window.showToast('Not enough GPS data to replay'); return; }
+  window.closeReplay(true);
+  replayDrive = d; replayDerivedSpeeds = window.getReplaySpeeds(d);
+  replayIdxFloat=0; replayPlaying=false; replaySpeed=1; replaySpeedIdx=0;
+  window.switchTab('drive');
+  if (replayPathLine) map.removeLayer(replayPathLine);
+  replayPathLine = L.polyline(d.route, { color:'rgba(77,141,255,0.25)', weight:5, opacity:1 }).addTo(map);
+  map.fitBounds(replayPathLine.getBounds());
+  if (replayMarker) map.removeLayer(replayMarker);
+  replayMarker = L.circleMarker(d.route[0], { radius:9, color:'#4d8dff', fillColor:'#4d8dff', fillOpacity:1, zIndexOffset:2000 }).addTo(map);
+  document.getElementById('replay-overlay').classList.add('show');
+  document.getElementById('replay-date-label').textContent = formatRelativeDate(d.id || Date.now());
+  document.getElementById('replay-total-time').textContent = window.formatTime(d.duration);
+  const btn = document.getElementById('replay-play-btn');
+  btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+  btn.classList.remove('playing');
+  document.getElementById('replay-speed-btn').textContent = '1× Speed';
+  document.getElementById('replay-speed-btn').classList.remove('active');
+  setTimeout(()=>window.drawReplayHeatmap(d, replayDerivedSpeeds), 50);
+  window.updateReplayUI();
+  const wrap = document.getElementById('replay-scrubber-wrap');
+  wrap.ontouchstart = wrap.onmousedown = function(e){
+    e.preventDefault();
+    const wasPlaying = replayPlaying; replayPlaying=false;
+    const getPos = ev=>{ const r=wrap.getBoundingClientRect(), cx=ev.touches?ev.touches[0].clientX:ev.clientX; return Math.max(0,Math.min(1,(cx-r.left)/r.width)); };
+    const move = ev=>{ replayIdxFloat = getPos(ev)*(replayDrive.route.length-1); window.updateReplayUI(); };
+    const up = ()=>{
+      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
+      if (wasPlaying) { replayPlaying=true; replayLastTick=performance.now(); replayFrame=requestAnimationFrame(window.replayTick); }
     };
+    move(e);
+    document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+    document.addEventListener('touchmove', move, {passive:false}); document.addEventListener('touchend', up);
+  };
 };
 
-window.drawReplayHeatmap = function(d, speeds) {
-    const canvas=document.getElementById('replay-heatmap-canvas');
-    const wrap=document.getElementById('replay-scrubber-wrap');
-    const W=Math.max(wrap.clientWidth,200),H=6;
-    canvas.width=W; canvas.height=H;
-    canvas.style.width='100%'; canvas.style.height='6px';
-    const ctx=canvas.getContext('2d');
-    const maxS=Math.max(...speeds,1);
-    for (let i=0;i<W;i++) {
-        const s=(speeds[Math.round(i/W*(speeds.length-1))]||0)/maxS;
-        let r,g,b;
-        if(s<0.33){r=0;g=Math.round(s*3*200);b=255;}
-        else if(s<0.66){const t=(s-0.33)*3;r=0;g=200+Math.round(t*55);b=Math.round(255*(1-t));}
-        else{const t=(s-0.66)*3;r=Math.round(t*255);g=255-Math.round(t*100);b=0;}
-        ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.fillRect(i,0,1,H);
-    }
+window.drawReplayHeatmap = function(d, speeds){
+  const canvas = document.getElementById('replay-heatmap-canvas');
+  const wrap = document.getElementById('replay-scrubber-wrap');
+  const W = Math.max(wrap.clientWidth,200), H=6;
+  canvas.width=W; canvas.height=H; canvas.style.width='100%'; canvas.style.height='6px';
+  const ctx = canvas.getContext('2d');
+  const maxS = Math.max(...speeds,1);
+  for (let i=0;i<W;i++){
+    const s = (speeds[Math.round(i/W*(speeds.length-1))]||0)/maxS;
+    let r,g,b;
+    if (s<0.33) { r=0; g=Math.round(s*3*200); b=255; }
+    else if (s<0.66) { const t=(s-0.33)*3; r=0; g=200+Math.round(t*55); b=Math.round(255*(1-t)); }
+    else { const t=(s-0.66)*3; r=Math.round(t*255); g=255-Math.round(t*100); b=0; }
+    ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.fillRect(i,0,1,H);
+  }
 };
 
-window.updateReplayUI = function() {
-    if (!replayDrive||!replayDerivedSpeeds) return;
-    const total=replayDrive.route.length;
-    const iIdx=Math.min(Math.floor(replayIdxFloat),total-1);
-    const frac=iIdx/Math.max(total-1,1);
-    const pct=(frac*100).toFixed(2)+'%';
-    document.getElementById('replay-fill').style.width=pct;
-    document.getElementById('replay-thumb').style.left=pct;
-    const curSpeed=replayDerivedSpeeds[iIdx]!==undefined?replayDerivedSpeeds[iIdx]:0;
-    document.getElementById('replay-cur-speed').textContent=curSpeed;
-    document.getElementById('replay-cur-time').textContent=window.formatTime(Math.round(frac*replayDrive.duration));
-    document.getElementById('replay-progress-label').textContent=`${iIdx+1} / ${total} pts`;
-    const pt=replayDrive.route[iIdx]; if(!pt) return;
-    if(replayMarker) replayMarker.setLatLng(pt);
-    if(!isUserPanning) map.panTo(pt);
-    const ratio=curSpeed/Math.max(replayDrive.maxSpeed,1);
-    const col=ratio>0.7?'#ff4444':ratio>0.4?'#ffaa00':ratio>0.15?'#00ff88':'#0078ff';
-    if(replayMarker) replayMarker.setStyle({color:col,fillColor:col});
+window.updateReplayUI = function(){
+  if (!replayDrive || !replayDerivedSpeeds) return;
+  const total = replayDrive.route.length;
+  const iIdx = Math.min(Math.floor(replayIdxFloat), total-1);
+  const frac = iIdx/Math.max(total-1,1);
+  const pct = (frac*100).toFixed(2)+'%';
+  document.getElementById('replay-fill').style.width = pct;
+  document.getElementById('replay-thumb').style.left = pct;
+  const curSpeed = replayDerivedSpeeds[iIdx]!==undefined ? replayDerivedSpeeds[iIdx] : 0;
+  document.getElementById('replay-cur-speed').textContent = curSpeed;
+  document.getElementById('replay-cur-time').textContent = window.formatTime(Math.round(frac*replayDrive.duration));
+  document.getElementById('replay-progress-label').textContent = `${iIdx+1} / ${total} pts`;
+  const pt = replayDrive.route[iIdx]; if (!pt) return;
+  if (replayMarker) replayMarker.setLatLng(pt);
+  if (!isUserPanning) map.panTo(pt);
+  const ratio = curSpeed/Math.max(replayDrive.maxSpeed,1);
+  const col = ratio>0.7?'#ff5c5c':ratio>0.4?'#ffb13d':ratio>0.15?'#3ddc8a':'#4d8dff';
+  if (replayMarker) replayMarker.setStyle({color:col, fillColor:col});
 };
 
-window.replayTogglePlay = function() {
-    if (!replayDrive) return;
-    replayPlaying=!replayPlaying;
-    const btn=document.getElementById('replay-play-btn');
-    if (replayPlaying) {
-        if(replayIdxFloat>=replayDrive.route.length-1) replayIdxFloat=0;
-        btn.textContent='⏸ PAUSE'; btn.classList.add('playing');
-        replayLastTick=performance.now();
-        replayFrame=requestAnimationFrame(window.replayTick);
-    } else {
-        btn.textContent='▶ PLAY'; btn.classList.remove('playing');
-        if(replayFrame){cancelAnimationFrame(replayFrame);replayFrame=null;}
-    }
+window.replayTogglePlay = function(){
+  if (!replayDrive) return;
+  replayPlaying = !replayPlaying;
+  const btn = document.getElementById('replay-play-btn');
+  if (replayPlaying) {
+    if (replayIdxFloat >= replayDrive.route.length-1) replayIdxFloat = 0;
+    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    btn.classList.add('playing');
+    replayLastTick = performance.now();
+    replayFrame = requestAnimationFrame(window.replayTick);
+  } else {
+    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+    btn.classList.remove('playing');
+    if (replayFrame) { cancelAnimationFrame(replayFrame); replayFrame=null; }
+  }
 };
 
-window.replayTick = function(ts) {
-    if (!replayPlaying||!replayDrive) return;
-    const now=ts||performance.now();
-    const elapsed=Math.min(now-replayLastTick,200);
-    replayLastTick=now;
-    const msPerPoint=(replayDrive.duration*1000)/Math.max(replayDrive.route.length-1,1);
-    replayIdxFloat=Math.min(replayIdxFloat+(msPerPoint>0?(elapsed*replaySpeed)/msPerPoint:0),replayDrive.route.length-1);
-    if(replayIdxFloat>=replayDrive.route.length-1){
-        replayIdxFloat=replayDrive.route.length-1; replayPlaying=false;
-        const btn=document.getElementById('replay-play-btn'); btn.textContent='▶ PLAY'; btn.classList.remove('playing');
-        window.updateReplayUI(); window.showToast('Replay complete'); return;
-    }
-    window.updateReplayUI();
-    replayFrame=requestAnimationFrame(window.replayTick);
+window.replayTick = function(ts){
+  if (!replayPlaying || !replayDrive) return;
+  const now = ts || performance.now();
+  const elapsed = Math.min(now-replayLastTick, 200);
+  replayLastTick = now;
+  const msPerPoint = (replayDrive.duration*1000)/Math.max(replayDrive.route.length-1,1);
+  replayIdxFloat = Math.min(replayIdxFloat + (msPerPoint>0 ? (elapsed*replaySpeed)/msPerPoint : 0), replayDrive.route.length-1);
+  if (replayIdxFloat >= replayDrive.route.length-1) {
+    replayIdxFloat = replayDrive.route.length-1; replayPlaying=false;
+    const btn = document.getElementById('replay-play-btn');
+    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+    btn.classList.remove('playing');
+    window.updateReplayUI(); window.showToast('Replay complete'); return;
+  }
+  window.updateReplayUI();
+  replayFrame = requestAnimationFrame(window.replayTick);
 };
 
-window.replaySkip = function(s) {
-    if(!replayDrive) return;
-    const msPP=(replayDrive.duration*1000)/Math.max(replayDrive.route.length-1,1);
-    replayIdxFloat=Math.max(0,Math.min(replayDrive.route.length-1,replayIdxFloat+(msPP>0?(s*1000)/msPP:0)));
-    window.updateReplayUI();
+window.replaySkip = function(s){
+  if (!replayDrive) return;
+  const msPP = (replayDrive.duration*1000)/Math.max(replayDrive.route.length-1,1);
+  replayIdxFloat = Math.max(0, Math.min(replayDrive.route.length-1, replayIdxFloat + (msPP>0 ? (s*1000)/msPP : 0)));
+  window.updateReplayUI();
 };
 
-window.replayCycleSpeed = function() {
-    replaySpeedIdx=(replaySpeedIdx+1)%replaySpeedSpeeds.length;
-    replaySpeed=replaySpeedSpeeds[replaySpeedIdx];
-    const btn=document.getElementById('replay-speed-btn');
-    btn.textContent=replaySpeed+'× Speed';
-    btn.classList.toggle('active',replaySpeed!==1);
+window.replayCycleSpeed = function(){
+  replaySpeedIdx = (replaySpeedIdx+1)%replaySpeedSpeeds.length;
+  replaySpeed = replaySpeedSpeeds[replaySpeedIdx];
+  const btn = document.getElementById('replay-speed-btn');
+  btn.textContent = replaySpeed+'× Speed';
+  btn.classList.toggle('active', replaySpeed!==1);
 };
 
-window.closeReplay = function(silent) {
-    replayPlaying=false;
-    if(replayFrame){cancelAnimationFrame(replayFrame);replayFrame=null;}
-    if(replayMarker){map.removeLayer(replayMarker);replayMarker=null;}
-    if(replayPathLine){map.removeLayer(replayPathLine);replayPathLine=null;}
-    replayDrive=null; replayDerivedSpeeds=null;
-    document.getElementById('replay-overlay').style.display='none';
-    if(!silent) window.switchTab('history');
+window.closeReplay = function(silent){
+  replayPlaying = false;
+  if (replayFrame) { cancelAnimationFrame(replayFrame); replayFrame=null; }
+  if (replayMarker) { map.removeLayer(replayMarker); replayMarker=null; }
+  if (replayPathLine) { map.removeLayer(replayPathLine); replayPathLine=null; }
+  replayDrive = null; replayDerivedSpeeds = null;
+  document.getElementById('replay-overlay').classList.remove('show');
+  if (!silent) window.switchTab('history');
 };
 
-// Init settings UI
-window.addEventListener('load',()=>{
-    const t=document.getElementById('auto-start-toggle');
-    if(t) t.checked=settings.autoStart;
+/* =========================================================================
+   INIT
+   ========================================================================= */
+window.addEventListener('load', () => {
+  window.renderGarage();
+  window.refreshProfileUI();
+  document.getElementById('ob-username-input').value = username !== 'Driver' ? username : '';
 });
 </script>
 </body>
