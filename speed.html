@@ -654,7 +654,46 @@ input:checked + .slider:before{transform:translateX(21px);}
   </div>
 </div>
 
+<!-- ESP device setup wizard — no on-device screen needed, no WiFi password ever hardcoded -->
+<div class="modal-overlay center" id="esp-setup-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">Set up a new device</div>
+      <button class="modal-close" onclick="window.closeEspSetup()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div id="esp-setup-step-1">
+      <div class="setting-sub" style="margin-bottom:14px;">A brand new Speedy Tracker board broadcasts its own WiFi hotspot the moment it powers on, named something like <b>Speedy-7F2A</b>. No display on the device, no password to type — you'll connect to it directly.</div>
+      <button class="ob-primary-btn" onclick="window.openPhoneWifiSettings()">Open WiFi settings</button>
+      <div class="setting-sub" style="margin-top:10px;">Look for a network starting with <b>Speedy-</b> and join it. It needs no password.</div>
+      <button class="ob-secondary-btn" style="margin-top:14px;" onclick="window.espSetupGoStep(2)">I've connected to it</button>
+    </div>
+
+    <div id="esp-setup-step-2" class="hidden">
+      <div class="auth-field-label">Which network did you join?</div>
+      <input class="ob-input" id="esp-setup-hotspot-name" placeholder="e.g. Speedy-7F2A" maxlength="20" style="text-transform:uppercase;" oninput="window.espSetupValidateHotspotName(this.value)">
+      <div class="auth-error" id="esp-setup-hotspot-error"></div>
+      <div class="setting-sub" style="margin:14px 0 10px;">Now finish setup on the device itself — it serves its own page for entering your real WiFi network.</div>
+      <button class="ob-secondary-btn" onclick="window.openEspDeviceSetupPage()">Open device setup page</button>
+      <div class="setting-sub" style="margin-top:10px;">Pick your home WiFi (or your phone's personal hotspot) and enter its password right there on the device's page — that password stays on the device, Speedy never sees it. Then tap Connect on that page.</div>
+      <button class="ob-primary-btn" style="margin-top:14px;" id="esp-setup-continue-btn" onclick="window.espSetupGoStep(3)" disabled>I finished setup on the device</button>
+    </div>
+
+    <div id="esp-setup-step-3" class="hidden">
+      <div class="setting-sub" style="margin-bottom:10px;">Almost done — reconnect your phone to your normal WiFi (the device's setup hotspot turns itself off once it has your network), then tap below to finish pairing.</div>
+      <button class="ob-primary-btn" onclick="window.openPhoneWifiSettings()">Open WiFi settings</button>
+      <button class="ob-secondary-btn" style="margin-top:14px;" onclick="window.finishEspSetupClaim()">Finish pairing <span id="esp-setup-finish-code"></span></button>
+      <div class="auth-error" id="esp-setup-finish-error"></div>
+    </div>
+
+    <div class="settings-footer" style="margin-top:18px;">Your WiFi password is entered on the device's own page and stays on the device — it's never sent to Speedy or stored in your account.</div>
+  </div>
+</div>
+
 <!-- Auth gate -->
+
 <div id="auth-overlay">
   <div class="auth-panel">
     <div class="auth-loading" id="auth-loading">
@@ -795,11 +834,13 @@ input:checked + .slider:before{transform:translateX(21px);}
       <span>ESP device</span>
     </div>
     <div class="setting-sub" style="margin-bottom:10px;">Pair a Speedy Tracker board to log drives without your phone in the car.</div>
+    <button class="ob-primary-btn" onclick="window.openEspSetup()">Set up a new device</button>
+    <div class="setting-sub" style="margin:14px 0 6px;">Already set up but not paired? Search for it instead:</div>
     <button class="ob-secondary-btn" onclick="window.scanForEspDevices()">
       <span id="esp-scan-btn-label">Search for nearby devices</span>
     </button>
     <div id="esp-scan-results" style="margin-top:8px;"></div>
-    <div class="setting-sub" style="margin:14px 0 6px;">Or enter the code shown on the device screen</div>
+    <div class="setting-sub" style="margin:14px 0 6px;">Or enter its code directly, if you know it</div>
     <div class="ob-row3">
       <input class="ob-input" id="esp-code-input" placeholder="Device code, e.g. SD-7F2A" style="text-transform:uppercase;">
     </div>
@@ -1129,7 +1170,21 @@ function syncDrivesFromCloud(){
   if (!currentUser) return Promise.resolve();
   return rtdb.ref('drives/' + currentUser.uid).once('value').then(snap => {
     const cloud = snap.val() || {};
-    const cloudDrives = Object.values(cloud);
+    // Drives the app creates always have a numeric `id` (a timestamp) used as
+    // both the React-style key and the sort order. Records added by hand
+    // directly in the Firebase console (e.g. for testing) won't have that —
+    // fall back to the object's own Firebase key, or now, rather than
+    // silently dropping them from history.
+    const cloudDrives = Object.keys(cloud).map(key => {
+      const d = cloud[key] || {};
+      if (!d.id) d.id = Number(key) || Date.now();
+      if (!Array.isArray(d.route)) d.route = [];
+      if (!Array.isArray(d.speedLog)) d.speedLog = [];
+      if (typeof d.distance !== 'number') d.distance = 0;
+      if (typeof d.duration !== 'number') d.duration = 0;
+      if (typeof d.maxSpeed !== 'number') d.maxSpeed = 0;
+      return d;
+    });
     const local = loadJSON('drives', []);
     const byId = {};
     [...cloudDrives, ...local].forEach(d => { if (d && d.id) byId[d.id] = d; });
@@ -1137,6 +1192,7 @@ function syncDrivesFromCloud(){
     saveJSON('drives', [...merged.filter(x=>x.isGhost), ...merged.filter(x=>!x.isGhost).slice(0,40)]);
     window.updateAllTimeStats();
     window.renderGarage();
+    window.renderHistory();
   }).catch(e => console.warn('drive sync from cloud failed', e.message));
 }
 
@@ -1155,6 +1211,7 @@ fbAuth.onAuthStateChanged(user => {
         window.startFriendsSync();
         window.startDeviceSync();
         window.pushLeaderboardSnapshot();
+        window.backupLocalDrivesToCloud().then(() => syncDrivesFromCloud());
       } else {
         // brand new account — run the onboarding flow, which calls obFinish() to create the profile
         document.getElementById('onboarding').classList.remove('hidden');
@@ -1288,7 +1345,26 @@ window.finishOnboardingFlow = function(){
     window.refreshProfileUI();
     window.startFriendsSync();
     window.startDeviceSync();
+    // Anyone who used Speedy before ever connecting an account may already
+    // have drive history sitting in localStorage. Back it up to the cloud
+    // right now, the very first time an account exists, so it's safe before
+    // any later sign-out or cloud sync ever touches local storage.
+    window.backupLocalDrivesToCloud();
   });
+};
+
+// One-way upload of whatever's currently in localStorage's `drives` list to
+// this account's cloud copy. Safe to call repeatedly — it just overwrites
+// each drive at its own id, so already-uploaded drives are a no-op.
+window.backupLocalDrivesToCloud = function(){
+  if (!currentUser) return Promise.resolve();
+  const local = loadJSON('drives', []);
+  if (!local.length) return Promise.resolve();
+  const updates = {};
+  local.forEach(d => { if (d && d.id) updates[d.id] = d; });
+  if (Object.keys(updates).length === 0) return Promise.resolve();
+  return rtdb.ref('drives/' + currentUser.uid).update(updates)
+    .catch(e => console.warn('drive backup to cloud failed', e.message));
 };
 
 /* =========================================================================
@@ -1322,21 +1398,23 @@ window.setTelemetrySource = function(src){
   window.showToast(src === 'phone' ? 'Tracking with phone GPS' : 'Tracking with ESP device');
 };
 
-function claimDeviceCode(code){
-  const errEl = document.getElementById('esp-claim-error');
+function claimDeviceCode(code, errElId){
+  errElId = errElId || 'esp-claim-error';
+  const errEl = document.getElementById(errElId);
   errEl.textContent = '';
-  if (!code) { errEl.textContent = 'Enter the code shown by your device.'; return; }
-  if (!currentUser) { errEl.textContent = 'You need to be signed in.'; return; }
-  rtdb.ref('device_claims/' + code).once('value').then(snap => {
+  if (!code) { errEl.textContent = 'Enter the code shown by your device.'; return Promise.reject(); }
+  if (!currentUser) { errEl.textContent = 'You need to be signed in.'; return Promise.reject(); }
+  return rtdb.ref('device_claims/' + code).once('value').then(snap => {
     const existing = snap.val();
-    if (existing && existing !== currentUser.uid) { errEl.textContent = 'That device is already linked to another account.'; return; }
-    rtdb.ref('device_claims/' + code).set(currentUser.uid).then(() => {
-      document.getElementById('esp-code-input').value = '';
+    if (existing && existing !== currentUser.uid) { errEl.textContent = 'That device is already linked to another account.'; return Promise.reject(); }
+    return rtdb.ref('device_claims/' + code).set(currentUser.uid).then(() => {
+      const input = document.getElementById('esp-code-input');
+      if (input) input.value = '';
       window.showToast('Device claimed — it will connect shortly');
       window.startDeviceSync();
       window.scanForEspDevices(); // refresh the scan list so the claimed device drops out of "available"
-    }).catch(e => { errEl.textContent = e.message; });
-  }).catch(e => { errEl.textContent = e.message; });
+    }).catch(e => { errEl.textContent = e.message; return Promise.reject(e); });
+  }).catch(e => { if (e) errEl.textContent = e.message || errEl.textContent; return Promise.reject(e); });
 }
 
 window.claimEspDevice = function(){
@@ -1379,6 +1457,90 @@ window.scanForEspDevices = function(){
   });
 };
 window.claimEspDeviceFromScan = function(code){ claimDeviceCode(code); };
+
+/* ---- ESP setup wizard: screen-free pairing, no hardcoded WiFi credentials ----
+   The device's setup hotspot is named "Speedy-XXXX" where XXXX is its pairing
+   code, so the app can read the code straight from the WiFi network name the
+   person tells it — no on-device display needed, and the person's real WiFi
+   password is entered on the device's own setup page (served by the ESP32
+   itself), never typed into or stored by this app. */
+let espSetupCode = null; // pairing code parsed from the hotspot name, e.g. "SD-7F2A"
+
+window.openEspSetup = function(){
+  espSetupCode = null;
+  document.getElementById('esp-setup-hotspot-name').value = '';
+  document.getElementById('esp-setup-hotspot-error').textContent = '';
+  document.getElementById('esp-setup-finish-error').textContent = '';
+  document.getElementById('esp-setup-continue-btn').disabled = true;
+  window.espSetupGoStep(1);
+  document.getElementById('esp-setup-overlay').classList.add('show');
+};
+window.closeEspSetup = function(){ document.getElementById('esp-setup-overlay').classList.remove('show'); };
+
+window.espSetupGoStep = function(n){
+  [1,2,3].forEach(i => document.getElementById('esp-setup-step-'+i).classList.toggle('hidden', i!==n));
+  if (n === 3) {
+    document.getElementById('esp-setup-finish-code').textContent = espSetupCode ? `(${espSetupCode})` : '';
+  }
+};
+
+// There's no web API that reliably opens a phone's WiFi settings screen
+// across iOS and Android — browsers intentionally don't expose that. This
+// tries the handful of OS-specific deep links known to work on some
+// versions/browsers, and falls back to just telling the person where to go
+// rather than silently failing.
+window.openPhoneWifiSettings = function(){
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  try {
+    if (isIOS) {
+      window.location.href = 'App-Prefs:root=WIFI';
+    } else if (isAndroid) {
+      window.location.href = 'intent://#Intent;action=android.settings.WIFI_SETTINGS;end';
+    } else {
+      window.showToast('Open WiFi settings from your phone\'s system settings');
+      return;
+    }
+    // Most browsers block or silently ignore these, so always also tell the
+    // person what to do manually rather than assuming the deep link worked.
+    setTimeout(() => window.showToast("If that didn't open WiFi settings, open it manually from your phone's system settings"), 600);
+  } catch(e) {
+    window.showToast('Open WiFi settings from your phone\'s system settings');
+  }
+};
+
+window.espSetupValidateHotspotName = function(v){
+  const errEl = document.getElementById('esp-setup-hotspot-error');
+  const btn = document.getElementById('esp-setup-continue-btn');
+  const cleaned = (v||'').trim().toUpperCase();
+  const m = cleaned.match(/^SPEEDY-([A-Z0-9]{4})$/);
+  if (m) {
+    espSetupCode = 'SD-' + m[1];
+    errEl.textContent = '';
+    btn.disabled = false;
+  } else {
+    espSetupCode = null;
+    btn.disabled = true;
+    errEl.textContent = cleaned ? "That doesn't look like a Speedy device hotspot — it should look like Speedy-7F2A." : '';
+  }
+};
+
+window.openEspDeviceSetupPage = function(){
+  // Only reachable while the phone is actually connected to the device's own
+  // hotspot — the device serves this page itself at its fixed AP address.
+  window.open('http://192.168.4.1', '_blank');
+};
+
+window.finishEspSetupClaim = function(){
+  const errEl = document.getElementById('esp-setup-finish-error');
+  errEl.textContent = '';
+  if (!espSetupCode) { errEl.textContent = "Missing the device code — go back and re-enter the hotspot name."; return; }
+  claimDeviceCode(espSetupCode, 'esp-setup-finish-error').then(() => {
+    window.closeEspSetup();
+    window.showToast('Device paired! It should come online within a minute.');
+  }).catch(() => {}); // error already shown in esp-setup-finish-error by claimDeviceCode
+};
 
 window.startDeviceSync = function(){
   if (!currentUser) return;
@@ -1814,7 +1976,27 @@ window.toggleSheet = function(){ if (isDragging) return; window.setSheetState(!s
   handle.addEventListener('mousedown', onStart);
   handle.addEventListener('touchstart', onStart, {passive:true});
 })();
-window.addEventListener('resize', ()=>window.setSheetState(sheetExpanded, false));
+// Recalculating sheet.offsetHeight (used by sheetPeekY) only makes sense for a
+// genuine layout change — e.g. device rotation. On mobile, opening the on-screen
+// keyboard also fires a `resize` (and on some browsers `visualViewport.resize`)
+// event because the visible viewport shrinks, even though nothing about the
+// sheet's own layout actually needs to change. Re-running setSheetState() at
+// that moment reads offsetHeight mid-keyboard-animation against a squished
+// 78vh sheet and can snap it to a wrong, sometimes off-screen position — which
+// then doesn't recover until the keyboard closes and another resize fires (or,
+// on some browsers, not at all until the app is reopened).
+//
+// visualViewport lets us tell "keyboard opened/closed" (viewport height
+// changed, width didn't) apart from a real resize/rotation (width changed
+// too), so we only recompute the sheet position for the latter.
+let lastViewportWidth = window.innerWidth;
+function handleViewportResize(){
+  const widthChanged = window.innerWidth !== lastViewportWidth;
+  lastViewportWidth = window.innerWidth;
+  if (!widthChanged) return; // height-only change = almost certainly the keyboard, ignore it
+  window.setSheetState(sheetExpanded, false);
+}
+window.addEventListener('resize', handleViewportResize);
 window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, false), 50));
 
 /* =========================================================================
