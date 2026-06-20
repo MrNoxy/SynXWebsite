@@ -290,6 +290,10 @@ svg{display:block;}
 .lb-cat{font-size:.78rem;font-weight:800;color:#fff;}
 .lb-cat-sub{font-size:.64rem;color:var(--text-faint);font-weight:700;margin-top:1px;}
 .lb-val{margin-left:auto;text-align:right;font-size:1rem;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;}
+.lb-card.is-me{border-color:rgba(61,220,138,.35);background:rgba(61,220,138,.06);}
+.my-code-row{display:flex;align-items:center;justify-content:space-between;background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:13px 15px;}
+.my-code-lbl{font-size:.62rem;color:var(--text-faint);font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
+.my-code-val{font-size:1.1rem;font-weight:900;color:#fff;letter-spacing:.5px;margin-top:2px;}
 
 /* ===== AUTH GATE ===== */
 #auth-overlay{position:absolute;inset:0;z-index:9100;pointer-events:auto;background:var(--bg);display:flex;align-items:flex-end;justify-content:center;}
@@ -573,24 +577,45 @@ input:checked + .slider:before{transform:translateX(21px);}
     <div class="history-title">Social</div>
     <div id="social-list">
       <div class="social-section">
+        <div class="my-code-row">
+          <div>
+            <div class="my-code-lbl">Your friend code</div>
+            <div class="my-code-val" id="my-code-val">—</div>
+          </div>
+          <button class="social-add-btn" onclick="window.copyMyCode()" title="Copy">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="social-section">
         <div class="social-section-header">
-          <div class="social-section-title">Friends</div>
+          <div class="social-section-title">Friends<span class="count" id="friends-count"></span></div>
           <button class="social-add-btn" onclick="window.openAddFriend()">
             <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
         </div>
-        <div id="friends-list"></div>
+        <div id="friends-list"><div class="empty-card">Loading…</div></div>
       </div>
       <div class="social-section">
         <div class="social-section-header"><div class="social-section-title">Leaderboard</div></div>
-        <div class="lb-note">Your personal bests. Add friends or sign in online to compare globally — leaderboard sync is coming soon.</div>
-        <div class="lb-period-row" id="lb-period-row">
-          <div class="lb-period-pill" data-p="today" onclick="window.setLeaderboardPeriod('today')">Today</div>
-          <div class="lb-period-pill" data-p="week" onclick="window.setLeaderboardPeriod('week')">Week</div>
-          <div class="lb-period-pill" data-p="month" onclick="window.setLeaderboardPeriod('month')">Month</div>
-          <div class="lb-period-pill active" data-p="all" onclick="window.setLeaderboardPeriod('all')">All-time</div>
+        <div class="lb-period-row" id="lb-scope-row">
+          <div class="lb-period-pill active" data-s="world" onclick="window.setLeaderboardScope('world')">World</div>
+          <div class="lb-period-pill" data-s="country" onclick="window.setLeaderboardScope('country')">My Country</div>
+          <div class="lb-period-pill" data-s="city" onclick="window.setLeaderboardScope('city')">My City</div>
         </div>
-        <div id="lb-cards"></div>
+        <div class="lb-period-row" id="lb-cat-row">
+          <div class="lb-period-pill active" data-c="topSpeed" onclick="window.setLeaderboardCategory('topSpeed')">Top Speed</div>
+          <div class="lb-period-pill" data-c="best060" onclick="window.setLeaderboardCategory('best060')">Best 0–60</div>
+          <div class="lb-period-pill" data-c="dist" onclick="window.setLeaderboardCategory('dist')">Longest Drive</div>
+        </div>
+        <div class="lb-period-row" id="lb-period-row">
+          <div class="lb-period-pill" data-p="Today" onclick="window.setLeaderboardPeriod('Today')">Today</div>
+          <div class="lb-period-pill" data-p="Week" onclick="window.setLeaderboardPeriod('Week')">Week</div>
+          <div class="lb-period-pill" data-p="Month" onclick="window.setLeaderboardPeriod('Month')">Month</div>
+          <div class="lb-period-pill active" data-p="All" onclick="window.setLeaderboardPeriod('All')">All-time</div>
+        </div>
+        <div class="lb-note" id="lb-note">Updates each time a driver finishes a drive.</div>
+        <div id="lb-cards"><div class="empty-card">Loading leaderboard…</div></div>
       </div>
     </div>
   </div>
@@ -620,12 +645,11 @@ input:checked + .slider:before{transform:translateX(21px);}
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div class="ob-field-label" style="margin-top:0;">Name</div>
-    <input class="ob-input" id="friend-name-input" placeholder="Friend's name" maxlength="20">
-    <div class="ob-field-label">Code (optional)</div>
-    <input class="ob-input" id="friend-code-input" placeholder="e.g. SD-4F2K" maxlength="12">
-    <button class="ob-primary-btn" style="margin-top:18px;" onclick="window.saveFriend()">Add friend</button>
-    <div class="settings-footer">Friends are stored on this device. Live syncing requires an account — coming soon.</div>
+    <div class="ob-field-label" style="margin-top:0;">Friend code</div>
+    <input class="ob-input" id="friend-code-input" placeholder="e.g. SD-4F2K" maxlength="12" style="text-transform:uppercase;">
+    <div class="auth-error" id="friend-error"></div>
+    <button class="ob-primary-btn" style="margin-top:10px;" onclick="window.saveFriend()">Add friend</button>
+    <div class="settings-footer">Ask them for their code on the Social tab.</div>
   </div>
 </div>
 
@@ -726,8 +750,22 @@ input:checked + .slider:before{transform:translateX(21px);}
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div class="ob-field-label" style="margin-top:0;">Display name</div>
+
+    <div class="sheet-section-title" style="margin-top:2px;">Account</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label" id="settings-email-val">—</div>
+        <div class="setting-sub">Signed in</div>
+      </div>
+      <button class="drive-action-btn" onclick="window.signOutUser()" title="Sign out" style="width:36px;height:36px;">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+
+    <div class="ob-field-label">Display name</div>
     <input class="ob-input" id="settings-username-input" maxlength="18" oninput="window.updateUsername(this.value)">
+
+    <div class="sheet-section-title" style="margin-top:22px;">Tracking</div>
     <div class="setting-row" style="margin-top:6px;">
       <div>
         <div class="setting-label">Auto-detect sensitivity</div>
@@ -742,8 +780,29 @@ input:checked + .slider:before{transform:translateX(21px);}
       </div>
       <label class="switch"><input type="checkbox" id="radar-toggle" checked onchange="window.setRadarEnabled(this.checked)"><span class="slider"></span></label>
     </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Telemetry source</div>
+        <div class="setting-sub" id="source-sub">Using this phone's GPS</div>
+      </div>
+    </div>
+    <div class="lb-period-row" id="source-row" style="margin-bottom:4px;">
+      <div class="lb-period-pill active" data-src="phone" onclick="window.setTelemetrySource('phone')">Phone</div>
+    </div>
+
+    <div class="sheet-section-title" style="margin-top:22px;display:flex;justify-content:space-between;align-items:center;">
+      <span>ESP device</span>
+    </div>
+    <div class="setting-sub" style="margin-bottom:10px;">Pair a Speedy Tracker board to log drives without your phone in the car.</div>
+    <div class="ob-row3">
+      <input class="ob-input" id="esp-code-input" placeholder="Device code, e.g. ESP-7F2A" style="text-transform:uppercase;">
+    </div>
+    <button class="ob-secondary-btn" style="margin-top:8px;" onclick="window.claimEspDevice()">Connect device</button>
+    <div class="auth-error" id="esp-claim-error"></div>
+    <div id="esp-device-list" style="margin-top:10px;"></div>
+
     <button class="danger-btn" onclick="window.resetAppData()">Reset app data</button>
-    <div class="settings-footer">Speedy stores everything locally on this device.</div>
+    <div class="settings-footer">Speedy syncs your profile and drives to your account.</div>
   </div>
 </div>
 
@@ -883,7 +942,9 @@ let username   = loadJSON('sd_username', 'Driver');
 let cars       = loadJSON('sd_cars', []);
 let activeCarId= loadJSON('sd_active_car', null);
 let onboarded  = loadJSON('sd_onboarded', false);
-if (onboarded) document.getElementById('onboarding').classList.add('hidden');
+let myFriendCode = loadJSON('sd_friend_code', null);
+let myCountry = loadJSON('sd_country', null);
+let myCity = loadJSON('sd_city', null);
 
 function saveSettings(){ saveJSON('sd_settings', appSettings); }
 function saveCars(){ saveJSON('sd_cars', cars); }
@@ -893,7 +954,212 @@ function saveActiveCarId(){ saveJSON('sd_active_car', activeCarId); }
 function getActiveCar(){ return cars.find(c => c.id === activeCarId) || null; }
 function getMarkerColor(){ const c = getActiveCar(); return c ? c.color : '#3ddc8a'; }
 
+/* =========================================================================
+   FIREBASE — auth + realtime database
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDmB12jdV0Q-Ocr21M8_UGg1zSJC6ame24",
+  authDomain: "speedy-9e1e2.firebaseapp.com",
+  databaseURL: "https://speedy-9e1e2-default-rtdb.firebaseio.com",
+  projectId: "speedy-9e1e2",
+  storageBucket: "speedy-9e1e2.firebasestorage.app",
+  messagingSenderId: "214726746856",
+  appId: "1:214726746856:web:cfb025604c281b1b7e5f5d"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const rtdb = firebase.database();
+
+let currentUser = null;   // firebase.User
+let isNewAccount = false; // true right after signup, used to decide whether to run onboarding
+let authMode = 'login';   // 'login' | 'signup'
+let friendsListeners = [];
+let telemetrySource = 'phone'; // 'phone' | a paired ESP device id
+let pairedDevices = {};        // deviceId -> last known record
+let deviceListeners = {};      // deviceId -> off() function
+
+function genFriendCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = 'SD-';
+  for (let i=0;i<5;i++) out += chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+
+window.authToggleMode = function(){
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  document.getElementById('auth-primary-btn').textContent = authMode === 'login' ? 'Log in' : 'Create account';
+  document.getElementById('auth-toggle-btn').textContent = authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in';
+  document.getElementById('auth-mode-sub').textContent = authMode === 'login' ? 'Sign in to track drives, friends & the leaderboard.' : 'Create your account to start tracking.';
+  document.getElementById('auth-error').textContent = '';
+};
+
+window.authSubmit = function(){
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Enter an email and password.'; return; }
+  const btn = document.getElementById('auth-primary-btn');
+  btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Please wait…';
+  const done = () => { btn.disabled = false; btn.textContent = origText; };
+  if (authMode === 'signup') {
+    fbAuth.createUserWithEmailAndPassword(email, pass)
+      .then(() => { isNewAccount = true; done(); })
+      .catch(e => { errEl.textContent = friendlyAuthError(e); done(); });
+  } else {
+    fbAuth.signInWithEmailAndPassword(email, pass)
+      .then(() => { done(); })
+      .catch(e => { errEl.textContent = friendlyAuthError(e); done(); });
+  }
+};
+
+window.authForgotPassword = function(){
+  const email = document.getElementById('auth-email').value.trim();
+  const errEl = document.getElementById('auth-error');
+  if (!email) { errEl.textContent = 'Enter your email above first, then tap "Forgot password?".'; return; }
+  fbAuth.sendPasswordResetEmail(email)
+    .then(() => { errEl.style.color = 'var(--accent)'; errEl.textContent = 'Password reset email sent.'; })
+    .catch(e => { errEl.style.color = 'var(--red)'; errEl.textContent = friendlyAuthError(e); });
+};
+
+function friendlyAuthError(e){
+  const code = e && e.code || '';
+  if (code.includes('email-already-in-use')) return 'An account already exists for that email.';
+  if (code.includes('invalid-email')) return 'That email address looks invalid.';
+  if (code.includes('weak-password')) return 'Password should be at least 6 characters.';
+  if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Try again in a moment.';
+  if (code.includes('network-request-failed')) return 'Network error — check your connection.';
+  return 'Something went wrong. Please try again.';
+}
+
+window.signOutUser = function(){
+  if (!confirm('Sign out of Speedy?')) return;
+  friendsListeners.forEach(off => off());
+  friendsListeners = [];
+  lbListenerOff = null;
+  lbData = null;
+  friendUids = [];
+  friendProfiles = {};
+  pairedDevices = {};
+  telemetrySource = 'phone';
+  fbAuth.signOut();
+};
+
+// ---- Profile sync (RTDB) ----
+function profileRef(uid){ return rtdb.ref('users/' + uid); }
+function leaderboardRef(uid){ return rtdb.ref('leaderboard/' + (uid !== undefined ? uid : currentUser.uid)); }
+
+function localStatsSnapshot(){
+  const drives = loadJSON('drives', []).filter(d => !d.isGhost);
+  function bestIn(periodMs){
+    const since = periodMs === null ? 0 : Date.now() - periodMs;
+    const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+    const start = periodMs === 'today' ? todayStart : since;
+    const set = drives.filter(d => (d.id||0) >= start);
+    const top = set.reduce((m,d) => Math.max(m, d.maxSpeed||0), 0);
+    const b60 = set.reduce((m,d) => { const v = parseFloat(d.best0to60); return (!isNaN(v) && (m===null||v<m)) ? v : m; }, null);
+    const dist = set.reduce((s,d) => s + (d.distance||0), 0) / 1000;
+    return { top, b60: b60===null?null:Number(b60.toFixed(1)), dist: Number(dist.toFixed(2)) };
+  }
+  const today = bestIn('today');
+  const week  = bestIn(7*24*60*60*1000);
+  const month = bestIn(30*24*60*60*1000);
+  const all   = bestIn(null);
+  return {
+    username, code: myFriendCode, country: myCountry || null, city: myCity || null,
+    topSpeedToday: today.top, topSpeedWeek: week.top, topSpeedMonth: month.top, topSpeedAll: all.top,
+    best060Today: today.b60, best060Week: week.b60, best060Month: month.b60, best060All: all.b60,
+    distToday: today.dist, distWeek: week.dist, distMonth: month.dist, distAll: all.dist,
+    drivesCount: drives.length, updatedAt: Date.now()
+  };
+}
+
+window.pushLeaderboardSnapshot = function(){
+  if (!currentUser) return;
+  leaderboardRef().set(localStatsSnapshot()).catch(e => console.warn('leaderboard sync failed', e.message));
+};
+
+function ensureFriendCode(){
+  return new Promise(resolve => {
+    if (myFriendCode) { resolve(myFriendCode); return; }
+    const code = genFriendCode();
+    rtdb.ref('codes/' + code).set(currentUser.uid).then(() => {
+      myFriendCode = code; saveJSON('sd_friend_code', code); resolve(code);
+    }).catch(() => resolve(null));
+  });
+}
+
+function writeProfile(){
+  if (!currentUser) return;
+  profileRef(currentUser.uid).set({
+    username, cars, activeCarId, code: myFriendCode, country: myCountry || null, city: myCity || null,
+    email: currentUser.email, updatedAt: Date.now()
+  }).catch(e => console.warn('profile sync failed', e.message));
+}
+
+function loadProfileFromCloud(){
+  return profileRef(currentUser.uid).once('value').then(snap => {
+    const v = snap.val();
+    if (!v) return false;
+    username = v.username || username; saveUsername();
+    cars = v.cars || cars; saveCars();
+    activeCarId = v.activeCarId !== undefined ? v.activeCarId : activeCarId; saveActiveCarId();
+    myFriendCode = v.code || myFriendCode; saveJSON('sd_friend_code', myFriendCode);
+    myCountry = v.country || myCountry; saveJSON('sd_country', myCountry);
+    myCity = v.city || myCity; saveJSON('sd_city', myCity);
+    return true;
+  }).catch(() => false);
+}
+
+function syncDrivesFromCloud(){
+  if (!currentUser) return Promise.resolve();
+  return rtdb.ref('drives/' + currentUser.uid).once('value').then(snap => {
+    const cloud = snap.val() || {};
+    const cloudDrives = Object.values(cloud);
+    const local = loadJSON('drives', []);
+    const byId = {};
+    [...cloudDrives, ...local].forEach(d => { if (d && d.id) byId[d.id] = d; });
+    const merged = Object.values(byId).sort((a,b) => (b.id||0) - (a.id||0));
+    saveJSON('drives', [...merged.filter(x=>x.isGhost), ...merged.filter(x=>!x.isGhost).slice(0,40)]);
+    window.updateAllTimeStats();
+    window.renderGarage();
+  }).catch(e => console.warn('drive sync from cloud failed', e.message));
+}
+
+// ---- Auth state machine driving the whole app boot sequence ----
+fbAuth.onAuthStateChanged(user => {
+  document.getElementById('auth-loading').style.display = 'none';
+  if (user) {
+    currentUser = user;
+    document.getElementById('auth-overlay').classList.add('hidden');
+    loadProfileFromCloud().then(hasProfile => {
+      if (hasProfile) {
+        onboarded = true; saveJSON('sd_onboarded', true);
+        document.getElementById('onboarding').classList.add('hidden');
+        window.initGeolocation();
+        window.refreshProfileUI();
+        window.startFriendsSync();
+        window.startDeviceSync();
+        window.pushLeaderboardSnapshot();
+      } else {
+        // brand new account — run the onboarding flow, which calls obFinish() to create the profile
+        document.getElementById('onboarding').classList.remove('hidden');
+        window.obGoStep(1);
+      }
+    });
+  } else {
+    currentUser = null;
+    document.getElementById('onboarding').classList.add('hidden');
+    document.getElementById('auth-form').style.display = 'flex';
+    document.getElementById('auth-overlay').classList.remove('hidden');
+  }
+});
+
+window.addEventListener('load', () => { document.getElementById('auth-form').style.display = currentUser ? 'none' : 'flex'; });
+
 window.showToast = function(msg){
+
   const el = document.getElementById('toast');
   el.innerText = msg; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   clearTimeout(window._toastTimer);
@@ -959,7 +1225,7 @@ window.obGoStep = function(n){
 window.obSkip = function(){
   username = (document.getElementById('ob-username-input').value || 'Driver').trim() || 'Driver';
   saveUsername();
-  window.completeOnboarding();
+  window.finishOnboardingFlow();
 };
 
 window.obFinish = function(){
@@ -974,21 +1240,42 @@ window.obFinish = function(){
     const car = { id: Date.now(), year: yr, make: mk || 'Unknown', model: md || '', color: getSelectedColor('ob-color-row'), topSpeed: 0 };
     cars.push(car); activeCarId = car.id; saveCars(); saveActiveCarId();
   }
-  // trigger location permission prompt, then go
+  // trigger location permission prompt, capture country/city for the leaderboard, then go
+  const btn = document.querySelector('#ob-step-3 .ob-primary-btn');
+  if (btn) { btn.disabled = true; }
   try {
     navigator.geolocation.getCurrentPosition(
-      ()=>window.completeOnboarding(),
-      ()=>window.completeOnboarding(),
+      pos => {
+        if (!geocodeService2) geocodeService2 = L.Control.Geocoder.nominatim();
+        try {
+          geocodeService2.reverse({lat:pos.coords.latitude, lng:pos.coords.longitude}, 100000, results => {
+            const r = results && results[0];
+            if (r && r.properties && r.properties.address) {
+              myCountry = r.properties.address.country || null;
+              myCity = r.properties.address.city || r.properties.address.town || r.properties.address.village || null;
+              saveJSON('sd_country', myCountry); saveJSON('sd_city', myCity);
+            }
+            window.finishOnboardingFlow();
+          });
+        } catch(e) { window.finishOnboardingFlow(); }
+      },
+      () => window.finishOnboardingFlow(),
       { enableHighAccuracy:true, timeout:6000 }
     );
-  } catch(e) { window.completeOnboarding(); }
+  } catch(e) { window.finishOnboardingFlow(); }
 };
 
-window.completeOnboarding = function(){
-  onboarded = true; saveJSON('sd_onboarded', true);
-  document.getElementById('onboarding').classList.add('hidden');
-  window.initGeolocation();
-  window.refreshProfileUI();
+window.finishOnboardingFlow = function(){
+  ensureFriendCode().then(() => {
+    writeProfile();
+    window.pushLeaderboardSnapshot();
+    onboarded = true; saveJSON('sd_onboarded', true);
+    document.getElementById('onboarding').classList.add('hidden');
+    window.initGeolocation();
+    window.refreshProfileUI();
+    window.startFriendsSync();
+    window.startDeviceSync();
+  });
 };
 
 /* =========================================================================
@@ -999,17 +1286,94 @@ window.openSettings = function(){
   document.getElementById('sens-slider').value = appSettings.sensitivity;
   document.getElementById('sens-sub').textContent = `Starts tracking above ${appSettings.sensitivity} km/h`;
   document.getElementById('radar-toggle').checked = appSettings.radarEnabled !== false;
+  document.getElementById('settings-email-val').textContent = currentUser ? currentUser.email : '—';
+  window.renderEspDeviceList();
   document.getElementById('settings-overlay').classList.add('show');
 };
 window.closeSettings = function(){ document.getElementById('settings-overlay').classList.remove('show'); };
-window.updateUsername = function(v){ username = (v||'').trim() || 'Driver'; saveUsername(); window.refreshProfileUI(); };
+window.updateUsername = function(v){ username = (v||'').trim() || 'Driver'; saveUsername(); window.refreshProfileUI(); writeProfile(); };
 window.setSensitivity = function(v){ appSettings.sensitivity = parseInt(v,10); saveSettings(); document.getElementById('sens-sub').textContent = `Starts tracking above ${v} km/h`; };
 window.setRadarEnabled = function(v){ appSettings.radarEnabled = v; saveSettings(); };
 
 window.resetAppData = function(){
-  if (!confirm('Reset all app data? This clears your profile, garage, settings and drive history. This cannot be undone.')) return;
-  ['sd_settings','sd_username','sd_cars','sd_active_car','sd_onboarded','drives'].forEach(k=>localStorage.removeItem(k));
+  if (!confirm('Reset all app data? This clears your local profile, garage, settings and cached drive history (your cloud account stays intact). This cannot be undone.')) return;
+  ['sd_settings','sd_username','sd_cars','sd_active_car','sd_onboarded','sd_friend_code','sd_country','sd_city','drives'].forEach(k=>localStorage.removeItem(k));
   location.reload();
+};
+
+/* ---- ESP device pairing ---- */
+window.setTelemetrySource = function(src){
+  telemetrySource = src;
+  document.querySelectorAll('#source-row .lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.src === src));
+  document.getElementById('source-sub').textContent = src === 'phone' ? "Using this phone's GPS" : `Using ${pairedDevices[src] ? pairedDevices[src].name || src : src}`;
+  window.showToast(src === 'phone' ? 'Tracking with phone GPS' : 'Tracking with ESP device');
+};
+
+window.claimEspDevice = function(){
+  const code = document.getElementById('esp-code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('esp-claim-error');
+  errEl.textContent = '';
+  if (!code) { errEl.textContent = 'Enter the code shown by your device.'; return; }
+  if (!currentUser) { errEl.textContent = 'You need to be signed in.'; return; }
+  rtdb.ref('device_claims/' + code).once('value').then(snap => {
+    const existing = snap.val();
+    if (existing && existing !== currentUser.uid) { errEl.textContent = 'That device is already linked to another account.'; return; }
+    rtdb.ref('device_claims/' + code).set(currentUser.uid).then(() => {
+      document.getElementById('esp-code-input').value = '';
+      window.showToast('Device claimed — it will connect shortly');
+      window.startDeviceSync();
+    }).catch(e => { errEl.textContent = e.message; });
+  }).catch(e => { errEl.textContent = e.message; });
+};
+
+window.startDeviceSync = function(){
+  if (!currentUser) return;
+  const ref = rtdb.ref('live_devices/' + currentUser.uid);
+  const handler = snap => {
+    pairedDevices = snap.val() || {};
+    window.renderEspDeviceList();
+    window.renderSourceOptions();
+    // forward telemetry from the currently selected ESP source into the shared pipeline
+    if (telemetrySource !== 'phone') {
+      const d = pairedDevices[telemetrySource];
+      if (d && d.lat && d.lng !== undefined && Date.now() - (d.ts||0) < 30000) {
+        window.processTelemetry(d.lat, d.lng, Math.round(d.speedKmh||0), d.heading !== undefined ? d.heading : null);
+      }
+    }
+  };
+  ref.on('value', handler);
+  friendsListeners.push(() => ref.off('value', handler));
+};
+
+window.renderSourceOptions = function(){
+  const row = document.getElementById('source-row');
+  const ids = Object.keys(pairedDevices);
+  const existingBtns = row.querySelectorAll('[data-src]:not([data-src="phone"])');
+  existingBtns.forEach(b => b.remove());
+  ids.forEach(id => {
+    const d = pairedDevices[id];
+    const fresh = Date.now() - (d.ts||0) < 30000;
+    const btn = document.createElement('div');
+    btn.className = 'lb-period-pill' + (telemetrySource===id ? ' active' : '');
+    btn.dataset.src = id;
+    btn.textContent = (d.name || id) + (fresh ? ' ●' : '');
+    btn.onclick = () => window.setTelemetrySource(id);
+    row.appendChild(btn);
+  });
+};
+
+window.renderEspDeviceList = function(){
+  const el = document.getElementById('esp-device-list');
+  const ids = Object.keys(pairedDevices);
+  if (ids.length === 0) { el.innerHTML = `<div class="empty-card" style="padding:14px;">No devices connected yet.</div>`; return; }
+  el.innerHTML = ids.map(id => {
+    const d = pairedDevices[id];
+    const fresh = Date.now() - (d.ts||0) < 30000;
+    return `<div class="friend-row">
+      <div class="avatar-circle" style="--marker-col:${fresh?'var(--accent)':'var(--text-faint)'};">📡</div>
+      <div><div class="friend-name">${d.name || id}</div><div class="friend-code">${fresh ? `${Math.round(d.speedKmh||0)} km/h · live` : 'Offline'}</div></div>
+    </div>`;
+  }).join('');
 };
 
 let geocoderService = null;
@@ -1083,6 +1447,7 @@ window.saveCarModal = function(){
     if (car) { car.year=yr; car.make=mk; car.model=md; car.color=color; }
   }
   saveCars();
+  writeProfile();
   window.closeCarModal();
   window.renderGarage();
   window.refreshProfileUI();
@@ -1091,6 +1456,7 @@ window.deleteCarModal = function(){
   cars = cars.filter(c=>c.id !== carModalEditingId);
   if (activeCarId === carModalEditingId) activeCarId = cars.length ? cars[0].id : null;
   saveCars(); saveActiveCarId();
+  writeProfile();
   window.closeCarModal();
   window.renderGarage();
   window.refreshProfileUI();
@@ -1098,6 +1464,7 @@ window.deleteCarModal = function(){
 window.selectCar = function(id){
   if (id === activeCarId) { window.editCar(id); return; }
   activeCarId = id; saveActiveCarId();
+  writeProfile();
   window.renderGarage(); window.refreshProfileUI();
   const car = cars.find(c=>c.id===id);
   window.showToast(`Switched to ${car ? car.make+' '+car.model : 'car'}`);
@@ -1172,79 +1539,154 @@ window.switchTab = function(tab){
 };
 
 /* =========================================================================
-   SOCIAL: FRIENDS + LEADERBOARD (local foundation — ready for backend sync)
+   SOCIAL: FRIENDS + LEADERBOARD — backed by Firebase Realtime Database
    ========================================================================= */
-let friends = loadJSON('sd_friends', []);
-function saveFriends(){ saveJSON('sd_friends', friends); }
+let friendUids = [];          // array of friend uids (from friends/{myUid})
+let friendProfiles = {};      // uid -> {username, code, ...}
+let lbScope = 'world';        // 'world' | 'country' | 'city'
+let lbCategory = 'topSpeed';  // 'topSpeed' | 'best060' | 'dist'
+let lbPeriodKey = 'All';      // 'Today' | 'Week' | 'Month' | 'All'
+let lbData = null;            // cached full leaderboard snapshot {uid: {...}}
+let lbListenerOff = null;
+
+window.copyMyCode = function(){
+  if (!myFriendCode) return;
+  const ta = document.createElement('textarea');
+  ta.value = myFriendCode; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); window.showToast('Code copied'); } catch(e) {}
+  document.body.removeChild(ta);
+};
 
 window.openAddFriend = function(){
-  document.getElementById('friend-name-input').value = '';
   document.getElementById('friend-code-input').value = '';
+  document.getElementById('friend-error').textContent = '';
   document.getElementById('friend-overlay').classList.add('show');
 };
 window.closeAddFriend = function(){ document.getElementById('friend-overlay').classList.remove('show'); };
+
 window.saveFriend = function(){
-  const name = document.getElementById('friend-name-input').value.trim();
-  if (!name) { window.showToast('Enter a name'); return; }
-  const code = document.getElementById('friend-code-input').value.trim();
-  friends.push({ id: Date.now(), name, code });
-  saveFriends();
-  window.closeAddFriend();
-  window.renderSocial();
-  window.showToast(`${name} added`);
-};
-window.removeFriend = function(id){
-  friends = friends.filter(f => f.id !== id);
-  saveFriends();
-  window.renderSocial();
+  const code = document.getElementById('friend-code-input').value.trim().toUpperCase();
+  const errEl = document.getElementById('friend-error');
+  errEl.textContent = '';
+  if (!code) { errEl.textContent = 'Enter a friend code.'; return; }
+  if (!currentUser) { errEl.textContent = 'You need to be signed in.'; return; }
+  rtdb.ref('codes/' + code).once('value').then(snap => {
+    const targetUid = snap.val();
+    if (!targetUid) { errEl.textContent = 'No one has that code.'; return; }
+    if (targetUid === currentUser.uid) { errEl.textContent = "That's your own code!"; return; }
+    const updates = {};
+    updates['friends/' + currentUser.uid + '/' + targetUid] = true;
+    updates['friends/' + targetUid + '/' + currentUser.uid] = true;
+    rtdb.ref().update(updates).then(() => {
+      window.closeAddFriend();
+      window.showToast('Friend added');
+    }).catch(e => { errEl.textContent = 'Could not add friend: ' + e.message; });
+  }).catch(e => { errEl.textContent = 'Lookup failed: ' + e.message; });
 };
 
-let lbPeriod = 'all';
-window.setLeaderboardPeriod = function(p){
-  lbPeriod = p;
-  document.querySelectorAll('.lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.p === p));
+window.removeFriend = function(uid){
+  if (!currentUser) return;
+  const updates = {};
+  updates['friends/' + currentUser.uid + '/' + uid] = null;
+  updates['friends/' + uid + '/' + currentUser.uid] = null;
+  rtdb.ref().update(updates).then(() => window.showToast('Friend removed'));
+};
+
+window.startFriendsSync = function(){
+  if (!currentUser) return;
+  const ref = rtdb.ref('friends/' + currentUser.uid);
+  const handler = snap => {
+    friendUids = snap.val() ? Object.keys(snap.val()) : [];
+    document.getElementById('friends-count').textContent = friendUids.length ? `${friendUids.length} friend${friendUids.length===1?'':'s'}` : '';
+    Promise.all(friendUids.map(uid =>
+      rtdb.ref('users/' + uid).once('value').then(s => { friendProfiles[uid] = s.val() || { username:'Driver' }; })
+    )).then(() => window.renderFriendsList());
+  };
+  ref.on('value', handler);
+  friendsListeners.push(() => ref.off('value', handler));
+  document.getElementById('my-code-val').textContent = myFriendCode || '—';
+};
+
+window.renderFriendsList = function(){
+  const list = document.getElementById('friends-list');
+  if (friendUids.length === 0) {
+    list.innerHTML = `<div class="empty-card">Add a friend to see them here.</div>`;
+    return;
+  }
+  list.innerHTML = friendUids.map((uid,i) => {
+    const p = friendProfiles[uid] || {};
+    const lb = (lbData && lbData[uid]) || {};
+    const topSpeed = lb.topSpeedAll;
+    return `<div class="friend-row card-in" style="animation-delay:${i*35}ms">
+      <div class="avatar-circle" style="--marker-col:var(--accent);">${(p.username||'D').charAt(0).toUpperCase()}</div>
+      <div><div class="friend-name">${p.username||'Driver'}</div><div class="friend-code">${topSpeed ? `Top speed ${topSpeed} km/h` : (p.city||p.country||'')}</div></div>
+      <button class="friend-remove" onclick="window.removeFriend('${uid}')">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+};
+
+window.setLeaderboardScope = function(s){
+  lbScope = s;
+  document.querySelectorAll('#lb-scope-row .lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.s === s));
   window.renderLeaderboard();
 };
-function periodStartTs(p){
-  const now = Date.now();
-  if (p === 'today') { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
-  if (p === 'week') return now - 7*24*60*60*1000;
-  if (p === 'month') return now - 30*24*60*60*1000;
-  return 0;
-}
+window.setLeaderboardCategory = function(c){
+  lbCategory = c;
+  document.querySelectorAll('#lb-cat-row .lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.c === c));
+  window.renderLeaderboard();
+};
+window.setLeaderboardPeriod = function(p){
+  lbPeriodKey = p;
+  document.querySelectorAll('#lb-period-row .lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.p === p));
+  window.renderLeaderboard();
+};
+
+const LB_CAT_META = {
+  topSpeed: { prefix:'topSpeed', suffix:' km/h', asc:false, label:'Top Speed' },
+  best060:  { prefix:'best060',  suffix:'s',      asc:true,  label:'Best 0–60' },
+  dist:     { prefix:'dist',     suffix:' km',    asc:false, label:'Longest Drive' },
+};
+
+window.startLeaderboardSync = function(){
+  if (lbListenerOff) return;
+  const ref = rtdb.ref('leaderboard');
+  const handler = snap => { lbData = snap.val() || {}; window.renderLeaderboard(); window.renderFriendsList(); };
+  ref.on('value', handler);
+  lbListenerOff = () => ref.off('value', handler);
+  friendsListeners.push(lbListenerOff);
+};
+
 window.renderLeaderboard = function(){
-  const drives = loadJSON('drives', []).filter(d => !d.isGhost);
-  const start = periodStartTs(lbPeriod);
-  const inRange = drives.filter(d => (d.id || 0) >= start);
-  const topSpeed = inRange.reduce((m,d) => Math.max(m, d.maxSpeed||0), 0);
-  const best60 = inRange.reduce((m,d) => { const v = parseFloat(d.best0to60); return (!isNaN(v) && (m===null || v<m)) ? v : m; }, null);
-  const longest = inRange.reduce((m,d) => Math.max(m, d.distance||0), 0) / 1000;
-  const cards = [
-    { cat:'Top Speed', val: inRange.length ? `${topSpeed} km/h` : '—' },
-    { cat:'Best 0–60', val: best60 !== null ? `${best60.toFixed(1)}s` : '—' },
-    { cat:'Longest Drive', val: inRange.length ? `${longest.toFixed(1)} km` : '—' },
-  ];
-  document.getElementById('lb-cards').innerHTML = cards.map((c,i) => `
-    <div class="lb-card card-in" style="animation-delay:${i*35}ms">
-      <div class="lb-rank">#1</div>
-      <div><div class="lb-cat">${c.cat}</div><div class="lb-cat-sub">${username} · this device</div></div>
-      <div class="lb-val">${c.val}</div>
+  const cardsEl = document.getElementById('lb-cards');
+  if (!lbData) { cardsEl.innerHTML = `<div class="empty-card">Loading leaderboard…</div>`; return; }
+  const meta = LB_CAT_META[lbCategory];
+  const field = meta.prefix + lbPeriodKey;
+  let rows = Object.keys(lbData).map(uid => ({ uid, ...lbData[uid] }));
+  if (lbScope === 'country') rows = rows.filter(r => r.country && myCountry && r.country === myCountry);
+  if (lbScope === 'city') rows = rows.filter(r => r.city && myCity && r.city === myCity);
+  rows = rows.filter(r => r[field] !== undefined && r[field] !== null && r[field] !== 0);
+  rows.sort((a,b) => meta.asc ? a[field]-b[field] : b[field]-a[field]);
+  document.getElementById('lb-note').textContent = lbScope === 'country'
+    ? (myCountry ? `Drivers in ${myCountry}.` : 'Set your location during onboarding to enable this.')
+    : lbScope === 'city'
+    ? (myCity ? `Drivers in ${myCity}.` : 'Set your location during onboarding to enable this.')
+    : 'Every Speedy driver, worldwide. Updates after each drive.';
+  if (rows.length === 0) { cardsEl.innerHTML = `<div class="empty-card">No drivers here yet — be the first!</div>`; return; }
+  cardsEl.innerHTML = rows.slice(0, 100).map((r,i) => `
+    <div class="lb-card card-in ${currentUser && r.uid===currentUser.uid ? 'is-me' : ''}" style="animation-delay:${Math.min(i,10)*30}ms">
+      <div class="lb-rank">#${i+1}</div>
+      <div><div class="lb-cat">${r.username||'Driver'}</div><div class="lb-cat-sub">${r.city || r.country || meta.label}</div></div>
+      <div class="lb-val">${r[field]}${meta.suffix}</div>
     </div>`).join('');
 };
+
 window.renderSocial = function(){
-  const list = document.getElementById('friends-list');
-  if (friends.length === 0) {
-    list.innerHTML = `<div class="empty-card">Add a friend to see them here.</div>`;
-  } else {
-    list.innerHTML = friends.map((f,i) => `
-      <div class="friend-row card-in" style="animation-delay:${i*35}ms">
-        <div class="avatar-circle" style="--marker-col:var(--accent);">${f.name.charAt(0).toUpperCase()}</div>
-        <div><div class="friend-name">${f.name}</div>${f.code ? `<div class="friend-code">${f.code}</div>` : ''}</div>
-        <button class="friend-remove" onclick="window.removeFriend(${f.id})">
-          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>`).join('');
-  }
+  if (!currentUser) return;
+  document.getElementById('my-code-val').textContent = myFriendCode || '—';
+  window.startLeaderboardSync();
+  window.renderFriendsList();
   window.renderLeaderboard();
 };
 
@@ -1653,11 +2095,16 @@ window.endDriveNow = function(){ window.stopDrive(); };
 
 window.saveDrive = function(d){
   const car = cars.find(c=>c.id===d.carId);
-  if (car && d.maxSpeed > (car.topSpeed||0)) { car.topSpeed = d.maxSpeed; saveCars(); }
+  if (car && d.maxSpeed > (car.topSpeed||0)) { car.topSpeed = d.maxSpeed; saveCars(); writeProfile(); }
   let drives = loadJSON('drives', []); drives.unshift(d);
   saveJSON('drives', [...drives.filter(x=>x.isGhost), ...drives.filter(x=>!x.isGhost).slice(0,40)]);
   window.updateAllTimeStats();
   window.renderGarage();
+  window.pushLeaderboardSnapshot();
+  if (currentUser) {
+    // keep a slim cloud copy of recent drives (route+speedLog can be large, so cap how many we sync)
+    rtdb.ref('drives/' + currentUser.uid + '/' + d.id).set(d).catch(e => console.warn('drive sync failed', e.message));
+  }
 };
 
 /* =========================================================================
@@ -1926,11 +2373,11 @@ window.initGeolocation = function(){
   if ('geolocation' in navigator) {
     navigator.geolocation.watchPosition(p=>{
       if (isDebugMode) return;
+      if (telemetrySource !== 'phone') return;
       window.processTelemetry(p.coords.latitude, p.coords.longitude, Math.round((p.coords.speed||0)*3.6), p.coords.heading);
     }, e=>console.warn(e.message), {enableHighAccuracy:true, maximumAge:0, timeout:8000});
   }
 };
-if (onboarded) window.initGeolocation();
 
 window.handleSpeedTap = function(){
   speedTapCount++; clearTimeout(speedTapTimeout); speedTapTimeout = setTimeout(()=>speedTapCount=0, 1500);
