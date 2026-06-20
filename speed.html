@@ -424,7 +424,7 @@ input:checked + .slider:before{transform:translateX(21px);}
 .sheet-peek-hint .icon-sm{width:13px;height:13px;animation:hintBounce 2.2s ease-in-out infinite;}
 @keyframes hintBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
 #debug-banner{position:absolute;top:calc(64px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9999;background:var(--amber);color:#1a1100;font-weight:800;padding:5px 14px;border-radius:20px;font-size:.62rem;display:none;letter-spacing:.5px;}
-#toast{position:absolute;bottom:calc(var(--tab-h,76px) + 16px);left:50%;transform:translateX(-50%);z-index:9500;background:rgba(14,18,30,.95);color:#fff;border:1px solid var(--card-border);padding:10px 20px;border-radius:30px;display:none;text-align:center;font-size:.84rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#toast{position:absolute;bottom:calc(var(--tab-h,76px) + 16px);left:50%;transform:translateX(-50%);z-index:9500;background:var(--overlay-3);backdrop-filter:var(--glass-blur-sm);-webkit-backdrop-filter:var(--glass-blur-sm);color:#fff;border:1px solid var(--glass-hairline);padding:10px 20px;border-radius:30px;display:none;text-align:center;font-size:.84rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #toast.show{display:block;animation:toastIn .25s ease;}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 </style>
@@ -794,12 +794,18 @@ input:checked + .slider:before{transform:translateX(21px);}
       <span>ESP device</span>
     </div>
     <div class="setting-sub" style="margin-bottom:10px;">Pair a Speedy Tracker board to log drives without your phone in the car.</div>
+    <button class="ob-secondary-btn" onclick="window.scanForEspDevices()">
+      <span id="esp-scan-btn-label">Search for nearby devices</span>
+    </button>
+    <div id="esp-scan-results" style="margin-top:8px;"></div>
+    <div class="setting-sub" style="margin:14px 0 6px;">Or enter the code shown on the device screen</div>
     <div class="ob-row3">
-      <input class="ob-input" id="esp-code-input" placeholder="Device code, e.g. ESP-7F2A" style="text-transform:uppercase;">
+      <input class="ob-input" id="esp-code-input" placeholder="Device code, e.g. SD-7F2A" style="text-transform:uppercase;">
     </div>
     <button class="ob-secondary-btn" style="margin-top:8px;" onclick="window.claimEspDevice()">Connect device</button>
     <div class="auth-error" id="esp-claim-error"></div>
     <div id="esp-device-list" style="margin-top:10px;"></div>
+
 
     <button class="danger-btn" onclick="window.resetAppData()">Reset app data</button>
     <div class="settings-footer">Speedy syncs your profile and drives to your account.</div>
@@ -1037,13 +1043,19 @@ window.signOutUser = function(){
   if (!confirm('Sign out of Speedy?')) return;
   friendsListeners.forEach(off => off());
   friendsListeners = [];
+  Object.values(deviceListeners).forEach(off => { try{off();}catch(e){} });
+  deviceListeners = {};
   lbListenerOff = null;
   lbData = null;
   friendUids = [];
   friendProfiles = {};
   pairedDevices = {};
   telemetrySource = 'phone';
-  fbAuth.signOut();
+  // Clear everything tied to this account so a second account on the same
+  // browser/device never sees the previous driver's profile, garage or trip history.
+  ['sd_settings','sd_username','sd_cars','sd_active_car','sd_onboarded','sd_friend_code','sd_country','sd_city','drives']
+    .forEach(k => localStorage.removeItem(k));
+  fbAuth.signOut().then(() => location.reload()).catch(() => location.reload());
 };
 
 // ---- Profile sync (RTDB) ----
@@ -1309,8 +1321,7 @@ window.setTelemetrySource = function(src){
   window.showToast(src === 'phone' ? 'Tracking with phone GPS' : 'Tracking with ESP device');
 };
 
-window.claimEspDevice = function(){
-  const code = document.getElementById('esp-code-input').value.trim().toUpperCase();
+function claimDeviceCode(code){
   const errEl = document.getElementById('esp-claim-error');
   errEl.textContent = '';
   if (!code) { errEl.textContent = 'Enter the code shown by your device.'; return; }
@@ -1322,9 +1333,51 @@ window.claimEspDevice = function(){
       document.getElementById('esp-code-input').value = '';
       window.showToast('Device claimed — it will connect shortly');
       window.startDeviceSync();
+      window.scanForEspDevices(); // refresh the scan list so the claimed device drops out of "available"
     }).catch(e => { errEl.textContent = e.message; });
   }).catch(e => { errEl.textContent = e.message; });
+}
+
+window.claimEspDevice = function(){
+  const code = document.getElementById('esp-code-input').value.trim().toUpperCase();
+  claimDeviceCode(code);
 };
+
+// Devices broadcast a "pending" presence record (device_pending/{code}) as soon as
+// they power on and join WiFi, before anyone has claimed them. Scanning just reads
+// that list and filters out anything already claimed, so the person can tap to pair
+// instead of copying a code by hand.
+window.scanForEspDevices = function(){
+  const btnLabel = document.getElementById('esp-scan-btn-label');
+  const box = document.getElementById('esp-scan-results');
+  btnLabel.textContent = 'Scanning…';
+  box.innerHTML = '';
+  rtdb.ref('device_pending').once('value').then(snap => {
+    btnLabel.textContent = 'Search for nearby devices';
+    const all = snap.val() || {};
+    const now = Date.now();
+    const candidates = Object.keys(all).filter(code => {
+      const d = all[code];
+      return d && (now - (d.lastSeen||0) < 120000); // seen in the last 2 min = powered on right now
+    });
+    if (candidates.length === 0) { box.innerHTML = `<div class="empty-card" style="padding:14px;">No unpaired devices found. Make sure it's powered on and connected to WiFi.</div>`; return; }
+    // cross-check against existing claims so already-paired boards don't show as "available"
+    Promise.all(candidates.map(code => rtdb.ref('device_claims/' + code).once('value').then(s => ({code, claimed: !!s.val()}))))
+      .then(results => {
+        const unclaimed = results.filter(r => !r.claimed).map(r => r.code);
+        if (unclaimed.length === 0) { box.innerHTML = `<div class="empty-card" style="padding:14px;">No unpaired devices found. Make sure it's powered on and connected to WiFi.</div>`; return; }
+        box.innerHTML = unclaimed.map(code => `
+          <div class="friend-row" style="cursor:pointer;" onclick="window.claimEspDeviceFromScan('${code}')">
+            <div class="avatar-circle" style="--marker-col:var(--accent);">📡</div>
+            <div><div class="friend-name">${code}</div><div class="friend-code">Tap to connect</div></div>
+          </div>`).join('');
+      });
+  }).catch(() => {
+    btnLabel.textContent = 'Search for nearby devices';
+    box.innerHTML = `<div class="empty-card" style="padding:14px;">Couldn't search right now — try again.</div>`;
+  });
+};
+window.claimEspDeviceFromScan = function(code){ claimDeviceCode(code); };
 
 window.startDeviceSync = function(){
   if (!currentUser) return;
@@ -1371,9 +1424,24 @@ window.renderEspDeviceList = function(){
     const fresh = Date.now() - (d.ts||0) < 30000;
     return `<div class="friend-row">
       <div class="avatar-circle" style="--marker-col:${fresh?'var(--accent)':'var(--text-faint)'};">📡</div>
-      <div><div class="friend-name">${d.name || id}</div><div class="friend-code">${fresh ? `${Math.round(d.speedKmh||0)} km/h · live` : 'Offline'}</div></div>
+      <div style="flex:1;min-width:0;"><div class="friend-name">${d.name || id}</div><div class="friend-code">${fresh ? `${Math.round(d.speedKmh||0)} km/h · live` : 'Offline'}</div></div>
+      <button class="friend-remove" onclick="window.unpairEspDevice('${id}')" title="Forget device">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>`;
   }).join('');
+};
+
+window.unpairEspDevice = function(code){
+  if (!currentUser) return;
+  if (!confirm('Forget this device? You can re-pair it any time with its code.')) return;
+  const updates = {};
+  updates['device_claims/' + code] = null;
+  updates['live_devices/' + currentUser.uid + '/' + code] = null;
+  rtdb.ref().update(updates).then(() => {
+    if (telemetrySource === code) window.setTelemetrySource('phone');
+    window.showToast('Device forgotten');
+  }).catch(e => window.showToast('Could not unpair: ' + e.message));
 };
 
 let geocoderService = null;
@@ -2019,9 +2087,9 @@ window.generateSVGPreview = function(route, speeds){
       let col = speedColor(r);
       segs += `<line x1="${pts[i].split(',')[0]}" y1="${pts[i].split(',')[1]}" x2="${pts[i+1].split(',')[0]}" y2="${pts[i+1].split(',')[1]}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
     }
-    return `<svg viewBox="0 0 ${w} ${h}" style="background:#161d2e;">${segs}</svg>`;
+    return `<svg viewBox="0 0 ${w} ${h}" style="background:#1d1d20;">${segs}</svg>`;
   }
-  return `<svg viewBox="0 0 ${w} ${h}" style="background:#161d2e;"><polyline points="${pts.join(' ')}" fill="none" stroke="#3ddc8a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="background:#1d1d20;"><polyline points="${pts.join(' ')}" fill="none" stroke="#3ddc8a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 };
 
 /* =========================================================================
