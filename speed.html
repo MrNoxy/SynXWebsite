@@ -55,11 +55,11 @@ svg{display:block;}
 
 /* self location marker */
 .self-marker{position:relative;width:54px;height:54px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
-.self-pulse{position:absolute;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,var(--accent-pulse,rgba(61,220,138,.35)) 0%,rgba(61,220,138,0) 70%);animation:pulse-ring 2.4s ease-out infinite;}
-@keyframes pulse-ring{0%{transform:scale(.5);opacity:.9;}100%{transform:scale(1.5);opacity:0;}}
+.self-pulse{position:absolute;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,rgba(61,220,138,.22) 0%,rgba(61,220,138,0) 72%);animation:pulse-ring 2.6s ease-out infinite;}
+@keyframes pulse-ring{0%{transform:scale(.55);opacity:.7;}100%{transform:scale(1.35);opacity:0;}}
 .self-arrow{position:absolute;top:-2px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .15s linear;}
-.self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 10px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:11px;}
-.ghost-marker-icon{width:20px;height:20px;border-radius:50%;background:rgba(255,177,61,.85);border:2px solid #ffb13d;box-shadow:0 0 10px rgba(255,177,61,.7);}
+.self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:11px;}
+.ghost-marker-icon{width:18px;height:18px;border-radius:50%;background:#ffb13d;border:2px solid #1a1100;box-shadow:0 2px 6px rgba(0,0,0,.4);}
 
 /* ===== APP UI WRAPPER ===== */
 #app-ui{position:absolute;inset:0;z-index:5000;pointer-events:none;display:flex;flex-direction:column;}
@@ -111,26 +111,31 @@ svg{display:block;}
 /* ===== SPEED LIMIT BADGE ===== */
 #speed-limit-badge{
   position:absolute;top:calc(82px + var(--safe-top));right:16px;
-  width:52px;height:52px;border-radius:50%;background:#fff;border:5px solid #d61f1f;
+  width:50px;height:50px;border-radius:50%;
+  background:rgba(12,18,32,0.82);backdrop-filter:blur(16px);
+  border:2px solid rgba(255,255,255,0.16);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  pointer-events:none;box-shadow:0 6px 16px rgba(0,0,0,.5);
-  transition:border-color .25s, box-shadow .25s;
+  pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.35);
+  transition:border-color .25s, background .25s;
 }
-#speed-limit-badge.speeding{border-color:#ff2200;animation:badgePulse .8s infinite;}
-@keyframes badgePulse{0%,100%{box-shadow:0 0 0 4px rgba(255,34,0,.45),0 6px 16px rgba(0,0,0,.5);}50%{box-shadow:0 0 0 9px rgba(255,34,0,.12),0 6px 16px rgba(0,0,0,.5);}}
-#sl-val{font-size:1.15rem;font-weight:900;color:#181818;line-height:1;}
-#sl-lbl{font-size:.4rem;font-weight:800;color:#777;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+#speed-limit-badge.speeding{border-color:var(--red);background:rgba(40,12,12,0.82);}
+#sl-val{font-size:1.1rem;font-weight:900;color:#fff;line-height:1;}
+#speed-limit-badge.speeding #sl-val{color:var(--red);}
+#sl-lbl{font-size:.4rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
 
 /* ===== RECENTER BUTTON ===== */
 #recenter-btn{
-  position:absolute;right:16px;bottom:0;
-  width:46px;height:46px;border-radius:50%;border:none;cursor:pointer;
-  background:var(--accent);color:var(--accent-ink);
+  position:absolute;right:16px;
+  bottom:calc(var(--peek-h,188px) + var(--tab-h,76px) + 14px);
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--card-border);cursor:pointer;
+  background:rgba(12,18,32,0.85);backdrop-filter:blur(16px);color:var(--accent);
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 10px 26px rgba(61,220,138,.35);pointer-events:auto;
-  transition:transform .15s ease;
+  box-shadow:0 6px 16px rgba(0,0,0,.35);pointer-events:auto;
+  transition:transform .15s ease, bottom .3s cubic-bezier(.2,.85,.25,1), opacity .2s ease;
+  z-index:11;
 }
 #recenter-btn:active{transform:scale(.9);}
+#recenter-btn.sheet-expanded{opacity:0;pointer-events:none;bottom:calc(var(--tab-h,76px) + 14px);}
 
 /* ===== BOTTOM SHEET ===== */
 #sheet{
@@ -168,8 +173,6 @@ svg{display:block;}
 .peek-mini{flex:1;background:rgba(255,255,255,.03);border:1px solid var(--card-border);border-radius:var(--r-sm);padding:8px 4px;text-align:center;}
 .peek-mini-val{font-size:.95rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
 .peek-mini-lbl{font-size:.55rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.3px;margin-top:1px;}
-.peek-cta{margin-top:12px;width:100%;padding:12px;border-radius:var(--r-md);border:none;background:var(--accent);color:var(--accent-ink);font-weight:900;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
-.peek-cta:active{transform:scale(.98);}
 
 .sheet-body{flex:1;overflow-y:auto;padding:4px 20px calc(28px + var(--safe-bottom));-webkit-overflow-scrolling:touch;}
 .sheet-section{margin-top:22px;}
@@ -216,7 +219,7 @@ svg{display:block;}
 /* ===== TAB BAR ===== */
 #tab-bar{
   position:absolute;left:0;right:0;bottom:0;height:var(--tab-h,76px);
-  display:flex;align-items:flex-start;justify-content:center;gap:48px;
+  display:flex;align-items:flex-start;justify-content:center;gap:32px;
   padding-top:11px;padding-bottom:var(--safe-bottom);
   background:rgba(8,11,20,.92);backdrop-filter:blur(22px);
   border-top:1px solid var(--card-border);
@@ -230,9 +233,8 @@ svg{display:block;}
 
 /* ===== HISTORY VIEW ===== */
 #history-view{
-  position:absolute;inset:0;top:0;background:var(--bg);z-index:200;
+  position:absolute;left:0;right:0;top:0;bottom:var(--tab-h,76px);background:var(--bg);z-index:200;
   padding-top:calc(18px + var(--safe-top));
-  padding-bottom:var(--tab-h,76px);
   pointer-events:auto;display:flex;flex-direction:column;
 }
 .history-title{font-size:1.7rem;font-weight:900;letter-spacing:-.02em;padding:0 20px 14px;}
@@ -253,6 +255,33 @@ svg{display:block;}
 .drive-action-btn.ghost-on{background:rgba(255,177,61,.14);color:var(--amber);border-color:rgba(255,177,61,.3);}
 .empty-state{text-align:center;color:var(--text-faint);padding:80px 30px;font-size:.9rem;}
 .empty-state .icon{width:40px;height:40px;margin:0 auto 14px;color:#2a3349;}
+
+/* ===== SOCIAL VIEW ===== */
+#social-view{
+  position:absolute;left:0;right:0;top:0;bottom:var(--tab-h,76px);background:var(--bg);z-index:200;
+  padding-top:calc(18px + var(--safe-top));
+  pointer-events:auto;display:flex;flex-direction:column;
+}
+#social-list{flex:1;overflow-y:auto;padding:0 20px 30px;-webkit-overflow-scrolling:touch;}
+.social-section{margin-bottom:26px;}
+.social-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.social-section-title{font-size:.7rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;}
+.social-add-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--card-border);color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.empty-card{background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:18px;text-align:center;color:var(--text-faint);font-size:.82rem;font-weight:600;}
+.friend-row{display:flex;align-items:center;gap:12px;background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:11px 13px;margin-bottom:8px;}
+.friend-row .avatar-circle{width:38px;height:38px;font-size:.85rem;}
+.friend-name{font-size:.86rem;font-weight:800;color:#fff;}
+.friend-code{font-size:.66rem;color:var(--text-faint);font-weight:700;margin-top:1px;}
+.friend-remove{margin-left:auto;width:28px;height:28px;border-radius:50%;background:rgba(255,92,92,.08);color:var(--red);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.lb-note{font-size:.76rem;color:var(--text-faint);font-weight:600;line-height:1.45;margin-bottom:12px;}
+.lb-period-row{display:flex;gap:6px;margin-bottom:12px;}
+.lb-period-pill{flex:1;text-align:center;padding:8px 4px;border-radius:20px;background:var(--card-2);border:1px solid var(--card-border);color:var(--text-dim);font-size:.7rem;font-weight:800;cursor:pointer;}
+.lb-period-pill.active{background:rgba(61,220,138,.12);border-color:rgba(61,220,138,.35);color:var(--accent);}
+.lb-card{display:flex;align-items:center;gap:12px;background:var(--card-2);border:1px solid var(--card-border);border-radius:var(--r-md);padding:13px;margin-bottom:8px;}
+.lb-rank{width:34px;height:34px;border-radius:50%;background:rgba(61,220,138,.1);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.78rem;flex-shrink:0;}
+.lb-cat{font-size:.78rem;font-weight:800;color:#fff;}
+.lb-cat-sub{font-size:.64rem;color:var(--text-faint);font-weight:700;margin-top:1px;}
+.lb-val{margin-left:auto;text-align:right;font-size:1rem;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;}
 
 /* ===== ONBOARDING ===== */
 #onboarding{position:absolute;inset:0;z-index:9000;pointer-events:auto;}
@@ -340,27 +369,34 @@ input:checked + .slider:before{transform:translateX(21px);}
 
 /* ===== REPLAY OVERLAY ===== */
 #replay-overlay{position:absolute;bottom:0;left:0;right:0;z-index:6000;pointer-events:auto;display:none;}
-#replay-overlay.show{display:block;}
-.replay-panel{background:rgba(8,11,20,.97);border-top:1px solid var(--card-border);border-top-left-radius:24px;border-top-right-radius:24px;padding:16px 18px calc(22px + var(--safe-bottom));backdrop-filter:blur(20px);}
-.replay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
-.replay-title{font-size:.78rem;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:1px;}
-.replay-date{font-size:.68rem;color:var(--text-faint);margin-top:2px;}
-.replay-speed-badge{font-size:1.5rem;font-weight:900;font-variant-numeric:tabular-nums;}
-.replay-speed-unit{font-size:.62rem;color:var(--text-faint);font-weight:700;}
-.replay-close-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);border:none;color:#aab;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.replay-scrubber-wrap{position:relative;height:26px;margin-bottom:10px;cursor:pointer;}
-.replay-scrubber-track{position:absolute;top:50%;transform:translateY(-50%);width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
-.replay-scrubber-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--accent));border-radius:3px;width:0%;}
-.replay-scrubber-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 0 8px rgba(77,141,255,.8);left:0%;}
-.replay-time-row{display:flex;justify-content:space-between;font-size:.68rem;color:var(--text-faint);font-weight:700;margin-bottom:12px;}
-.replay-controls{display:flex;gap:8px;align-items:center;}
-.replay-ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;padding:10px 14px;border-radius:var(--r-sm);cursor:pointer;font-weight:700;font-size:.8rem;}
-.replay-ctrl-btn.play-pause{background:rgba(77,141,255,.16);border-color:rgba(77,141,255,.3);color:var(--blue);padding:10px 22px;}
-.replay-ctrl-btn.play-pause.playing{background:rgba(61,220,138,.14);border-color:rgba(61,220,138,.3);color:var(--accent);}
-.replay-speed-select{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;padding:10px;border-radius:var(--r-sm);font-size:.78rem;font-weight:800;flex:1;text-align:center;cursor:pointer;}
-.replay-speed-select.active{background:rgba(255,177,61,.14);border-color:rgba(255,177,61,.3);color:var(--amber);}
+#replay-overlay.show{display:block;animation:slideDown .3s cubic-bezier(.2,.85,.25,1) reverse;}
+.replay-panel{background:rgba(9,13,22,.97);border-top:1px solid var(--card-border);border-top-left-radius:24px;border-top-right-radius:24px;padding:14px 20px calc(20px + var(--safe-bottom));backdrop-filter:blur(20px);}
+.replay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.replay-back{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-dim);font-weight:800;font-size:.78rem;cursor:pointer;padding:6px 4px;}
+.replay-date{font-size:.66rem;color:var(--text-faint);font-weight:700;margin-top:1px;}
+.replay-close-btn{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);border:none;color:#aab;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.replay-speed-center{text-align:center;margin-bottom:20px;}
+.replay-speed-val{font-size:3rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em;transition:color .15s linear;}
+.replay-speed-unit{font-size:.7rem;font-weight:800;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.replay-scrubber-wrap{position:relative;height:30px;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;}
+.replay-scrubber-track{position:relative;width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.replay-scrubber-fill{height:100%;border-radius:3px;width:0%;transition:background .15s linear;}
+.replay-scrubber-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;border:3px solid #0b1120;left:0%;transition:background .15s linear;}
+.replay-time-row{display:flex;justify-content:space-between;font-size:.68rem;color:var(--text-faint);font-weight:700;margin-bottom:18px;font-variant-numeric:tabular-nums;}
+.replay-controls{display:flex;gap:10px;align-items:center;justify-content:center;}
+.replay-ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;width:46px;height:46px;border-radius:50%;cursor:pointer;font-weight:700;font-size:.68rem;display:flex;align-items:center;justify-content:center;}
+.replay-ctrl-btn.play-pause{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);width:58px;height:58px;}
+.replay-speed-select{background:rgba(255,255,255,.05);border:1px solid var(--card-border);color:#ccc;width:46px;height:46px;border-radius:50%;font-size:.7rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.replay-speed-select.active{background:rgba(255,177,61,.14);border-color:rgba(255,177,61,.35);color:var(--amber);}
 
 /* ===== MISC ===== */
+.view-anim{animation:viewFadeIn .26s cubic-bezier(.2,.85,.25,1);}
+@keyframes viewFadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.card-in{animation:cardIn .32s cubic-bezier(.2,.85,.25,1) backwards;}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.sheet-peek-hint{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:12px;color:var(--text-faint);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.sheet-peek-hint .icon-sm{width:13px;height:13px;animation:hintBounce 2.2s ease-in-out infinite;}
+@keyframes hintBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
 #debug-banner{position:absolute;top:calc(64px + var(--safe-top));left:50%;transform:translateX(-50%);z-index:9999;background:var(--amber);color:#1a1100;font-weight:800;padding:5px 14px;border-radius:20px;font-size:.62rem;display:none;letter-spacing:.5px;}
 #toast{position:absolute;bottom:calc(var(--tab-h,76px) + 16px);left:50%;transform:translateX(-50%);z-index:9500;background:rgba(14,18,30,.95);color:#fff;border:1px solid var(--card-border);padding:10px 20px;border-radius:30px;display:none;text-align:center;font-size:.84rem;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:84%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #toast.show{display:block;animation:toastIn .25s ease;}
@@ -446,6 +482,10 @@ input:checked + .slider:before{transform:translateX(21px);}
         <div class="peek-mini"><div class="peek-mini-val" id="peek-dist">0.0</div><div class="peek-mini-lbl">Distance km</div></div>
         <div class="peek-mini"><div class="peek-mini-val" id="peek-time">00:00</div><div class="peek-mini-lbl">Time</div></div>
       </div>
+      <div class="sheet-peek-hint">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        Garage &amp; stats
+      </div>
     </div>
 
     <div class="sheet-body">
@@ -506,15 +546,64 @@ input:checked + .slider:before{transform:translateX(21px);}
     <div id="history-list"></div>
   </div>
 
+  <!-- Social view -->
+  <div id="social-view" class="hidden">
+    <div class="history-title">Social</div>
+    <div id="social-list">
+      <div class="social-section">
+        <div class="social-section-header">
+          <div class="social-section-title">Friends</div>
+          <button class="social-add-btn" onclick="window.openAddFriend()">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div id="friends-list"></div>
+      </div>
+      <div class="social-section">
+        <div class="social-section-header"><div class="social-section-title">Leaderboard</div></div>
+        <div class="lb-note">Your personal bests. Add friends or sign in online to compare globally — leaderboard sync is coming soon.</div>
+        <div class="lb-period-row" id="lb-period-row">
+          <div class="lb-period-pill" data-p="today" onclick="window.setLeaderboardPeriod('today')">Today</div>
+          <div class="lb-period-pill" data-p="week" onclick="window.setLeaderboardPeriod('week')">Week</div>
+          <div class="lb-period-pill" data-p="month" onclick="window.setLeaderboardPeriod('month')">Month</div>
+          <div class="lb-period-pill active" data-p="all" onclick="window.setLeaderboardPeriod('all')">All-time</div>
+        </div>
+        <div id="lb-cards"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-bar">
     <button class="tab active" id="tab-drive" onclick="window.switchTab('drive')">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13v4H3v-4z"/></svg>
       <span>Drive</span>
     </button>
+    <button class="tab" id="tab-social" onclick="window.switchTab('social')">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Social</span>
+    </button>
     <button class="tab" id="tab-history" onclick="window.switchTab('history')">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19 9 5h2l-1 14"/><path d="M20 19 15 5h-2l1 14"/><line x1="12" y1="9" x2="12" y2="11"/><line x1="12" y1="14" x2="12" y2="16"/></svg>
       <span>History</span>
     </button>
+  </div>
+</div>
+
+<!-- Add friend modal -->
+<div class="modal-overlay center" id="friend-overlay">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">Add a friend</div>
+      <button class="modal-close" onclick="window.closeAddFriend()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="ob-field-label" style="margin-top:0;">Name</div>
+    <input class="ob-input" id="friend-name-input" placeholder="Friend's name" maxlength="20">
+    <div class="ob-field-label">Code (optional)</div>
+    <input class="ob-input" id="friend-code-input" placeholder="e.g. SD-4F2K" maxlength="12">
+    <button class="ob-primary-btn" style="margin-top:18px;" onclick="window.saveFriend()">Add friend</button>
+    <div class="settings-footer">Friends are stored on this device. Live syncing requires an account — coming soon.</div>
   </div>
 </div>
 
@@ -688,23 +777,22 @@ input:checked + .slider:before{transform:translateX(21px);}
 <div id="replay-overlay">
   <div class="replay-panel">
     <div class="replay-header">
-      <div>
-        <div class="replay-title">Drive replay</div>
-        <div class="replay-date" id="replay-date-label"></div>
-      </div>
-      <div style="text-align:right;">
-        <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end;">
-          <span class="replay-speed-badge" id="replay-cur-speed" style="color:var(--blue);">0</span>
-          <span class="replay-speed-unit">km/h</span>
-        </div>
-        <div style="font-size:.6rem;color:var(--text-faint);font-weight:700;" id="replay-progress-label">0 / 0 pts</div>
+      <button class="replay-back" onclick="window.closeReplay()">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Drives
+      </button>
+      <div style="text-align:center;">
+        <div class="replay-date" id="replay-date-label" style="font-weight:800;color:#fff;font-size:.78rem;">Drive replay</div>
       </div>
       <button class="replay-close-btn" onclick="window.closeReplay()">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
+    <div class="replay-speed-center">
+      <div class="replay-speed-val" id="replay-cur-speed">0</div>
+      <div class="replay-speed-unit">km/h</div>
+    </div>
     <div class="replay-scrubber-wrap" id="replay-scrubber-wrap">
-      <canvas id="replay-heatmap-canvas" style="position:absolute;top:50%;transform:translateY(-50%);width:100%;height:6px;border-radius:3px;pointer-events:none;"></canvas>
       <div class="replay-scrubber-track"><div class="replay-scrubber-fill" id="replay-fill"></div></div>
       <div class="replay-scrubber-thumb" id="replay-thumb"></div>
     </div>
@@ -713,12 +801,16 @@ input:checked + .slider:before{transform:translateX(21px);}
       <span id="replay-total-time">0:00</span>
     </div>
     <div class="replay-controls">
-      <button class="replay-ctrl-btn" onclick="window.replaySkip(-10)">−10s</button>
-      <button class="replay-ctrl-btn play-pause" id="replay-play-btn" onclick="window.replayTogglePlay()">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      <button class="replay-ctrl-btn" onclick="window.replaySkip(-10)" aria-label="Back 10 seconds">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
       </button>
-      <button class="replay-ctrl-btn" onclick="window.replaySkip(10)">+10s</button>
-      <button class="replay-speed-select" id="replay-speed-btn" onclick="window.replayCycleSpeed()">1× Speed</button>
+      <button class="replay-ctrl-btn play-pause" id="replay-play-btn" onclick="window.replayTogglePlay()" aria-label="Play">
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+      </button>
+      <button class="replay-ctrl-btn" onclick="window.replaySkip(10)" aria-label="Forward 10 seconds">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      </button>
+      <button class="replay-speed-select" id="replay-speed-btn" onclick="window.replayCycleSpeed()">1×</button>
     </div>
   </div>
 </div>
@@ -1007,18 +1099,103 @@ window.updateAllTimeStats = function(){
 /* =========================================================================
    TAB SWITCHING
    ========================================================================= */
+function reanimate(el){ el.classList.remove('view-anim'); void el.offsetWidth; el.classList.add('view-anim'); }
+
 window.switchTab = function(tab){
   const hist = document.getElementById('history-view');
+  const social = document.getElementById('social-view');
   document.getElementById('tab-drive').classList.toggle('active', tab==='drive');
+  document.getElementById('tab-social').classList.toggle('active', tab==='social');
   document.getElementById('tab-history').classList.toggle('active', tab==='history');
+  hist.classList.toggle('hidden', tab!=='history');
+  social.classList.toggle('hidden', tab!=='social');
   if (tab === 'history') {
-    hist.classList.remove('hidden');
     window.renderHistory();
+    reanimate(hist);
+  } else if (tab === 'social') {
+    window.renderSocial();
+    reanimate(social);
   } else {
-    hist.classList.add('hidden');
     if (window.historyPathLine) { map.removeLayer(window.historyPathLine); window.historyPathLine = null; }
     if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
   }
+};
+
+/* =========================================================================
+   SOCIAL: FRIENDS + LEADERBOARD (local foundation — ready for backend sync)
+   ========================================================================= */
+let friends = loadJSON('sd_friends', []);
+function saveFriends(){ saveJSON('sd_friends', friends); }
+
+window.openAddFriend = function(){
+  document.getElementById('friend-name-input').value = '';
+  document.getElementById('friend-code-input').value = '';
+  document.getElementById('friend-overlay').classList.add('show');
+};
+window.closeAddFriend = function(){ document.getElementById('friend-overlay').classList.remove('show'); };
+window.saveFriend = function(){
+  const name = document.getElementById('friend-name-input').value.trim();
+  if (!name) { window.showToast('Enter a name'); return; }
+  const code = document.getElementById('friend-code-input').value.trim();
+  friends.push({ id: Date.now(), name, code });
+  saveFriends();
+  window.closeAddFriend();
+  window.renderSocial();
+  window.showToast(`${name} added`);
+};
+window.removeFriend = function(id){
+  friends = friends.filter(f => f.id !== id);
+  saveFriends();
+  window.renderSocial();
+};
+
+let lbPeriod = 'all';
+window.setLeaderboardPeriod = function(p){
+  lbPeriod = p;
+  document.querySelectorAll('.lb-period-pill').forEach(el => el.classList.toggle('active', el.dataset.p === p));
+  window.renderLeaderboard();
+};
+function periodStartTs(p){
+  const now = Date.now();
+  if (p === 'today') { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+  if (p === 'week') return now - 7*24*60*60*1000;
+  if (p === 'month') return now - 30*24*60*60*1000;
+  return 0;
+}
+window.renderLeaderboard = function(){
+  const drives = loadJSON('drives', []).filter(d => !d.isGhost);
+  const start = periodStartTs(lbPeriod);
+  const inRange = drives.filter(d => (d.id || 0) >= start);
+  const topSpeed = inRange.reduce((m,d) => Math.max(m, d.maxSpeed||0), 0);
+  const best60 = inRange.reduce((m,d) => { const v = parseFloat(d.best0to60); return (!isNaN(v) && (m===null || v<m)) ? v : m; }, null);
+  const longest = inRange.reduce((m,d) => Math.max(m, d.distance||0), 0) / 1000;
+  const cards = [
+    { cat:'Top Speed', val: inRange.length ? `${topSpeed} km/h` : '—' },
+    { cat:'Best 0–60', val: best60 !== null ? `${best60.toFixed(1)}s` : '—' },
+    { cat:'Longest Drive', val: inRange.length ? `${longest.toFixed(1)} km` : '—' },
+  ];
+  document.getElementById('lb-cards').innerHTML = cards.map((c,i) => `
+    <div class="lb-card card-in" style="animation-delay:${i*35}ms">
+      <div class="lb-rank">#1</div>
+      <div><div class="lb-cat">${c.cat}</div><div class="lb-cat-sub">${username} · this device</div></div>
+      <div class="lb-val">${c.val}</div>
+    </div>`).join('');
+};
+window.renderSocial = function(){
+  const list = document.getElementById('friends-list');
+  if (friends.length === 0) {
+    list.innerHTML = `<div class="empty-card">Add a friend to see them here.</div>`;
+  } else {
+    list.innerHTML = friends.map((f,i) => `
+      <div class="friend-row card-in" style="animation-delay:${i*35}ms">
+        <div class="avatar-circle" style="--marker-col:var(--accent);">${f.name.charAt(0).toUpperCase()}</div>
+        <div><div class="friend-name">${f.name}</div>${f.code ? `<div class="friend-code">${f.code}</div>` : ''}</div>
+        <button class="friend-remove" onclick="window.removeFriend(${f.id})">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+  }
+  window.renderLeaderboard();
 };
 
 /* =========================================================================
@@ -1038,6 +1215,7 @@ window.setSheetState = function(expanded, animate=true){
   sheetExpanded = expanded;
   sheet.classList.toggle('dragging', !animate);
   sheet.style.transform = `translateY(${expanded ? sheetExpandedY() : sheetPeekY()}px)`;
+  document.getElementById('recenter-btn').classList.toggle('sheet-expanded', expanded);
   if (!animate) requestAnimationFrame(()=>sheet.classList.remove('dragging'));
 };
 window.toggleSheet = function(){ if (isDragging) return; window.setSheetState(!sheetExpanded); };
@@ -1346,7 +1524,7 @@ window.generateSVGPreview = function(route, speeds){
     let segs = '';
     for (let i=0;i<pts.length-1;i++){
       const r = speeds[i]/maxS;
-      let col = r > 0.7 ? '#ff5c5c' : r > 0.4 ? '#ffb13d' : '#3ddc8a';
+      let col = speedColor(r);
       segs += `<line x1="${pts[i].split(',')[0]}" y1="${pts[i].split(',')[1]}" x2="${pts[i+1].split(',')[0]}" y2="${pts[i+1].split(',')[1]}" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
     }
     return `<svg viewBox="0 0 ${w} ${h}" style="background:#161d2e;">${segs}</svg>`;
@@ -1466,7 +1644,7 @@ window.renderSummaryMap = function(canvas, route, speeds){
   ctx.lineWidth=3.5; ctx.lineCap='round'; ctx.lineJoin='round';
   for (let i=1;i<route.length;i++) {
     const r=(speeds[i]||0)/maxS;
-    let col = r>0.7?'#ff5c5c':r>0.4?'#ffb13d':'#3ddc8a';
+    let col = speedColor(r);
     ctx.strokeStyle=col;
     ctx.beginPath(); ctx.moveTo(toX(route[i-1][1]),toY(route[i-1][0])); ctx.lineTo(toX(route[i][1]),toY(route[i][0])); ctx.stroke();
   }
@@ -1588,7 +1766,7 @@ window.renderHistory = function(){
     const badge = cmp ? `<div class="drive-badge ${cmp.faster?'faster':'slower'}">${cmp.faster?'↓':'↑'} ${window.formatTime(cmp.seconds)} ${cmp.faster?'faster':'slower'} than usual</div>` : '';
     const routeName = (d.startName && d.endName) ? `${d.startName} → ${d.endName}` : 'Locating route…';
     const ts = d.id || Date.parse(d.date) || Date.now();
-    return `<div class="drive-card" onclick="window.openHistorySummary(${i})">
+    return `<div class="drive-card card-in" style="animation-delay:${Math.min(i,8)*35}ms" onclick="window.openHistorySummary(${i})">
       <div class="drive-thumb">${window.generateSVGPreview(d.route, speeds)}</div>
       <div class="drive-main">
         <div class="drive-date">${formatRelativeDate(ts)}</div>
@@ -1746,6 +1924,20 @@ let replayPlaying=false, replaySpeed=1, replayLastTick=0;
 let replayMarker=null, replayPathLine=null;
 const replaySpeedSpeeds=[1,2,4,8]; let replaySpeedIdx=0;
 
+const ICON_PLAY = '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+const ICON_PAUSE = '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+
+// Consistent speed -> color: green (slow) through amber to red (fast). Used everywhere a speed color appears.
+function speedColor(ratio){
+  ratio = Math.max(0, Math.min(1, ratio));
+  const stops = [[61,220,138],[255,177,61],[255,92,92]]; // green, amber, red
+  const seg = ratio < 0.5 ? 0 : 1;
+  const t = ratio < 0.5 ? ratio/0.5 : (ratio-0.5)/0.5;
+  const a = stops[seg], b = stops[seg+1];
+  const r = Math.round(a[0]+(b[0]-a[0])*t), g = Math.round(a[1]+(b[1]-a[1])*t), bl = Math.round(a[2]+(b[2]-a[2])*t);
+  return `rgb(${r},${g},${bl})`;
+}
+
 window.deriveSpeedsFromRoute = function(route, dur){
   if (!route || route.length<2) return [];
   const n=route.length, secPP=dur/Math.max(n-1,1);
@@ -1767,19 +1959,17 @@ window.startReplay = function(idx){
   replayIdxFloat=0; replayPlaying=false; replaySpeed=1; replaySpeedIdx=0;
   window.switchTab('drive');
   if (replayPathLine) map.removeLayer(replayPathLine);
-  replayPathLine = L.polyline(d.route, { color:'rgba(77,141,255,0.25)', weight:5, opacity:1 }).addTo(map);
-  map.fitBounds(replayPathLine.getBounds());
+  replayPathLine = L.polyline(d.route, { color:'rgba(255,255,255,0.18)', weight:5, opacity:1 }).addTo(map);
+  map.fitBounds(replayPathLine.getBounds(), { padding:[40,40] });
   if (replayMarker) map.removeLayer(replayMarker);
-  replayMarker = L.circleMarker(d.route[0], { radius:9, color:'#4d8dff', fillColor:'#4d8dff', fillOpacity:1, zIndexOffset:2000 }).addTo(map);
+  replayMarker = L.circleMarker(d.route[0], { radius:8, color:'#0b1120', weight:2, fillColor:speedColor(0), fillOpacity:1 }).addTo(map);
   document.getElementById('replay-overlay').classList.add('show');
   document.getElementById('replay-date-label').textContent = formatRelativeDate(d.id || Date.now());
   document.getElementById('replay-total-time').textContent = window.formatTime(d.duration);
   const btn = document.getElementById('replay-play-btn');
-  btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-  btn.classList.remove('playing');
-  document.getElementById('replay-speed-btn').textContent = '1× Speed';
+  btn.innerHTML = ICON_PLAY;
+  document.getElementById('replay-speed-btn').textContent = '1×';
   document.getElementById('replay-speed-btn').classList.remove('active');
-  setTimeout(()=>window.drawReplayHeatmap(d, replayDerivedSpeeds), 50);
   window.updateReplayUI();
   const wrap = document.getElementById('replay-scrubber-wrap');
   wrap.ontouchstart = wrap.onmousedown = function(e){
@@ -1798,41 +1988,27 @@ window.startReplay = function(idx){
   };
 };
 
-window.drawReplayHeatmap = function(d, speeds){
-  const canvas = document.getElementById('replay-heatmap-canvas');
-  const wrap = document.getElementById('replay-scrubber-wrap');
-  const W = Math.max(wrap.clientWidth,200), H=6;
-  canvas.width=W; canvas.height=H; canvas.style.width='100%'; canvas.style.height='6px';
-  const ctx = canvas.getContext('2d');
-  const maxS = Math.max(...speeds,1);
-  for (let i=0;i<W;i++){
-    const s = (speeds[Math.round(i/W*(speeds.length-1))]||0)/maxS;
-    let r,g,b;
-    if (s<0.33) { r=0; g=Math.round(s*3*200); b=255; }
-    else if (s<0.66) { const t=(s-0.33)*3; r=0; g=200+Math.round(t*55); b=Math.round(255*(1-t)); }
-    else { const t=(s-0.66)*3; r=Math.round(t*255); g=255-Math.round(t*100); b=0; }
-    ctx.fillStyle=`rgb(${r},${g},${b})`; ctx.fillRect(i,0,1,H);
-  }
-};
-
 window.updateReplayUI = function(){
   if (!replayDrive || !replayDerivedSpeeds) return;
   const total = replayDrive.route.length;
   const iIdx = Math.min(Math.floor(replayIdxFloat), total-1);
   const frac = iIdx/Math.max(total-1,1);
   const pct = (frac*100).toFixed(2)+'%';
-  document.getElementById('replay-fill').style.width = pct;
-  document.getElementById('replay-thumb').style.left = pct;
   const curSpeed = replayDerivedSpeeds[iIdx]!==undefined ? replayDerivedSpeeds[iIdx] : 0;
-  document.getElementById('replay-cur-speed').textContent = curSpeed;
-  document.getElementById('replay-cur-time').textContent = window.formatTime(Math.round(frac*replayDrive.duration));
-  document.getElementById('replay-progress-label').textContent = `${iIdx+1} / ${total} pts`;
-  const pt = replayDrive.route[iIdx]; if (!pt) return;
-  if (replayMarker) replayMarker.setLatLng(pt);
-  if (!isUserPanning) map.panTo(pt);
   const ratio = curSpeed/Math.max(replayDrive.maxSpeed,1);
-  const col = ratio>0.7?'#ff5c5c':ratio>0.4?'#ffb13d':ratio>0.15?'#3ddc8a':'#4d8dff';
-  if (replayMarker) replayMarker.setStyle({color:col, fillColor:col});
+  const col = speedColor(ratio);
+
+  document.getElementById('replay-fill').style.width = pct;
+  document.getElementById('replay-fill').style.background = col;
+  document.getElementById('replay-thumb').style.left = pct;
+  document.getElementById('replay-thumb').style.background = col;
+  document.getElementById('replay-cur-speed').textContent = curSpeed;
+  document.getElementById('replay-cur-speed').style.color = col;
+  document.getElementById('replay-cur-time').textContent = window.formatTime(Math.round(frac*replayDrive.duration));
+
+  const pt = replayDrive.route[iIdx]; if (!pt) return;
+  if (replayMarker) { replayMarker.setLatLng(pt); replayMarker.setStyle({ fillColor: col }); }
+  if (!isUserPanning) map.panTo(pt);
 };
 
 window.replayTogglePlay = function(){
@@ -1841,13 +2017,11 @@ window.replayTogglePlay = function(){
   const btn = document.getElementById('replay-play-btn');
   if (replayPlaying) {
     if (replayIdxFloat >= replayDrive.route.length-1) replayIdxFloat = 0;
-    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-    btn.classList.add('playing');
+    btn.innerHTML = ICON_PAUSE;
     replayLastTick = performance.now();
     replayFrame = requestAnimationFrame(window.replayTick);
   } else {
-    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-    btn.classList.remove('playing');
+    btn.innerHTML = ICON_PLAY;
     if (replayFrame) { cancelAnimationFrame(replayFrame); replayFrame=null; }
   }
 };
@@ -1861,9 +2035,7 @@ window.replayTick = function(ts){
   replayIdxFloat = Math.min(replayIdxFloat + (msPerPoint>0 ? (elapsed*replaySpeed)/msPerPoint : 0), replayDrive.route.length-1);
   if (replayIdxFloat >= replayDrive.route.length-1) {
     replayIdxFloat = replayDrive.route.length-1; replayPlaying=false;
-    const btn = document.getElementById('replay-play-btn');
-    btn.innerHTML = '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle;"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
-    btn.classList.remove('playing');
+    document.getElementById('replay-play-btn').innerHTML = ICON_PLAY;
     window.updateReplayUI(); window.showToast('Replay complete'); return;
   }
   window.updateReplayUI();
@@ -1881,7 +2053,7 @@ window.replayCycleSpeed = function(){
   replaySpeedIdx = (replaySpeedIdx+1)%replaySpeedSpeeds.length;
   replaySpeed = replaySpeedSpeeds[replaySpeedIdx];
   const btn = document.getElementById('replay-speed-btn');
-  btn.textContent = replaySpeed+'× Speed';
+  btn.textContent = replaySpeed+'×';
   btn.classList.toggle('active', replaySpeed!==1);
 };
 
