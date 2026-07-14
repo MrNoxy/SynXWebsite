@@ -159,6 +159,23 @@ svg{display:block;}
 #recenter-btn:active{transform:scale(.9);}
 #recenter-btn.sheet-expanded{opacity:0;pointer-events:none;bottom:calc(var(--tab-h,76px) + 14px);}
 
+#compass-btn{
+  position:absolute;right:16px;
+  bottom:calc(var(--peek-h,188px) + var(--tab-h,76px) + 66px);
+  width:40px;height:40px;border-radius:50%;border:1px solid var(--glass-hairline);cursor:pointer;
+  background:var(--overlay-1);backdrop-filter:var(--glass-blur-sm);-webkit-backdrop-filter:var(--glass-blur-sm);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 16px rgba(0,0,0,.3);pointer-events:auto;
+  transition:transform .15s ease, bottom .3s cubic-bezier(.2,.85,.25,1), opacity .2s ease;
+  z-index:11;opacity:0;pointer-events:none;
+}
+#compass-btn.visible{opacity:1;pointer-events:auto;}
+#compass-btn:active{transform:scale(.9);}
+#compass-btn.sheet-expanded{opacity:0!important;pointer-events:none;bottom:calc(var(--tab-h,76px) + 66px);}
+#compass-btn svg{transition:transform .1s linear;}
+#compass-needle-n{fill:#ff4d4f;}
+#compass-needle-s{fill:var(--text-faint);}
+
 /* ===== BOTTOM SHEET ===== */
 #sheet{
   position:absolute;left:0;right:0;bottom:var(--tab-h,76px);
@@ -605,6 +622,12 @@ input:checked + .slider:before{transform:translateX(21px);}
     <div id="sl-lbl">km/h</div>
   </div>
 
+  <button id="compass-btn" onclick="window.compassReset()" aria-label="Reset to north">
+    <svg viewBox="0 0 24 24" width="22" height="22">
+      <polygon id="compass-needle-n" points="12,3 15,12 12,10.5 9,12"/>
+      <polygon id="compass-needle-s" points="12,21 15,12 12,13.5 9,12"/>
+    </svg>
+  </button>
   <button id="recenter-btn" class="hidden" onclick="window.forceRecenter()" aria-label="Recenter">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
   </button>
@@ -2515,6 +2538,7 @@ window.setSheetState = function(expanded, animate=true){
   sheet.classList.toggle('dragging', !animate);
   sheet.style.transform = `translateY(${expanded ? sheetExpandedY() : sheetPeekY()}px)`;
   document.getElementById('recenter-btn').classList.toggle('sheet-expanded', expanded);
+  document.getElementById('compass-btn').classList.toggle('sheet-expanded', expanded);
   if (!animate) requestAnimationFrame(()=>sheet.classList.remove('dragging'));
 };
 window.toggleSheet = function(){ if (isDragging) return; window.setSheetState(!sheetExpanded); };
@@ -2581,8 +2605,12 @@ window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, f
 const map = L.map('map', { zoomControl:false, rotate:true, touchRotate:true, rotateControl:false }).setView([44.4782, 26.1481], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
 
-let isUserPanning = false, panTimeout = null;
-let mapFollowHeading = true, programmaticBearingSet = false, lastHeadingValue = null;
+let isUserPanning = false, panTimeout = null, rotateTimeout = null;
+let mapFollowHeading = true, programmaticBearingSet = false, lastHeadingValue = null, lastArrowRotation = 0;
+function shortestRotation(current, target){
+  const delta = (((target - current) % 360) + 540) % 360 - 180;
+  return current + delta;
+}
 map.on('dragstart', () => {
   isUserPanning = true;
   document.getElementById('recenter-btn').classList.remove('hidden');
@@ -2590,17 +2618,36 @@ map.on('dragstart', () => {
 });
 map.on('dragend', () => { panTimeout = setTimeout(window.forceRecenter, 10000); });
 map.on('rotate', () => {
+  updateCompass();
   if (programmaticBearingSet) return; // this was us auto-following heading, not the user
   mapFollowHeading = false; // user pinch-rotated manually — stop overriding their choice
   document.getElementById('recenter-btn').classList.remove('hidden');
   clearTimeout(panTimeout);
+  clearTimeout(rotateTimeout);
+  if (isDriving) rotateTimeout = setTimeout(window.forceRecenter, 6000); // re-lock to heading-up after a few quiet seconds, only while actually driving
 });
+
+function updateCompass(){
+  const b = map.getBearing();
+  const btn = document.getElementById('compass-btn');
+  btn.querySelector('svg').style.transform = `rotate(${-b}deg)`;
+  btn.classList.toggle('visible', Math.abs(((b+180)%360)-180) > 2);
+}
+window.compassReset = function(){
+  mapFollowHeading = false;
+  clearTimeout(rotateTimeout);
+  programmaticBearingSet = true;
+  map.setBearing(0);
+  programmaticBearingSet = false;
+  updateCompass();
+  if (isDriving) document.getElementById('recenter-btn').classList.remove('hidden');
+};
 
 window.forceRecenter = function(){
   isUserPanning = false;
   mapFollowHeading = true;
   document.getElementById('recenter-btn').classList.add('hidden');
-  if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
+  if (lastPos) map.panTo([lastPos.lat, lastPos.lng], {animate:false});
   programmaticBearingSet = true;
   map.setBearing(isDriving && lastHeadingValue !== null ? lastHeadingValue : 0);
   programmaticBearingSet = false;
@@ -3249,6 +3296,8 @@ window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
   document.getElementById('perf-rpm').textContent = calcRPM;
   document.getElementById('perf-gear').textContent = calculateGear(speedKmh);
 
+  if (!isUserPanning) map.panTo([lat,lng], {animate:false});
+
   if (speedKmh > 3) {
     const heading = providedHeading!==null && !isNaN(providedHeading) ? providedHeading : (lastPos ? window.calculateBearing(lastPos.lat,lastPos.lng,lat,lng) : null);
     if (heading !== null) {
@@ -3259,7 +3308,10 @@ window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
         programmaticBearingSet = false;
       }
       const arrow = document.getElementById('self-arrow');
-      if (arrow) arrow.style.transform = `rotate(${heading - map.getBearing()}deg)`;
+      if (arrow) {
+        lastArrowRotation = shortestRotation(lastArrowRotation, heading - map.getBearing());
+        arrow.style.transform = `rotate(${lastArrowRotation}deg)`;
+      }
     }
   }
 
@@ -3279,7 +3331,6 @@ window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
 
   lastPos = {lat,lng};
   marker.setLatLng([lat,lng]);
-  if (!isUserPanning) map.panTo([lat,lng]);
   window.updateLivePresence(lat, lng, speedKmh, providedHeading);
 
   window.updateSpeedLimitBadge(speedKmh);
@@ -3526,7 +3577,7 @@ window.updateReplayUI = function(){
 
   const pt = replayDrive.route[iIdx]; if (!pt) return;
   if (replayMarker) { replayMarker.setLatLng(pt); replayMarker.setStyle({ fillColor: col }); }
-  if (!isUserPanning) map.panTo(pt);
+  if (!isUserPanning) map.panTo(pt, {animate:false});
 };
 
 window.replayTogglePlay = function(){
