@@ -1178,6 +1178,7 @@ input:checked + .slider:before{transform:translateX(21px);}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -2577,21 +2578,32 @@ window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, f
 /* =========================================================================
    MAP SETUP
    ========================================================================= */
-const map = L.map('map', { zoomControl:false }).setView([44.4782, 26.1481], 16);
+const map = L.map('map', { zoomControl:false, rotate:true, touchRotate:true, rotateControl:false }).setView([44.4782, 26.1481], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
 
 let isUserPanning = false, panTimeout = null;
+let mapFollowHeading = true, programmaticBearingSet = false, lastHeadingValue = null;
 map.on('dragstart', () => {
   isUserPanning = true;
   document.getElementById('recenter-btn').classList.remove('hidden');
   clearTimeout(panTimeout);
 });
 map.on('dragend', () => { panTimeout = setTimeout(window.forceRecenter, 10000); });
+map.on('rotate', () => {
+  if (programmaticBearingSet) return; // this was us auto-following heading, not the user
+  mapFollowHeading = false; // user pinch-rotated manually — stop overriding their choice
+  document.getElementById('recenter-btn').classList.remove('hidden');
+  clearTimeout(panTimeout);
+});
 
 window.forceRecenter = function(){
   isUserPanning = false;
+  mapFollowHeading = true;
   document.getElementById('recenter-btn').classList.add('hidden');
   if (lastPos) map.panTo([lastPos.lat, lastPos.lng]);
+  programmaticBearingSet = true;
+  map.setBearing(isDriving && lastHeadingValue !== null ? lastHeadingValue : 0);
+  programmaticBearingSet = false;
 };
 window.addEventListener('orientationchange', () => setTimeout(() => { map.invalidateSize(); window.forceRecenter(); }, 250));
 
@@ -3021,6 +3033,8 @@ window.stopDrive = function(){
   clearInterval(driveTimerInterval); clearInterval(stopWatchInterval);
   if (debugInterval) clearInterval(debugInterval);
   ghostMarker.removeFrom(map); ghostStartZone.removeFrom(map);
+  mapFollowHeading = true;
+  programmaticBearingSet = true; map.setBearing(0); programmaticBearingSet = false;
   if (currentDrive.distance>0 || currentDrive.maxSpeed>0) {
     window.saveDrive(currentDrive);
     window.showTripSummary(currentDrive);
@@ -3238,8 +3252,14 @@ window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
   if (speedKmh > 3) {
     const heading = providedHeading!==null && !isNaN(providedHeading) ? providedHeading : (lastPos ? window.calculateBearing(lastPos.lat,lastPos.lng,lat,lng) : null);
     if (heading !== null) {
+      lastHeadingValue = heading;
+      if (isDriving && mapFollowHeading) {
+        programmaticBearingSet = true;
+        map.setBearing(heading);
+        programmaticBearingSet = false;
+      }
       const arrow = document.getElementById('self-arrow');
-      if (arrow) arrow.style.transform = `rotate(${heading}deg)`;
+      if (arrow) arrow.style.transform = `rotate(${heading - map.getBearing()}deg)`;
     }
   }
 
