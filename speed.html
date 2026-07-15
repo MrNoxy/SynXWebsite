@@ -58,7 +58,9 @@ svg{display:block;}
 
 /* ===== MAP ===== */
 #map-wrapper{position:absolute;inset:0;overflow:hidden;background:var(--bg);z-index:1;}
-#map{position:absolute;width:150%;height:150%;top:-25%;left:-25%;filter:saturate(0.75) brightness(0.92);}
+#map-rotator{position:absolute;width:150%;height:150%;top:-25%;left:-25%;transform-origin:50% 50%;transition:transform .35s linear;filter:saturate(0.75) brightness(0.92);}
+#map-rotator.no-transition{transition:none;}
+#map{position:absolute;inset:0;width:100%;height:100%;}
 .leaflet-routing-container{display:none !important;}
 .leaflet-control-zoom{display:none !important;}
 .leaflet-popup{transition:transform .25s linear;}
@@ -577,7 +579,7 @@ input:checked + .slider:before{transform:translateX(21px);}
   </div>
 </div>
 
-<div id="map-wrapper"><div id="map"></div></div>
+<div id="map-wrapper"><div id="map-rotator"><div id="map"></div></div></div>
 
 <div id="app-ui">
   <div id="top-bar">
@@ -1201,7 +1203,6 @@ input:checked + .slider:before{transform:translateX(21px);}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -2601,45 +2602,53 @@ window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, f
 
 /* =========================================================================
    MAP SETUP
+   Leaflet itself is kept completely vanilla (no rotation awareness at all —
+   its dragging, zoom and marker positioning are 100% its own normal, always-
+   correct code). Rotation is applied purely as a CSS transform on #map-rotator,
+   a wrapper around Leaflet's container. Because that makes Leaflet's own touch/
+   drag math see a rotated container (which it can't account for), we disable
+   its native dragging/touch-zoom/wheel-zoom and drive all of that ourselves
+   with rotation-compensated math below — verified by hand, not borrowed from
+   a third-party plugin.
    ========================================================================= */
-const map = L.map('map', { zoomControl:false, rotate:true, touchRotate:true, rotateControl:false }).setView([44.4782, 26.1481], 16);
+const map = L.map('map', { zoomControl:false, dragging:false, touchZoom:false, scrollWheelZoom:false, zoomSnap:0, zoomDelta:0.5 }).setView([44.4782, 26.1481], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
 
 let isUserPanning = false, panTimeout = null, rotateTimeout = null;
-let mapFollowHeading = true, programmaticBearingSet = false, lastHeadingValue = null, lastArrowRotation = 0;
+let mapFollowHeading = true, lastHeadingValue = null, lastArrowRotation = 0;
+let currentBearing = 0;   // canonical 0-360: the compass direction currently pointing "up" on screen
+let mapRotationDeg = 0;   // continuous/unwrapped value driving the CSS transform (avoids long-way-round spins)
+const mapRotator = document.getElementById('map-rotator');
+
 function shortestRotation(current, target){
   const delta = (((target - current) % 360) + 540) % 360 - 180;
   return current + delta;
 }
-map.on('dragstart', () => {
-  isUserPanning = true;
-  document.getElementById('recenter-btn').classList.remove('hidden');
-  clearTimeout(panTimeout);
-});
-map.on('dragend', () => { panTimeout = setTimeout(window.forceRecenter, 10000); });
-map.on('rotate', () => {
+// Rotates a screen-space vector by `deg` (clockwise-positive, matching CSS rotate()).
+// Used to convert raw finger/mouse movement into the map's own internal pixel
+// space, which — since Leaflet has no idea it's being visually rotated — always
+// stays in the un-rotated frame.
+function rotateVec(dx, dy, deg){
+  const r = deg * Math.PI/180, c = Math.cos(r), s = Math.sin(r);
+  return { x: dx*c - dy*s, y: dx*s + dy*c };
+}
+
+function setMapBearing(bearingDeg){
+  currentBearing = ((bearingDeg % 360) + 360) % 360;
+  mapRotationDeg = shortestRotation(mapRotationDeg, -currentBearing);
+  mapRotator.style.transform = `rotate(${mapRotationDeg}deg)`;
   updateCompass();
-  if (programmaticBearingSet) return; // this was us auto-following heading, not the user
-  mapFollowHeading = false; // user pinch-rotated manually — stop overriding their choice
-  document.getElementById('recenter-btn').classList.remove('hidden');
-  clearTimeout(panTimeout);
-  clearTimeout(rotateTimeout);
-  if (isDriving) rotateTimeout = setTimeout(window.forceRecenter, 6000); // re-lock to heading-up after a few quiet seconds, only while actually driving
-});
+}
 
 function updateCompass(){
-  const b = map.getBearing();
   const btn = document.getElementById('compass-btn');
-  btn.querySelector('svg').style.transform = `rotate(${-b}deg)`;
-  btn.classList.toggle('visible', Math.abs(((b+180)%360)-180) > 2);
+  btn.querySelector('svg').style.transform = `rotate(${-currentBearing}deg)`;
+  btn.classList.toggle('visible', Math.abs(((currentBearing+180)%360)-180) > 2);
 }
 window.compassReset = function(){
   mapFollowHeading = false;
   clearTimeout(rotateTimeout);
-  programmaticBearingSet = true;
-  map.setBearing(0);
-  programmaticBearingSet = false;
-  updateCompass();
+  setMapBearing(0);
   if (isDriving) document.getElementById('recenter-btn').classList.remove('hidden');
 };
 
@@ -2648,11 +2657,115 @@ window.forceRecenter = function(){
   mapFollowHeading = true;
   document.getElementById('recenter-btn').classList.add('hidden');
   if (lastPos) map.panTo([lastPos.lat, lastPos.lng], {animate:false});
-  programmaticBearingSet = true;
-  map.setBearing(isDriving && lastHeadingValue !== null ? lastHeadingValue : 0);
-  programmaticBearingSet = false;
+  setMapBearing(isDriving && lastHeadingValue !== null ? lastHeadingValue : 0);
 };
 window.addEventListener('orientationchange', () => setTimeout(() => { map.invalidateSize(); window.forceRecenter(); }, 250));
+
+function userTookOverRotation(){
+  mapFollowHeading = false;
+  document.getElementById('recenter-btn').classList.remove('hidden');
+  clearTimeout(panTimeout); clearTimeout(rotateTimeout);
+  if (isDriving) rotateTimeout = setTimeout(window.forceRecenter, 6000); // re-lock to heading-up after a few quiet seconds
+}
+function userTookOverPanning(){
+  isUserPanning = true;
+  document.getElementById('recenter-btn').classList.remove('hidden');
+  clearTimeout(panTimeout);
+}
+function schedulePanTimeout(){ panTimeout = setTimeout(window.forceRecenter, 10000); }
+
+/* ---- custom gesture handling (pan / pinch-zoom / pinch-rotate) ---- */
+(function(){
+  const wrapper = document.getElementById('map-wrapper');
+  let mode = null; // 'pan' | 'multi'
+  let lastX = 0, lastY = 0, moved = false;
+  let lastTwo = null; // {dist, ang, mid}
+
+  function pointFromTouch(t){ return { x:t.clientX, y:t.clientY }; }
+  function dist(a,b){ return Math.hypot(b.x-a.x, b.y-a.y); }
+  function angle(a,b){ return Math.atan2(b.y-a.y, b.x-a.x) * 180/Math.PI; }
+  function mid(a,b){ return { x:(a.x+b.x)/2, y:(a.y+b.y)/2 }; }
+
+  function doPan(dx, dy){
+    // content should follow the finger; convert that screen-space intent into
+    // Leaflet's own (un-rotated) internal pixel space before panning it
+    const shift = rotateVec(-dx, -dy, currentBearing);
+    map.panBy([shift.x, shift.y], {animate:false, duration:0});
+  }
+
+  function onSingleStart(x, y){
+    mode = 'pan'; lastX = x; lastY = y; moved = false;
+  }
+  function onSingleMove(x, y){
+    const dx = x-lastX, dy = y-lastY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+      if (!moved) { moved = true; userTookOverPanning(); }
+      doPan(dx, dy);
+      lastX = x; lastY = y;
+    }
+  }
+  function onSingleEnd(){
+    if (moved) schedulePanTimeout();
+    mode = null;
+  }
+
+  function onMultiStart(t1, t2){
+    mode = 'multi';
+    mapRotator.classList.add('no-transition');
+    const p1 = pointFromTouch(t1), p2 = pointFromTouch(t2);
+    lastTwo = { dist: dist(p1,p2), ang: angle(p1,p2), mid: mid(p1,p2) };
+  }
+  function onMultiMove(t1, t2){
+    const p1 = pointFromTouch(t1), p2 = pointFromTouch(t2);
+    const d = dist(p1,p2), a = angle(p1,p2), m = mid(p1,p2);
+    if (lastTwo) {
+      const scaleRatio = d / (lastTwo.dist || d);
+      const deltaAngle = a - lastTwo.ang;
+      const dxMid = m.x - lastTwo.mid.x, dyMid = m.y - lastTwo.mid.y;
+      if (Math.abs(deltaAngle) > 0.15) {
+        userTookOverRotation();
+        setMapBearing(currentBearing - deltaAngle);
+      }
+      if (Math.abs(scaleRatio-1) > 0.0008) {
+        map.setZoom(map.getZoom() + Math.log2(scaleRatio), {animate:false});
+      }
+      if (Math.abs(dxMid) > 0.5 || Math.abs(dyMid) > 0.5) doPan(dxMid, dyMid);
+    }
+    lastTwo = { dist:d, ang:a, mid:m };
+  }
+  function onMultiEnd(){
+    schedulePanTimeout();
+    mode = null; lastTwo = null;
+    mapRotator.classList.remove('no-transition');
+  }
+
+  wrapper.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) onSingleStart(e.touches[0].clientX, e.touches[0].clientY);
+    else if (e.touches.length === 2) onMultiStart(e.touches[0], e.touches[1]);
+  }, {passive:true});
+  wrapper.addEventListener('touchmove', e => {
+    if (mode === 'pan' && e.touches.length === 1) { e.preventDefault(); onSingleMove(e.touches[0].clientX, e.touches[0].clientY); }
+    else if (e.touches.length === 2) { e.preventDefault(); if (mode !== 'multi') onMultiStart(e.touches[0], e.touches[1]); else onMultiMove(e.touches[0], e.touches[1]); }
+  }, {passive:false});
+  wrapper.addEventListener('touchend', e => {
+    if (e.touches.length === 0) { if (mode==='pan') onSingleEnd(); else if (mode==='multi') onMultiEnd(); }
+    else if (e.touches.length === 1) { onMultiEnd(); onSingleStart(e.touches[0].clientX, e.touches[0].clientY); }
+  }, {passive:true});
+
+  // desktop mouse drag (single-pointer equivalent of touch pan)
+  let mouseDown = false;
+  wrapper.addEventListener('mousedown', e => { if (e.button!==0) return; mouseDown = true; onSingleStart(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { if (mouseDown) onSingleMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (mouseDown) { mouseDown = false; onSingleEnd(); } });
+
+  // desktop wheel zoom — always around the current center (avoids needing
+  // rotation-aware cursor-position math, which would otherwise be another
+  // place for a subtle offset bug to creep in)
+  wrapper.addEventListener('wheel', e => {
+    e.preventDefault();
+    map.setZoom(map.getZoom() - e.deltaY * 0.0025, {animate:false});
+  }, {passive:false});
+})();
 
 /* Self marker (custom divIcon) */
 function buildSelfIcon(){
@@ -2757,7 +2870,7 @@ window.buildNavigationRoute = function(dest, name){
 
   routingControl = L.Routing.control({
     waypoints:[L.latLng(lastPos.lat, lastPos.lng), dest],
-    routeWhileDragging:false, addWaypoints:false, show:false,
+    routeWhileDragging:false, addWaypoints:false, show:false, fitSelectedRoutes:false,
     lineOptions:{ styles:[{ color:'#4d8dff', weight:6, opacity:0.85 }] }
   }).addTo(map);
 
@@ -3024,7 +3137,9 @@ window.generateSVGPreview = function(route, speeds){
 window.startDrive = function(){
   if (isDriving) return;
   isDriving = true;
-  document.getElementById('live-dot').classList.remove('idle');
+  isUserPanning = false; mapFollowHeading = true; clearTimeout(panTimeout); clearTimeout(rotateTimeout);
+  document.getElementById('recenter-btn').classList.add('hidden');
+  setMapBearing(0);
   document.getElementById('peek-status-text').textContent = 'Tracking your drive';
   document.getElementById('perf-section').classList.remove('hidden');
   driveStartTime = Date.now(); pathLine.setLatLngs([]); radarLayer.clearLayers();
@@ -3081,7 +3196,7 @@ window.stopDrive = function(){
   if (debugInterval) clearInterval(debugInterval);
   ghostMarker.removeFrom(map); ghostStartZone.removeFrom(map);
   mapFollowHeading = true;
-  programmaticBearingSet = true; map.setBearing(0); programmaticBearingSet = false;
+  setMapBearing(0);
   if (currentDrive.distance>0 || currentDrive.maxSpeed>0) {
     window.saveDrive(currentDrive);
     window.showTripSummary(currentDrive);
@@ -3302,14 +3417,10 @@ window.processTelemetry = function(lat, lng, speedKmh, providedHeading){
     const heading = providedHeading!==null && !isNaN(providedHeading) ? providedHeading : (lastPos ? window.calculateBearing(lastPos.lat,lastPos.lng,lat,lng) : null);
     if (heading !== null) {
       lastHeadingValue = heading;
-      if (isDriving && mapFollowHeading) {
-        programmaticBearingSet = true;
-        map.setBearing(heading);
-        programmaticBearingSet = false;
-      }
+      if (isDriving && mapFollowHeading) setMapBearing(heading);
       const arrow = document.getElementById('self-arrow');
       if (arrow) {
-        lastArrowRotation = shortestRotation(lastArrowRotation, heading - map.getBearing());
+        lastArrowRotation = shortestRotation(lastArrowRotation, heading);
         arrow.style.transform = `rotate(${lastArrowRotation}deg)`;
       }
     }
