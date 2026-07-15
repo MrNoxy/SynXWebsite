@@ -69,8 +69,8 @@ svg{display:block;}
 .self-marker{position:relative;width:54px;height:54px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
 .self-pulse{position:absolute;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,rgba(61,220,138,.22) 0%,rgba(61,220,138,0) 72%);animation:pulse-ring 2.6s ease-out infinite;}
 @keyframes pulse-ring{0%{transform:scale(.55);opacity:.7;}100%{transform:scale(1.35);opacity:0;}}
-.self-arrow{position:absolute;top:-2px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .15s linear;}
-.self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:11px;}
+.self-arrow{position:absolute;top:-2px;left:50%;margin-left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .15s linear;transform-origin:6px 13px;}
+.self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--marker-col,var(--accent));}
 .ghost-marker-icon{width:18px;height:18px;border-radius:50%;background:#ffb13d;border:2px solid #1a1100;box-shadow:0 2px 6px rgba(0,0,0,.4);}
 
 /* friend markers (live, shown when a friend is online) */
@@ -2611,7 +2611,7 @@ window.addEventListener('load', ()=>setTimeout(()=>window.setSheetState(false, f
    with rotation-compensated math below — verified by hand, not borrowed from
    a third-party plugin.
    ========================================================================= */
-const map = L.map('map', { zoomControl:false, dragging:false, touchZoom:false, scrollWheelZoom:false, zoomSnap:0, zoomDelta:0.5 }).setView([44.4782, 26.1481], 16);
+const map = L.map('map', { zoomControl:false, dragging:false, touchZoom:false, scrollWheelZoom:false, zoomAnimation:false }).setView([44.4782, 26.1481], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(map);
 
 let isUserPanning = false, panTimeout = null, rotateTimeout = null;
@@ -2665,14 +2665,14 @@ function userTookOverRotation(){
   mapFollowHeading = false;
   document.getElementById('recenter-btn').classList.remove('hidden');
   clearTimeout(panTimeout); clearTimeout(rotateTimeout);
-  if (isDriving) rotateTimeout = setTimeout(window.forceRecenter, 6000); // re-lock to heading-up after a few quiet seconds
 }
 function userTookOverPanning(){
   isUserPanning = true;
+  mapFollowHeading = false;
   document.getElementById('recenter-btn').classList.remove('hidden');
-  clearTimeout(panTimeout);
+  clearTimeout(panTimeout); clearTimeout(rotateTimeout);
 }
-function schedulePanTimeout(){ panTimeout = setTimeout(window.forceRecenter, 10000); }
+function schedulePanTimeout(){ panTimeout = setTimeout(window.forceRecenter, isDriving ? 6000 : 10000); }
 
 /* ---- custom gesture handling (pan / pinch-zoom / pinch-rotate) ---- */
 (function(){
@@ -2771,7 +2771,7 @@ function schedulePanTimeout(){ panTimeout = setTimeout(window.forceRecenter, 100
 function buildSelfIcon(){
   return L.divIcon({
     className:'',
-    html:`<div class="self-marker"><div class="self-pulse"></div><div class="self-arrow" id="self-arrow"></div><div class="self-dot" id="self-dot">🚗</div></div>`,
+    html:`<div class="self-marker"><div class="self-pulse"></div><div class="self-arrow" id="self-arrow"></div><div class="self-dot" id="self-dot"><svg viewBox="0 0 24 24" width="15" height="15"><path d="M12 2.5c-3 0-4.2 1.6-4.7 4.2L6 12v8.3c0 .7.5 1.2 1.1 1.2h1.3c.6 0 1.1-.5 1.1-1.2v-1.1h5v1.1c0 .7.5 1.2 1.1 1.2h1.3c.6 0 1.1-.5 1.1-1.2V12l-1.3-5.3C16.2 4.1 15 2.5 12 2.5z" fill="currentColor"/><rect x="7.3" y="13" width="9.4" height="2.6" rx="1" fill="var(--card)"/></svg></div></div>`,
     iconSize:[54,54], iconAnchor:[27,27]
   });
 }
