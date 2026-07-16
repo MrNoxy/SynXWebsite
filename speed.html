@@ -58,7 +58,7 @@ svg{display:block;}
 
 /* ===== MAP ===== */
 #map-wrapper{position:absolute;inset:0;overflow:hidden;background:var(--bg);z-index:1;}
-#map-rotator{position:absolute;width:150%;height:150%;top:-25%;left:-25%;transform-origin:50% 50%;transition:transform .35s linear;filter:saturate(0.75) brightness(0.92);}
+#map-rotator{position:absolute;transform-origin:50% 50%;transition:transform .35s linear;filter:saturate(0.75) brightness(0.92);}
 #map-rotator.no-transition{transition:none;}
 #map{position:absolute;inset:0;width:100%;height:100%;}
 .leaflet-routing-container{display:none !important;}
@@ -69,7 +69,7 @@ svg{display:block;}
 .self-marker{position:relative;width:54px;height:54px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
 .self-pulse{position:absolute;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle,rgba(61,220,138,.22) 0%,rgba(61,220,138,0) 72%);animation:pulse-ring 2.6s ease-out infinite;}
 @keyframes pulse-ring{0%{transform:scale(.55);opacity:.7;}100%{transform:scale(1.35);opacity:0;}}
-.self-arrow{position:absolute;top:-2px;left:50%;margin-left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .15s linear;transform-origin:6px 13px;}
+.self-arrow{position:absolute;top:-2px;left:50%;margin-left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:11px solid var(--marker-col,var(--accent));filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));transition:transform .35s linear;transform-origin:6px 13px;}
 .self-dot{width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--marker-col,var(--accent));box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--marker-col,var(--accent));}
 .ghost-marker-icon{width:18px;height:18px;border-radius:50%;background:#ffb13d;border:2px solid #1a1100;box-shadow:0 2px 6px rgba(0,0,0,.4);}
 
@@ -2619,6 +2619,23 @@ let mapFollowHeading = true, lastHeadingValue = null, lastArrowRotation = 0;
 let currentBearing = 0;   // canonical 0-360: the compass direction currently pointing "up" on screen
 let mapRotationDeg = 0;   // continuous/unwrapped value driving the CSS transform (avoids long-way-round spins)
 const mapRotator = document.getElementById('map-rotator');
+const mapWrapperEl = document.getElementById('map-wrapper');
+
+// A layer rotating around its own center will only ever fully cover its
+// container, at every possible angle, if each of its sides is at least as
+// long as the container's diagonal. A fixed percentage (e.g. 150%) only works
+// for near-square viewports — a tall phone screen needs far more overhang.
+function sizeMapRotator(){
+  const w = mapWrapperEl.clientWidth, h = mapWrapperEl.clientHeight;
+  const diag = Math.ceil(Math.sqrt(w*w + h*h)) + 20; // +20px safety margin
+  mapRotator.style.width = diag + 'px';
+  mapRotator.style.height = diag + 'px';
+  mapRotator.style.left = Math.round((w - diag) / 2) + 'px';
+  mapRotator.style.top = Math.round((h - diag) / 2) + 'px';
+  map.invalidateSize();
+}
+sizeMapRotator();
+window.addEventListener('resize', sizeMapRotator);
 
 function shortestRotation(current, target){
   const delta = (((target - current) % 360) + 540) % 360 - 180;
@@ -2659,7 +2676,7 @@ window.forceRecenter = function(){
   if (lastPos) map.panTo([lastPos.lat, lastPos.lng], {animate:false});
   setMapBearing(isDriving && lastHeadingValue !== null ? lastHeadingValue : 0);
 };
-window.addEventListener('orientationchange', () => setTimeout(() => { map.invalidateSize(); window.forceRecenter(); }, 250));
+window.addEventListener('orientationchange', () => setTimeout(() => { sizeMapRotator(); window.forceRecenter(); }, 250));
 
 function userTookOverRotation(){
   mapFollowHeading = false;
