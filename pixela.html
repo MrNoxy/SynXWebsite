@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Pixel Rig Studio</title>
+<style>
+  :root{
+    --bg:#17161b; --panel:#1c1b21; --panel2:#1f1e24; --border:#3a3942;
+    --text:#e6e4ea; --muted:#8b8994; --accent:#e8595f; --accentText:#18171c;
+    --checkerA:#232228; --checkerB:#1c1b21; --stagebg:#111014;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    -webkit-tap-highlight-color:transparent; user-select:none;
+  }
+  #app{height:100dvh; width:100vw; display:flex; overflow:hidden;}
+
+  /* ---- left icon rail ---- */
+  .rail{width:56px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:8px;}
+  .rail-logo{width:32px; height:32px; background:var(--accent); border-radius:7px; display:flex;
+    align-items:center; justify-content:center; color:var(--accentText); font-weight:700; font-size:11px; margin-bottom:6px;}
+  .rail-btn{width:42px; height:42px; border-radius:9px; border:none; background:none; cursor:pointer;
+    color:var(--muted); font-size:19px; display:flex; align-items:center; justify-content:center;}
+  .rail-btn:hover{background:#232228; color:#fff;}
+  .rail-btn.active{background:var(--accent); color:var(--accentText);}
+
+  /* ---- content column ---- */
+  .content{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{height:48px; flex-shrink:0; border-bottom:1px solid var(--border); background:#1a191f;
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px;}
+  .topbar .title{font-size:13px; font-weight:700; letter-spacing:.02em;}
+  .topbar .dims{font-size:10px; color:var(--muted); margin-left:8px;}
+  .topbar .actions{display:flex; gap:8px;}
+
+  .main{flex:1; min-height:0; display:flex; gap:12px; padding:12px; overflow:hidden;}
+  @media (max-width:767px){ .main{flex-direction:column;} }
+
+  .stage-wrap{flex:1; min-width:0; min-height:0; display:flex; align-items:center; justify-content:center;
+    background:var(--stagebg); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative;}
+  .stage-col{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; gap:8px;}
+  .side{width:100%; display:flex; flex-direction:column; gap:12px; min-height:0; overflow-y:auto; flex-shrink:0;}
+  @media (min-width:768px){ .side{width:272px;} }
+
+  canvas{image-rendering:pixelated; max-width:100%; max-height:100%; width:auto; height:auto; touch-action:none; display:block;}
+
+  .panel{border:1px solid var(--border); border-radius:9px; background:var(--panel2); display:flex; flex-direction:column; min-height:0;}
+  .panel-header{display:flex; align-items:center; justify-content:space-between; padding:7px 12px;
+    border-bottom:1px solid var(--border); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); flex-shrink:0;}
+  .panel-body{padding:12px; overflow-y:auto; min-height:0;}
+
+  .btn{padding:8px 12px; font-size:12px; border:1px solid var(--border); border-radius:7px; background:#232228;
+    color:#c7c5cc; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit;}
+  .btn:hover{border-color:rgba(232,89,95,.6); color:#fff;}
+  .btn.active{background:var(--accent); border-color:var(--accent); color:var(--accentText);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accentText); font-weight:700;}
+  .btn.small{padding:4px 8px; font-size:10px;}
+  .btn.block{width:100%;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .row{display:flex; align-items:center; gap:8px;}
+  .mb{margin-bottom:8px;} .mt{margin-top:8px;}
+
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  input[type=color]{width:40px; height:40px; background:none; border:1px solid var(--border); border-radius:7px; padding:0; cursor:pointer;}
+  input[type=text]{background:var(--stagebg); border:1px solid var(--border); border-radius:7px; padding:8px;
+    color:var(--text); font-family:inherit; font-size:12px; width:100%;}
+  label.check{display:flex; align-items:center; gap:8px; font-size:12px; color:#c7c5cc; cursor:pointer;}
+
+  .swatch{width:24px; height:24px; border-radius:5px; border:1px solid var(--border); cursor:pointer; padding:0;}
+  .swatch-grid{display:grid; grid-template-columns:repeat(8,1fr); gap:6px;}
+
+  .bone-list{display:flex; flex-direction:column; gap:2px; max-height:130px; overflow-y:auto;}
+  .bone-item{display:flex; align-items:center; gap:8px; text-align:left; width:100%; padding:6px 8px;
+    border-radius:6px; background:none; border:none; color:var(--text); font-family:inherit; font-size:12px; cursor:pointer;}
+  .bone-item:hover{background:#232228;}
+  .bone-item.selected{background:#2b2a32;}
+  .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+
+  .kf-wrap{display:flex; flex-wrap:wrap; gap:6px;}
+  .kf-chip{display:flex; align-items:center; gap:5px; background:#232228; border:1px solid var(--border);
+    border-radius:6px; padding:4px 8px; font-size:10px;}
+  .kf-chip button{background:none; border:none; color:inherit; font-family:inherit; font-size:11px; cursor:pointer; padding:0;}
+  .kf-chip .del{color:var(--muted);}
+  .kf-chip .del:hover{color:var(--accent);}
+
+  .caption{font-size:11px; color:var(--muted); flex-shrink:0; line-height:1.4;}
+  .pose-row{margin-bottom:10px;}
+  .pose-label{display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-bottom:3px;}
+
+  .upload-label{cursor:pointer; padding:22px; border:1px dashed var(--border); border-radius:10px; font-size:13px;
+    color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .upload-label:hover{border-color:rgba(232,89,95,.6);}
+  .upload-label input{display:none;}
+  .hidden{display:none !important;}
+  img.preview-img{max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;}
+
+  ::-webkit-scrollbar{width:7px; height:7px;}
+  ::-webkit-scrollbar-track{background:#1a1a1f;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   PIXEL RIG STUDIO — single-file vanilla HTML/CSS/JS build
+   ===================================================================== */
+
+/* ---------- Starter sprite: "Nikki Freeman" ---------- */
+const NIKKI_RAW = '{"w":42,"h":51,"palette":["#393939","#4b3f41","#191725","#09080d","#41282e","#13111e","#4f4c4f","#784e4d","#530f15","#a8877e","#272532","#757373","#d3bbac","#dac6b4","#deccb8","#525c52","#2b131c","#af998f","#88827e","#70605f","#7a6e6c","#c5ab9d","#737373","#737372","#666766","#737374","#647863"],"grid":[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,3,3,3,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,3,4,3,3,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,3,3,0,7,1,3,3,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,0,8,9,9,3,3,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,3,1,6,9,9,11,3,5,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,3,8,7,12,13,14,10,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,9,0,16,9,13,14,17,5,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,19,17,20,3,7,12,9,3,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,9,9,13,1,1,20,9,10,3,3,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,20,9,21,4,3,9,13,13,2,1,5,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,7,17,4,3,3,7,14,21,5,9,9,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,17,7,7,8,8,8,4,12,19,3,7,21,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,17,14,9,4,-1,4,16,8,4,7,8,16,7,12,17,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,17,14,12,9,-1,-1,4,8,8,8,8,8,8,9,21,9,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,17,14,14,21,-1,-1,-1,4,8,8,8,8,16,4,9,12,21,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,21,21,14,-1,-1,-1,-1,4,8,8,8,8,8,19,18,21,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,18,12,13,21,18,-1,-1,-1,-1,16,8,8,8,8,8,19,-1,18,14,14,21,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,18,17,17,12,21,21,-1,-1,-1,-1,-1,16,8,8,8,8,8,8,1,-1,-1,17,14,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[15,12,13,14,14,13,-1,-1,-1,-1,-1,-1,4,16,16,8,8,1,8,8,4,-1,-1,18,9,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[18,12,21,21,12,18,-1,-1,-1,-1,-1,-1,16,16,4,4,1,19,18,1,4,-1,-1,-1,-1,12,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,18,-1,17,18,-1,-1,-1,-1,-1,-1,6,3,3,2,16,10,0,1,16,2,15,-1,-1,-1,18,13,14,21,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,5,5,2,2,2,5,5,2,2,10,-1,-1,-1,-1,18,13,14,17,18,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,5,2,2,2,2,5,2,2,2,2,-1,-1,-1,-1,-1,18,13,14,14,13,17,15,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,5,5,2,2,5,2,5,5,5,2,2,-1,-1,-1,-1,-1,-1,18,13,13,13,12,18,15,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,10,2,2,5,5,3,3,3,5,5,2,6,-1,-1,-1,-1,-1,-1,18,21,18,18,15,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,6,5,1,6,6,10,0,20,21,9,4,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,19,-1,-1,-1,-1,15,1,12,13,13,21,6,21,12,9,7,19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,14,14,14,12,11,21,14,9,7,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,17,14,13,11,21,14,9,9,19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,9,14,13,22,9,14,9,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,14,13,14,18,9,14,21,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,14,21,14,17,23,13,21,9,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,12,12,13,17,22,21,13,12,13,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,13,21,13,18,22,18,13,12,13,12,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,14,14,13,22,22,22,17,14,14,21,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,21,14,21,6,22,22,24,9,17,19,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,10,15,0,6,22,22,15,2,2,10,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,2,10,2,6,22,22,24,10,2,2,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,2,10,10,25,22,22,22,1,2,10,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,2,10,0,25,22,22,22,24,10,10,0,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,10,0,25,22,22,22,25,6,2,2,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,5,2,24,22,22,22,22,6,2,2,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,5,5,1,22,22,22,22,0,5,2,10,-1,-1,-1,-1,26,26,0,6,-1,-1,26,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,2,2,0,24,22,22,6,10,2,10,10,-1,-1,-1,-1,26,0,2,10,-1,-1,0,15,15,15,26,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,2,2,0,1,24,24,10,2,2,10,10,-1,-1,-1,-1,15,15,16,10,-1,0,10,0,15,15,15,15],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,5,5,5,2,2,0,1,5,5,5,2,5,-1,-1,-1,-1,6,4,16,16,4,16,16,15,15,15,26,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,5,5,5,5,5,0,6,5,5,5,5,5,-1,4,0,6,6,1,8,8,1,1,15,-1,-1,15,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,0,0,0,0,0,6,15,0,0,0,0,1,-1,19,15,-1,19,6,1,1,6,15,15,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,6,6,15,-1,1,6,6,6,6,-1,-1,-1,-1,-1,15,15,15,19,6,1,26,26,26,-1,-1]]}';
+const NIKKI_DATA = JSON.parse(NIKKI_RAW);
+
+function nikkiToColorGrid() {
+  const { w, h, palette, grid } = NIKKI_DATA;
+  const out = [];
+  for (let y = 0; y < h; y++) {
+    const row = [];
+    for (let x = 0; x < w; x++) {
+      const idx = grid[y][x];
+      row.push(idx === -1 ? null : palette[idx]);
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+function blankColorGrid(w, h) {
+  const out = [];
+  for (let y = 0; y < h; y++) out.push(new Array(w).fill(null));
+  return out;
+}
+
+/* ---------- Bone / rig definitions ---------- */
+const BONE_ORDER = [
+  "torso", "head",
+  "upperArmL", "lowerArmL", "upperArmR", "lowerArmR",
+  "upperLegL", "lowerLegL", "upperLegR", "lowerLegR",
+];
+const BONE_META = {
+  torso:     { label: "Torso",       parent: null,       color: "#e8595f" },
+  head:      { label: "Head",        parent: "torso",     color: "#f2b134" },
+  upperArmL: { label: "L Upper Arm", parent: "torso",     color: "#5fb3e8" },
+  lowerArmL: { label: "L Lower Arm", parent: "upperArmL", color: "#8fd0f2" },
+  upperArmR: { label: "R Upper Arm", parent: "torso",     color: "#5fe8b3" },
+  lowerArmR: { label: "R Lower Arm", parent: "upperArmR", color: "#8ff2d0" },
+  upperLegL: { label: "L Upper Leg", parent: "torso",     color: "#c85fe8" },
+  lowerLegL: { label: "L Lower Leg", parent: "upperLegL", color: "#e08ff2" },
+  upperLegR: { label: "R Upper Leg", parent: "torso",     color: "#e8b35f" },
+  lowerLegR: { label: "R Lower Leg", parent: "upperLegR", color: "#f2d08f" },
+};
+function childrenOf(boneId) { return BONE_ORDER.filter((b) => BONE_META[b].parent === boneId); }
+function zeroPose() { return Object.fromEntries(BONE_ORDER.map((b) => [b, 0])); }
+
+function findOpaqueBBox(colorGrid) {
+  const h = colorGrid.length, w = colorGrid[0].length;
+  let minX = w, maxX = -1, minY = h, maxY = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (colorGrid[y][x]) {
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return { minX: 0, maxX: w - 1, minY: 0, maxY: h - 1 };
+  return { minX, maxX, minY, maxY };
+}
+
+function autoRigBones(colorGrid) {
+  const { minX, maxX, minY, maxY } = findOpaqueBBox(colorGrid);
+  const W = maxX - minX, H = maxY - minY;
+  const cx = (minX + maxX) / 2;
+  const topY = minY, neckY = minY + H * 0.16, hipY = minY + H * 0.52;
+  const kneeY = minY + H * 0.75, footY = minY + H * 0.98;
+  const shX = W * 0.30, elX = W * 0.42, wrX = W * 0.46;
+  const hipX = W * 0.13, ankX = W * 0.13;
+  const b = {};
+  b.torso     = { pivot: { x: cx, y: neckY }, tip: { x: cx, y: hipY } };
+  b.head      = { pivot: { x: cx, y: neckY }, tip: { x: cx, y: topY } };
+  b.upperArmL = { pivot: { x: cx - shX, y: neckY + H * 0.03 }, tip: { x: cx - elX, y: neckY + H * 0.22 } };
+  b.lowerArmL = { pivot: { x: cx - elX, y: neckY + H * 0.22 }, tip: { x: cx - wrX, y: neckY + H * 0.44 } };
+  b.upperArmR = { pivot: { x: cx + shX, y: neckY + H * 0.03 }, tip: { x: cx + elX, y: neckY + H * 0.22 } };
+  b.lowerArmR = { pivot: { x: cx + elX, y: neckY + H * 0.22 }, tip: { x: cx + wrX, y: neckY + H * 0.44 } };
+  b.upperLegL = { pivot: { x: cx - hipX, y: hipY }, tip: { x: cx - hipX, y: kneeY } };
+  b.lowerLegL = { pivot: { x: cx - hipX, y: kneeY }, tip: { x: cx - ankX, y: footY } };
+  b.upperLegR = { pivot: { x: cx + hipX, y: hipY }, tip: { x: cx + hipX, y: kneeY } };
+  b.lowerLegR = { pivot: { x: cx + hipX, y: kneeY }, tip: { x: cx + ankX, y: footY } };
+  return b;
+}
+
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+
+function nearestBoneId(x, y, bones) {
+  let best = null, bestD = Infinity;
+  for (const id of BONE_ORDER) {
+    const bn = bones[id];
+    if (!bn) continue;
+    const d = pointSegDist(x, y, bn.pivot.x, bn.pivot.y, bn.tip.x, bn.tip.y);
+    if (d < bestD) { bestD = d; best = id; }
+  }
+  return best;
+}
+
+function rot(x, y, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  return [x * c - y * s, x * s + y * c];
+}
+
+function computeWorldTransforms(bones, poseAngles) {
+  const world = {};
+  function walk(id, parentWorld, parentRestPivot) {
+    const bn = bones[id];
+    const localAngle = ((poseAngles[id] || 0) * Math.PI) / 180;
+    let pivot, angle;
+    if (!parentWorld) {
+      pivot = { x: bn.pivot.x, y: bn.pivot.y };
+      angle = localAngle;
+    } else {
+      const offX = bn.pivot.x - parentRestPivot.x;
+      const offY = bn.pivot.y - parentRestPivot.y;
+      const [rx, ry] = rot(offX, offY, parentWorld.angle);
+      pivot = { x: parentWorld.pivot.x + rx, y: parentWorld.pivot.y + ry };
+      angle = parentWorld.angle + localAngle;
+    }
+    world[id] = { pivot, angle };
+    for (const c of childrenOf(id)) walk(c, world[id], bn.pivot);
+  }
+  walk("torso", null, null);
+  return world;
+}
+
+function resampleColorGrid(grid, newW, newH) {
+  const oldH = grid.length, oldW = grid[0].length;
+  if (newW === oldW && newH === oldH) return grid.map((r) => r.slice());
+  const src = document.createElement("canvas");
+  src.width = oldW; src.height = oldH;
+  const sctx = src.getContext("2d");
+  const imgData = sctx.createImageData(oldW, oldH);
+  for (let y = 0; y < oldH; y++) for (let x = 0; x < oldW; x++) {
+    const i = (y * oldW + x) * 4;
+    const c = grid[y][x];
+    if (c) {
+      imgData.data[i] = parseInt(c.slice(1, 3), 16);
+      imgData.data[i + 1] = parseInt(c.slice(3, 5), 16);
+      imgData.data[i + 2] = parseInt(c.slice(5, 7), 16);
+      imgData.data[i + 3] = 255;
+    }
+  }
+  sctx.putImageData(imgData, 0, 0);
+  const dst = document.createElement("canvas");
+  dst.width = newW; dst.height = newH;
+  const dctx = dst.getContext("2d");
+  dctx.imageSmoothingEnabled = newW < oldW;
+  dctx.imageSmoothingQuality = "high";
+  dctx.drawImage(src, 0, 0, oldW, oldH, 0, 0, newW, newH);
+  const data = dctx.getImageData(0, 0, newW, newH).data;
+  const out = [];
+  for (let y = 0; y < newH; y++) {
+    const row = [];
+    for (let x = 0; x < newW; x++) {
+      const i = (y * newW + x) * 4;
+      const a = data[i + 3];
+      if (a < 64) row.push(null);
+      else row.push(`#${data[i].toString(16).padStart(2,"0")}${data[i+1].toString(16).padStart(2,"0")}${data[i+2].toString(16).padStart(2,"0")}`);
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* =====================================================================
+   GLOBAL STATE
+   ===================================================================== */
+const DRAW_CELL = 16, IMPORT_CELL = 12, RIG_CELL = 10, RIG_PAD = 140;
+
+const state = {
+  mode: "draw", // draw | import | rig
+  colorGrid: nikkiToColorGrid(),
+  history: [],
+
+  bones: null, // set below
+  overrides: {},
+  selectedBone: "torso",
+  rigMode: "pose", // skeleton | paint | pose
+  pose: zeroPose(),
+  keyframes: [{ t: 0, pose: zeroPose() }],
+  playhead: 0,
+  playing: false,
+  duration: 1.2,
+  rafId: null,
+
+  // draw tab
+  tool: "pencil",
+  color: "#e8595f",
+  swatches: ["#000000","#ffffff","#e8595f","#f2b134","#5fb3e8","#5fe8b3","#c85fe8","#a8877e","#530f15","#191725"],
+  targetW: 42,
+
+  // import tab
+  imgUrl: null,
+  importTargetW: 44,
+  colorLevels: 5,
+  removeBg: true,
+  previewGrid: null,
+};
+state.bones = autoRigBones(state.colorGrid);
+state.targetW = state.colorGrid[0].length;
+
+/* drag state (not reactive) */
+let dragRef = null;
+
+function gridDims() { return { w: state.colorGrid[0].length, h: state.colorGrid.length }; }
+
+function replaceSprite(newGrid) {
+  state.colorGrid = newGrid;
+  state.history = [];
+  state.bones = autoRigBones(newGrid);
+  state.overrides = {};
+  state.pose = zeroPose();
+  state.keyframes = [{ t: 0, pose: zeroPose() }];
+  state.playhead = 0;
+  state.playing = false;
+  state.targetW = newGrid[0].length;
+}
+
+function loadBlank() { replaceSprite(blankColorGrid(32, 40)); state.mode = "draw"; renderApp(); }
+function loadNikki() { replaceSprite(nikkiToColorGrid()); state.mode = "draw"; renderApp(); }
+
+function applyResample(newW, newH) {
+  const { w: oldW, h: oldH } = gridDims();
+  const scaled = resampleColorGrid(state.colorGrid, newW, newH);
+  const sx = newW / oldW, sy = newH / oldH;
+  const nb = {};
+  for (const id of BONE_ORDER) {
+    nb[id] = {
+      pivot: { x: state.bones[id].pivot.x * sx, y: state.bones[id].pivot.y * sy },
+      tip: { x: state.bones[id].tip.x * sx, y: state.bones[id].tip.y * sy },
+    };
+  }
+  state.colorGrid = scaled;
+  state.bones = nb;
+  state.overrides = {};
+  renderApp();
+}
+
+/* =====================================================================
+   RENDER: full shell (rebuilt on mode / structural changes)
+   ===================================================================== */
+const root = document.getElementById("app");
+
+function renderApp() {
+  const { w, h } = gridDims();
+  const modeLabel = { draw: "Draw", import: "Import Photo", rig: "Rig & Animate" }[state.mode];
+
+  root.innerHTML = `
+    <nav class="rail">
+      <div class="rail-logo">PR</div>
+      <button class="rail-btn ${state.mode==="draw"?"active":""}" data-act="mode" data-mode="draw" title="Draw">&#9998;</button>
+      <button class="rail-btn ${state.mode==="import"?"active":""}" data-act="mode" data-mode="import" title="Import Photo">&#128444;</button>
+      <button class="rail-btn ${state.mode==="rig"?"active":""}" data-act="mode" data-mode="rig" title="Rig &amp; Animate">&#129446;</button>
+    </nav>
+    <div class="content">
+      <header class="topbar">
+        <div><span class="title">${modeLabel}</span><span class="dims">${w}&times;${h}px</span></div>
+        <div class="actions">
+          <button class="btn small" data-act="loadNikki">Load Nikki</button>
+          <button class="btn small" data-act="loadBlank">New Blank</button>
+        </div>
+      </header>
+      <main class="main" id="main"></main>
+    </div>
+  `;
+
+  const main = document.getElementById("main");
+  if (state.mode === "draw") main.innerHTML = drawTabHTML();
+  else if (state.mode === "import") main.innerHTML = importTabHTML();
+  else main.innerHTML = rigTabHTML();
+
+  attachShellListeners();
+  if (state.mode === "draw") setupDrawTab();
+  else if (state.mode === "import") setupImportTab();
+  else setupRigTab();
+}
+
+function attachShellListeners() {
+  root.querySelectorAll('[data-act="mode"]').forEach((btn) => {
+    btn.addEventListener("click", () => { state.mode = btn.dataset.mode; renderApp(); });
+  });
+  root.querySelector('[data-act="loadNikki"]').addEventListener("click", loadNikki);
+  root.querySelector('[data-act="loadBlank"]').addEventListener("click", loadBlank);
+}
+
+/* =====================================================================
+   DRAW TAB
+   ===================================================================== */
+function drawTabHTML() {
+  const { w, h } = gridDims();
+  const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+  return `
+    <div class="stage-wrap" id="drawWrap">
+      <canvas id="drawCanvas" width="${w * DRAW_CELL}" height="${h * DRAW_CELL}"></canvas>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <div class="panel-header">Tools</div>
+        <div class="panel-body">
+          <div class="grid2">
+            <button class="btn tool-btn ${state.tool==="pencil"?"active":""}" data-tool="pencil">&#9998; Pencil</button>
+            <button class="btn tool-btn ${state.tool==="eraser"?"active":""}" data-tool="eraser">&#9003; Eraser</button>
+            <button class="btn tool-btn ${state.tool==="fill"?"active":""}" data-tool="fill">&#129701; Fill</button>
+            <button class="btn tool-btn ${state.tool==="eyedrop"?"active":""}" data-tool="eyedrop">&#128167; Pick</button>
+          </div>
+          <button class="btn block mt" id="undoBtn">&#8630; Undo</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Color</div>
+        <div class="panel-body">
+          <div class="row">
+            <input type="color" id="colorPicker" value="${state.color}" />
+            <input type="text" id="colorHex" value="${state.color}" />
+          </div>
+          <button class="btn block mt" id="saveSwatchBtn">+ Save swatch</button>
+          <div class="swatch-grid mt" id="swatchGrid">
+            ${state.swatches.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}"></button>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Pixel Detail &#9638;</div>
+        <div class="panel-body">
+          <div class="caption mb" id="detailLabel">Target width: ${state.targetW}px &rarr; ${state.targetW}&times;${targetH}</div>
+          <input type="range" id="detailRange" min="12" max="140" value="${state.targetW}" />
+          <button class="btn primary block mt" id="applyDetailBtn">Apply resolution</button>
+          <p class="caption mt">Higher = more pixels, finer detail. Your rig and pose rescale with it.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setupDrawTab() {
+  const canvas = document.getElementById("drawCanvas");
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+
+  function drawGridToCanvas() {
+    const { w, h } = gridDims();
+    ctx.clearRect(0, 0, w * DRAW_CELL, h * DRAW_CELL);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = state.colorGrid[y][x];
+      ctx.fillStyle = c ? c : ((x + y) % 2 === 0 ? "#232228" : "#1c1b21");
+      ctx.fillRect(x * DRAW_CELL, y * DRAW_CELL, DRAW_CELL, DRAW_CELL);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x++) { ctx.beginPath(); ctx.moveTo(x*DRAW_CELL,0); ctx.lineTo(x*DRAW_CELL,h*DRAW_CELL); ctx.stroke(); }
+    for (let y = 0; y <= h; y++) { ctx.beginPath(); ctx.moveTo(0,y*DRAW_CELL); ctx.lineTo(w*DRAW_CELL,y*DRAW_CELL); ctx.stroke(); }
+  }
+
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    return { x: Math.floor(((e.clientX - rect.left) * scale) / DRAW_CELL), y: Math.floor(((e.clientY - rect.top) * scale) / DRAW_CELL) };
+  }
+
+  function applyAt(x, y) {
+    const { w, h } = gridDims();
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    if (state.tool === "eyedrop") {
+      const c = state.colorGrid[y][x];
+      if (c) { state.color = c; document.getElementById("colorPicker").value = c; document.getElementById("colorHex").value = c; }
+      state.tool = "pencil";
+      document.querySelectorAll(".tool-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelector('.tool-btn[data-tool="pencil"]').classList.add("active");
+      return;
+    }
+    if (state.tool === "fill") {
+      const target = state.colorGrid[y][x];
+      if (target === state.color) return;
+      const stack = [[x, y]], seen = new Set();
+      while (stack.length) {
+        const [cx, cy] = stack.pop();
+        const key = cx + "," + cy;
+        if (seen.has(key) || cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+        if (state.colorGrid[cy][cx] !== target) continue;
+        seen.add(key);
+        state.colorGrid[cy][cx] = state.color;
+        stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+      }
+    } else {
+      state.colorGrid[y][x] = state.tool === "eraser" ? null : state.color;
+    }
+    drawGridToCanvas();
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    state.history.push(state.colorGrid.map((r) => r.slice()));
+    if (state.history.length > 40) state.history.shift();
+    drawing = true;
+    const { x, y } = cellFromEvent(e);
+    applyAt(x, y);
+  });
+  canvas.addEventListener("pointermove", (e) => { if (!drawing) return; const { x, y } = cellFromEvent(e); applyAt(x, y); });
+  window.addEventListener("pointerup", () => { drawing = false; });
+
+  document.querySelectorAll(".tool-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.tool = btn.dataset.tool;
+      document.querySelectorAll(".tool-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  document.getElementById("undoBtn").addEventListener("click", () => {
+    const prev = state.history.pop();
+    if (prev) { state.colorGrid = prev; drawGridToCanvas(); }
+  });
+
+  const colorPicker = document.getElementById("colorPicker");
+  const colorHex = document.getElementById("colorHex");
+  colorPicker.addEventListener("input", () => { state.color = colorPicker.value; colorHex.value = colorPicker.value; });
+  colorHex.addEventListener("input", () => { state.color = colorHex.value; });
+
+  document.getElementById("saveSwatchBtn").addEventListener("click", () => {
+    if (!state.swatches.includes(state.color)) {
+      state.swatches = [state.color, ...state.swatches].slice(0, 16);
+      document.getElementById("swatchGrid").innerHTML = state.swatches.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}"></button>`).join("");
+      bindSwatchClicks();
+    }
+  });
+  function bindSwatchClicks() {
+    document.querySelectorAll(".swatch").forEach((s) => {
+      s.addEventListener("click", () => { state.color = s.dataset.color; colorPicker.value = s.dataset.color; colorHex.value = s.dataset.color; });
+    });
+  }
+  bindSwatchClicks();
+
+  const detailRange = document.getElementById("detailRange");
+  const detailLabel = document.getElementById("detailLabel");
+  detailRange.addEventListener("input", () => {
+    state.targetW = Number(detailRange.value);
+    const { w, h } = gridDims();
+    const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+    detailLabel.textContent = `Target width: ${state.targetW}px \u2192 ${state.targetW}\u00d7${targetH}`;
+  });
+  document.getElementById("applyDetailBtn").addEventListener("click", () => {
+    const { w, h } = gridDims();
+    const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+    applyResample(state.targetW, targetH);
+  });
+
+  drawGridToCanvas();
+}
+
+/* =====================================================================
+   IMPORT TAB
+   ===================================================================== */
+function importTabHTML() {
+  return `
+    <div class="stage-wrap" id="importWrap">
+      ${!state.imgUrl ? `
+        <label class="upload-label" id="uploadLabel">
+          <span style="font-size:22px;">&#128444;</span>
+          Click to upload a reference photo
+          <input type="file" id="fileInput" accept="image/*" />
+        </label>
+      ` : state.previewGrid ? `
+        <canvas id="previewCanvas" width="${state.previewGrid[0].length*IMPORT_CELL}" height="${state.previewGrid.length*IMPORT_CELL}"></canvas>
+      ` : `
+        <img id="refImg" class="preview-img" src="${state.imgUrl}" />
+      `}
+    </div>
+    <div class="side">
+      <div class="panel">
+        <div class="panel-header">Convert settings</div>
+        <div class="panel-body">
+          <div class="caption mb" id="widthLabel">Pixel width (quality): ${state.importTargetW}</div>
+          <input type="range" id="widthRange" min="12" max="128" value="${state.importTargetW}" class="mb" />
+          <div class="caption mb" id="levelsLabel">Color levels: ${state.colorLevels}</div>
+          <input type="range" id="levelsRange" min="2" max="12" value="${state.colorLevels}" class="mb" />
+          <label class="check mb"><input type="checkbox" id="removeBgCheck" ${state.removeBg?"checked":""}/> Remove background</label>
+          <button class="btn block" id="rerenderBtn" ${!state.imgUrl?"disabled":""}>Re-render</button>
+        </div>
+      </div>
+      ${state.previewGrid ? `
+      <div class="panel">
+        <div class="panel-header">Result</div>
+        <div class="panel-body">
+          <button class="btn primary block" id="useSpriteBtn">Use as sprite &rarr;</button>
+          <button class="btn block mt" id="tryAnotherBtn">Try another photo</button>
+        </div>
+      </div>` : ""}
+    </div>
+  `;
+}
+
+function posterize(v, levels) {
+  const step = 255 / (levels - 1);
+  return Math.round(Math.round(v / step) * step);
+}
+
+function pixelateImage(img) {
+  const aspect = img.naturalHeight / img.naturalWidth;
+  const w = state.importTargetW, h = Math.max(1, Math.round(w * aspect));
+  const off = document.createElement("canvas");
+  off.width = w; off.height = h;
+  const ctx = off.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  const grid = [];
+  for (let y = 0; y < h; y++) {
+    const row = [];
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = posterize(data.data[i], state.colorLevels);
+      const g = posterize(data.data[i+1], state.colorLevels);
+      const b = posterize(data.data[i+2], state.colorLevels);
+      row.push(`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`);
+    }
+    grid.push(row);
+  }
+  if (state.removeBg) {
+    const isClose = (c1, c2, tol) => {
+      const p = (h2) => [parseInt(h2.slice(1,3),16), parseInt(h2.slice(3,5),16), parseInt(h2.slice(5,7),16)];
+      const [r1,g1,b1] = p(c1), [r2,g2,b2] = p(c2);
+      return Math.abs(r1-r2)<=tol && Math.abs(g1-g2)<=tol && Math.abs(b1-b2)<=tol;
+    };
+    const bg = grid[0][0];
+    const stack = [];
+    for (let x=0;x<w;x++){ if(isClose(grid[0][x],bg,20)) stack.push([x,0]); if(isClose(grid[h-1][x],bg,20)) stack.push([x,h-1]); }
+    for (let y=0;y<h;y++){ if(isClose(grid[y][0],bg,20)) stack.push([0,y]); if(isClose(grid[y][w-1],bg,20)) stack.push([w-1,y]); }
+    const visited = Array.from({length:h},()=>new Array(w).fill(false));
+    while (stack.length) {
+      const [x,y] = stack.pop();
+      if (x<0||y<0||x>=w||y>=h||visited[y][x]) continue;
+      if (!isClose(grid[y][x], bg, 20)) continue;
+      visited[y][x] = true; grid[y][x] = null;
+      stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+    }
+  }
+  return grid;
+}
+
+function drawPreviewCanvas() {
+  const canvas = document.getElementById("previewCanvas");
+  if (!canvas || !state.previewGrid) return;
+  const ctx = canvas.getContext("2d");
+  const w = state.previewGrid[0].length, h = state.previewGrid.length;
+  ctx.clearRect(0,0,w*IMPORT_CELL,h*IMPORT_CELL);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const c = state.previewGrid[y][x];
+    ctx.fillStyle = c ? c : ((x+y)%2===0 ? "#232228" : "#1c1b21");
+    ctx.fillRect(x*IMPORT_CELL,y*IMPORT_CELL,IMPORT_CELL,IMPORT_CELL);
+  }
+}
+
+function setupImportTab() {
+  if (!state.imgUrl) {
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { state.imgUrl = reader.result; state.previewGrid = null; renderApp(); };
+      reader.readAsDataURL(file);
+    });
+    return;
+  }
+  if (state.previewGrid) {
+    drawPreviewCanvas();
+    document.getElementById("useSpriteBtn").addEventListener("click", () => {
+      replaceSprite(state.previewGrid);
+      state.imgUrl = null; state.previewGrid = null;
+      state.mode = "draw";
+      renderApp();
+    });
+    document.getElementById("tryAnotherBtn").addEventListener("click", () => {
+      state.imgUrl = null; state.previewGrid = null; renderApp();
+    });
+  } else {
+    const img = document.getElementById("refImg");
+    const doPixelate = () => { state.previewGrid = pixelateImage(img); renderApp(); };
+    if (img.complete && img.naturalWidth > 0) doPixelate();
+    else img.addEventListener("load", doPixelate);
+  }
+
+  const widthRange = document.getElementById("widthRange");
+  const widthLabel = document.getElementById("widthLabel");
+  widthRange.addEventListener("input", () => { state.importTargetW = Number(widthRange.value); widthLabel.textContent = `Pixel width (quality): ${state.importTargetW}`; });
+
+  const levelsRange = document.getElementById("levelsRange");
+  const levelsLabel = document.getElementById("levelsLabel");
+  levelsRange.addEventListener("input", () => { state.colorLevels = Number(levelsRange.value); levelsLabel.textContent = `Color levels: ${state.colorLevels}`; });
+
+  document.getElementById("removeBgCheck").addEventListener("change", (e) => { state.removeBg = e.target.checked; });
+
+  document.getElementById("rerenderBtn").addEventListener("click", () => {
+    const img = document.getElementById("refImg") || (() => { const i = new Image(); i.src = state.imgUrl; return i; })();
+    if (img.complete && img.naturalWidth > 0) { state.previewGrid = pixelateImage(img); renderApp(); }
+    else img.addEventListener("load", () => { state.previewGrid = pixelateImage(img); renderApp(); });
+  });
+}
+
+/* =====================================================================
+   RIG TAB
+   ===================================================================== */
+function rigTabHTML() {
+  const { w, h } = gridDims();
+  const stageW = w * RIG_CELL + RIG_PAD * 2;
+  const stageH = h * RIG_CELL + RIG_PAD * 2;
+  const captions = {
+    skeleton: "Drag the filled dot (pivot) or hollow dot (tip) to reshape a bone. Pixel regions update live.",
+    paint: `Editing &quot;${BONE_META[state.selectedBone].label}&quot; &mdash; click or drag pixels to move them onto this bone.`,
+    pose: "Rotate limbs with the sliders. Pixels snap to the grid and stay attached &mdash; nothing floats or rotates loose.",
+  };
+  return `
+    <div class="stage-col">
+      <div class="row">
+        <button class="btn rigmode-btn ${state.rigMode==="skeleton"?"active":""}" data-rigmode="skeleton">&#129446; Skeleton</button>
+        <button class="btn rigmode-btn ${state.rigMode==="paint"?"active":""}" data-rigmode="paint">&#129701; Regions</button>
+        <button class="btn rigmode-btn ${state.rigMode==="pose"?"active":""}" data-rigmode="pose">&#9654; Animate</button>
+      </div>
+      <div class="stage-wrap">
+        <canvas id="rigCanvas" width="${stageW}" height="${stageH}"></canvas>
+      </div>
+      <div class="caption" id="rigCaption">${captions[state.rigMode]}</div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <div class="panel-header">Bones <button class="btn small" id="autoRigBtn">&#10024; Auto-Rig</button></div>
+        <div class="panel-body">
+          <div class="bone-list" id="boneList">
+            ${BONE_ORDER.map((id) => `
+              <button class="bone-item ${state.selectedBone===id?"selected":""}" data-bone="${id}">
+                <span class="dot" style="background:${BONE_META[id].color}"></span>${BONE_META[id].label}
+              </button>`).join("")}
+          </div>
+          ${state.rigMode==="paint" ? `<button class="btn block mt" id="clearOverridesBtn">Reset this bone to auto</button>` : ""}
+        </div>
+      </div>
+      ${state.rigMode==="pose" ? `
+      <div class="panel" style="flex:1;">
+        <div class="panel-header">Pose</div>
+        <div class="panel-body">
+          ${BONE_ORDER.filter((id)=>id!=="torso").map((id) => `
+            <div class="pose-row">
+              <div class="pose-label"><span style="color:${BONE_META[id].color}">${BONE_META[id].label}</span><span id="poseVal_${id}">${Math.round(state.pose[id]||0)}&deg;</span></div>
+              <input type="range" class="pose-range" data-bone="${id}" min="-150" max="150" value="${state.pose[id]||0}" />
+            </div>`).join("")}
+          <button class="btn block" id="resetPoseBtn">&#8634; Reset pose</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Timeline</div>
+        <div class="panel-body">
+          <div class="row mb">
+            <button class="btn primary" id="playBtn">${state.playing ? "&#10073;&#10073; Pause" : "&#9654; Play"}</button>
+            <span class="caption" id="timeLabel">${state.playhead.toFixed(2)}s / ${state.duration}s</span>
+          </div>
+          <input type="range" id="scrubRange" min="0" max="${state.duration}" step="0.01" value="${state.playhead}" class="mb" />
+          <div class="caption mb" id="durLabel">Duration: ${state.duration}s</div>
+          <input type="range" id="durRange" min="0.3" max="5" step="0.1" value="${state.duration}" class="mb" />
+          <button class="btn block mb" id="addKfBtn">+ Add keyframe at <span id="addKfTime">${state.playhead.toFixed(2)}</span>s</button>
+          <div class="kf-wrap" id="kfWrap">
+            ${state.keyframes.map((k) => `
+              <div class="kf-chip">
+                <button data-scrub="${k.t}">${k.t.toFixed(2)}s</button>
+                <button class="del" data-delkf="${k.t}">&times;</button>
+              </div>`).join("")}
+          </div>
+        </div>
+      </div>` : ""}
+    </div>
+  `;
+}
+
+function computeOwnerAndBBox() {
+  const { w: gridW, h: gridH } = gridDims();
+  const owner = Array.from({ length: gridH }, () => new Array(gridW).fill(null));
+  const bbox = {};
+  for (let y = 0; y < gridH; y++) for (let x = 0; x < gridW; x++) {
+    if (!state.colorGrid[y][x]) continue;
+    const key = x + "," + y;
+    const boneId = state.overrides[key] || nearestBoneId(x, y, state.bones);
+    owner[y][x] = boneId;
+    if (!bbox[boneId]) bbox[boneId] = { minX:x, maxX:x, minY:y, maxY:y };
+    else {
+      const b = bbox[boneId];
+      if (x<b.minX) b.minX=x; if (x>b.maxX) b.maxX=x;
+      if (y<b.minY) b.minY=y; if (y>b.maxY) b.maxY=y;
+    }
+  }
+  return { owner, bbox };
+}
+
+function renderPoseSnapped(ctx, poseAngles, gridW, gridH, owner, bbox) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const world = computeWorldTransforms(state.bones, poseAngles);
+  for (const boneId of BONE_ORDER) {
+    const bb = bbox[boneId];
+    if (!bb) continue;
+    const rp = state.bones[boneId].pivot;
+    const wt = world[boneId];
+    const cosA = Math.cos(wt.angle), sinA = Math.sin(wt.angle);
+    const invCosA = Math.cos(-wt.angle), invSinA = Math.sin(-wt.angle);
+    const corners = [[bb.minX,bb.minY],[bb.maxX+1,bb.minY],[bb.minX,bb.maxY+1],[bb.maxX+1,bb.maxY+1]];
+    let dminX=Infinity,dmaxX=-Infinity,dminY=Infinity,dmaxY=-Infinity;
+    for (const [sx,sy] of corners) {
+      const lx = sx - rp.x, ly = sy - rp.y;
+      const wx = wt.pivot.x + (lx*cosA - ly*sinA);
+      const wy = wt.pivot.y + (lx*sinA + ly*cosA);
+      if (wx<dminX) dminX=wx; if (wx>dmaxX) dmaxX=wx;
+      if (wy<dminY) dminY=wy; if (wy>dmaxY) dmaxY=wy;
+    }
+    const x0 = Math.floor(dminX)-1, x1 = Math.ceil(dmaxX)+1;
+    const y0 = Math.floor(dminY)-1, y1 = Math.ceil(dmaxY)+1;
+    for (let dy=y0; dy<y1; dy++) for (let dx=x0; dx<x1; dx++) {
+      const wx = dx+0.5-wt.pivot.x, wy = dy+0.5-wt.pivot.y;
+      const lx = wx*invCosA - wy*invSinA;
+      const ly = wx*invSinA + wy*invCosA;
+      const sx = Math.round(rp.x + lx - 0.5);
+      const sy = Math.round(rp.y + ly - 0.5);
+      if (sx<0||sy<0||sx>=gridW||sy>=gridH) continue;
+      if (owner[sy][sx] !== boneId) continue;
+      ctx.fillStyle = state.colorGrid[sy][sx];
+      ctx.fillRect(RIG_PAD+dx*RIG_CELL, RIG_PAD+dy*RIG_CELL, RIG_CELL, RIG_CELL);
+    }
+  }
+}
+
+function drawSkeletonOverlay(ctx) {
+  ctx.save();
+  ctx.translate(RIG_PAD, RIG_PAD);
+  for (const id of BONE_ORDER) {
+    const bn = state.bones[id], meta = BONE_META[id];
+    const sel = state.selectedBone === id;
+    ctx.strokeStyle = meta.color; ctx.lineWidth = sel?3:1.5; ctx.globalAlpha = sel?1:0.55;
+    ctx.beginPath(); ctx.moveTo(bn.pivot.x*RIG_CELL, bn.pivot.y*RIG_CELL); ctx.lineTo(bn.tip.x*RIG_CELL, bn.tip.y*RIG_CELL); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = meta.color;
+    ctx.beginPath(); ctx.arc(bn.pivot.x*RIG_CELL, bn.pivot.y*RIG_CELL, sel?7:4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "#111014"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(bn.tip.x*RIG_CELL, bn.tip.y*RIG_CELL, sel?5:3, 0, Math.PI*2);
+    ctx.fillStyle = "#111014"; ctx.fill();
+    ctx.strokeStyle = meta.color; ctx.lineWidth = 2; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRegionOverlay(ctx, owner) {
+  const { w: gridW, h: gridH } = gridDims();
+  ctx.save();
+  ctx.translate(RIG_PAD, RIG_PAD);
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = BONE_META[state.selectedBone].color;
+  for (let y=0;y<gridH;y++) for (let x=0;x<gridW;x++) {
+    if (owner[y][x] !== state.selectedBone) continue;
+    ctx.fillRect(x*RIG_CELL, y*RIG_CELL, RIG_CELL, RIG_CELL);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawRigCanvas() {
+  const canvas = document.getElementById("rigCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const { w: gridW, h: gridH } = gridDims();
+  const { owner, bbox } = computeOwnerAndBBox();
+  if (state.rigMode === "skeleton") { renderPoseSnapped(ctx, zeroPose(), gridW, gridH, owner, bbox); drawSkeletonOverlay(ctx); }
+  else if (state.rigMode === "paint") { renderPoseSnapped(ctx, zeroPose(), gridW, gridH, owner, bbox); drawRegionOverlay(ctx, owner); }
+  else { renderPoseSnapped(ctx, state.pose, gridW, gridH, owner, bbox); }
+}
+
+function interpolatePose(kfs, t, dur) {
+  const sorted = [...kfs].sort((a,b)=>a.t-b.t);
+  if (sorted.length===0) return zeroPose();
+  if (sorted.length===1) return sorted[0].pose;
+  let prev = sorted[sorted.length-1], next = sorted[0];
+  let prevT = prev.t-dur, nextT = next.t;
+  for (let i=0;i<sorted.length;i++){
+    const cur = sorted[i], nxt = sorted[(i+1)%sorted.length];
+    const curT = cur.t, nxtT = i===sorted.length-1 ? nxt.t+dur : nxt.t;
+    if (t>=curT && t<=nxtT) { prev=cur; next=nxt; prevT=curT; nextT=nxtT; break; }
+  }
+  const span = nextT-prevT || 1;
+  const f = (t-prevT)/span;
+  const out = {};
+  for (const b of BONE_ORDER) { const a=prev.pose[b]||0, c=next.pose[b]||0; out[b]=a+(c-a)*f; }
+  return out;
+}
+
+function syncPoseSlidersUI() {
+  if (state.rigMode !== "pose") return;
+  for (const id of BONE_ORDER) {
+    if (id === "torso") continue;
+    const slider = document.querySelector(`.pose-range[data-bone="${id}"]`);
+    const label = document.getElementById(`poseVal_${id}`);
+    if (slider) slider.value = state.pose[id] || 0;
+    if (label) label.textContent = `${Math.round(state.pose[id]||0)}\u00b0`;
+  }
+  const scrub = document.getElementById("scrubRange");
+  const timeLabel = document.getElementById("timeLabel");
+  const addKfTime = document.getElementById("addKfTime");
+  if (scrub) scrub.value = state.playhead;
+  if (timeLabel) timeLabel.textContent = `${state.playhead.toFixed(2)}s / ${state.duration}s`;
+  if (addKfTime) addKfTime.textContent = state.playhead.toFixed(2);
+}
+
+function startPlayback() {
+  state.playing = true;
+  let start = performance.now() - state.playhead * 1000;
+  function tick(now) {
+    let t = ((now - start) / 1000) % state.duration;
+    if (t < 0) t += state.duration;
+    state.playhead = t;
+    state.pose = interpolatePose(state.keyframes, t, state.duration);
+    drawRigCanvas();
+    syncPoseSlidersUI();
+    state.rafId = requestAnimationFrame(tick);
+  }
+  state.rafId = requestAnimationFrame(tick);
+}
+function stopPlayback() {
+  state.playing = false;
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+  state.rafId = null;
+}
+
+function setupRigTab() {
+  const canvas = document.getElementById("rigCanvas");
+
+  document.querySelectorAll(".rigmode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => { stopPlayback(); state.rigMode = btn.dataset.rigmode; renderApp(); });
+  });
+
+  document.getElementById("autoRigBtn").addEventListener("click", () => {
+    state.bones = autoRigBones(state.colorGrid);
+    state.overrides = {};
+    drawRigCanvas();
+  });
+
+  document.querySelectorAll(".bone-item").forEach((btn) => {
+    btn.addEventListener("click", () => { state.selectedBone = btn.dataset.bone; renderApp(); });
+  });
+
+  const clearBtn = document.getElementById("clearOverridesBtn");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    for (const k of Object.keys(state.overrides)) if (state.overrides[k] === state.selectedBone) delete state.overrides[k];
+    drawRigCanvas();
+  });
+
+  function toGrid(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+    const px = (e.clientX - rect.left) * scaleX - RIG_PAD;
+    const py = (e.clientY - rect.top) * scaleY - RIG_PAD;
+    return { x: px / RIG_CELL, y: py / RIG_CELL };
+  }
+
+  function paintCell(xf, yf) {
+    const { w: gridW, h: gridH } = gridDims();
+    const x = Math.floor(xf), y = Math.floor(yf);
+    if (x<0||y<0||x>=gridW||y>=gridH || !state.colorGrid[y][x]) return;
+    state.overrides[x+","+y] = state.selectedBone;
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    const { x, y } = toGrid(e);
+    if (state.rigMode === "skeleton") {
+      let best = null, bestD = 16 / RIG_CELL;
+      for (const id of BONE_ORDER) {
+        const bn = state.bones[id];
+        const dPiv = Math.hypot(x-bn.pivot.x, y-bn.pivot.y);
+        const dTip = Math.hypot(x-bn.tip.x, y-bn.tip.y);
+        if (dPiv < bestD) { bestD = dPiv; best = { boneId:id, part:"pivot" }; }
+        if (dTip < bestD) { bestD = dTip; best = { boneId:id, part:"tip" }; }
+      }
+      if (best) {
+        dragRef = best;
+        if (state.selectedBone !== best.boneId) { state.selectedBone = best.boneId; renderApp(); }
+      }
+    } else if (state.rigMode === "paint") {
+      paintCell(x, y);
+      dragRef = { painting: true };
+      drawRigCanvas();
+    }
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragRef) return;
+    const { x, y } = toGrid(e);
+    if (state.rigMode === "skeleton" && dragRef.boneId) {
+      state.bones[dragRef.boneId][dragRef.part] = { x, y };
+      drawRigCanvas();
+    } else if (state.rigMode === "paint" && dragRef.painting) {
+      paintCell(x, y);
+      drawRigCanvas();
+    }
+  });
+  window.addEventListener("pointerup", () => { dragRef = null; });
+
+  if (state.rigMode === "pose") {
+    document.querySelectorAll(".pose-range").forEach((slider) => {
+      slider.addEventListener("input", () => {
+        const id = slider.dataset.bone;
+        state.pose[id] = Number(slider.value);
+        document.getElementById(`poseVal_${id}`).textContent = `${Math.round(state.pose[id])}\u00b0`;
+        drawRigCanvas();
+      });
+    });
+    document.getElementById("resetPoseBtn").addEventListener("click", () => {
+      state.pose = zeroPose();
+      syncPoseSlidersUI();
+      drawRigCanvas();
+    });
+    document.getElementById("playBtn").addEventListener("click", () => {
+      if (state.playing) stopPlayback(); else startPlayback();
+      document.getElementById("playBtn").innerHTML = state.playing ? "&#10073;&#10073; Pause" : "&#9654; Play";
+    });
+    document.getElementById("scrubRange").addEventListener("input", (e) => {
+      stopPlayback();
+      document.getElementById("playBtn").innerHTML = "&#9654; Play";
+      state.playhead = Number(e.target.value);
+      state.pose = interpolatePose(state.keyframes, state.playhead, state.duration);
+      syncPoseSlidersUI();
+      drawRigCanvas();
+    });
+    document.getElementById("durRange").addEventListener("input", (e) => {
+      state.duration = Number(e.target.value);
+      document.getElementById("durLabel").textContent = `Duration: ${state.duration}s`;
+      document.getElementById("scrubRange").max = state.duration;
+      if (state.playhead > state.duration) { state.playhead = state.duration; syncPoseSlidersUI(); }
+    });
+    document.getElementById("addKfBtn").addEventListener("click", () => {
+      const t = Math.round(state.playhead * 100) / 100;
+      state.keyframes = state.keyframes.filter((k) => Math.abs(k.t - t) > 0.001);
+      state.keyframes.push({ t, pose: { ...state.pose } });
+      state.keyframes.sort((a,b)=>a.t-b.t);
+      renderApp();
+    });
+    document.querySelectorAll("[data-scrub]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        stopPlayback();
+        document.getElementById("playBtn").innerHTML = "&#9654; Play";
+        state.playhead = Number(btn.dataset.scrub);
+        state.pose = interpolatePose(state.keyframes, state.playhead, state.duration);
+        syncPoseSlidersUI();
+        drawRigCanvas();
+      });
+    });
+    document.querySelectorAll("[data-delkf]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const t = Number(btn.dataset.delkf);
+        if (state.keyframes.length > 1) { state.keyframes = state.keyframes.filter((k) => k.t !== t); renderApp(); }
+      });
+    });
+  }
+
+  drawRigCanvas();
+}
+
+/* ---------- boot ---------- */
+renderApp();
+</script>
+</body>
+</html>
