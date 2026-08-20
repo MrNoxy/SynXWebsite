@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Pixel Rig Studio</title>
+<style>
+  :root{
+    --bg:#17161b; --panel:#1c1b21; --panel2:#1f1e24; --border:#3a3942;
+    --text:#e6e4ea; --muted:#8b8994; --accent:#e8595f; --accentText:#18171c;
+    --stagebg:#111014;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none; touch-action:none;
+  }
+  #app{height:100dvh; width:100vw; display:flex; overflow:hidden;}
+  svg{display:block;}
+
+  .rail{width:56px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:8px;}
+  .rail-logo{width:32px; height:32px; background:var(--accent); border-radius:7px; display:flex;
+    align-items:center; justify-content:center; color:var(--accentText); font-weight:700; font-size:11px; margin-bottom:6px;}
+  .rail-btn{width:42px; height:42px; border-radius:9px; border:none; background:none; cursor:pointer;
+    color:var(--muted); display:flex; align-items:center; justify-content:center; touch-action:manipulation;}
+  .rail-btn:hover{background:#232228; color:#fff;}
+  .rail-btn.active{background:var(--accent); color:var(--accentText);}
+
+  .content{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{height:48px; flex-shrink:0; border-bottom:1px solid var(--border); background:#1a191f;
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px; gap:8px;}
+  .topbar .title{font-size:13px; font-weight:700; letter-spacing:.02em;}
+  .topbar .dims{font-size:10px; color:var(--muted); margin-left:8px;}
+  .topbar .actions{display:flex; gap:8px; align-items:center;}
+
+  .main{flex:1; min-height:0; display:flex; gap:12px; padding:12px; overflow:hidden; touch-action:none;}
+  @media (max-width:767px){ .main{flex-direction:column;} }
+
+  .stage-wrap{flex:1; min-width:0; min-height:0; display:flex; align-items:center; justify-content:center;
+    background:var(--stagebg); border:1px solid var(--border); border-radius:10px; overflow:hidden; position:relative; touch-action:none;}
+  .stage-col{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; gap:8px;}
+  .side{width:100%; display:flex; flex-direction:column; gap:12px; min-height:0; overflow-y:auto; flex-shrink:0; touch-action:pan-y;}
+  @media (min-width:768px){ .side{width:280px;} }
+
+  canvas{image-rendering:pixelated; max-width:100%; max-height:100%; width:auto; height:auto; touch-action:none; display:block;}
+
+  .stage-reset-btn{position:absolute; top:8px; right:8px; z-index:5; width:34px; height:34px; border-radius:8px;
+    background:rgba(35,34,40,0.9); border:1px solid var(--border); color:#c7c5cc; display:flex; align-items:center;
+    justify-content:center; cursor:pointer; touch-action:manipulation;}
+  .stage-reset-btn:hover{color:#fff; border-color:rgba(232,89,95,.6);}
+
+  .panel{border:1px solid var(--border); border-radius:9px; background:var(--panel2); display:flex; flex-direction:column; min-height:0;}
+  .panel-header{display:flex; align-items:center; justify-content:space-between; padding:7px 12px;
+    border-bottom:1px solid var(--border); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); flex-shrink:0; gap:6px;}
+  .panel-body{padding:10px; overflow-y:auto; min-height:0; touch-action:pan-y;}
+  .panel-grow{flex:1;}
+
+  .btn{padding:8px 10px; font-size:11.5px; border:1px solid var(--border); border-radius:7px; background:#232228;
+    color:#c7c5cc; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; touch-action:manipulation;}
+  .btn:hover{border-color:rgba(232,89,95,.6); color:#fff;}
+  .btn.active{background:var(--accent); border-color:var(--accent); color:var(--accentText);}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accentText); font-weight:700;}
+  .btn.small{padding:4px 8px; font-size:10px;}
+  .btn.block{width:100%;}
+  .btn.icon-btn{width:100%; aspect-ratio:1; padding:0;}
+  .btn:disabled, .btn.disabled{opacity:0.35; pointer-events:none;}
+  .btn.pulse{animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,89,95,.6);}50%{box-shadow:0 0 0 5px rgba(232,89,95,0);}}
+  .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .row{display:flex; align-items:center; gap:8px;}
+  .mb{margin-bottom:8px;} .mt{margin-top:8px;}
+
+  input[type=range]{width:100%; accent-color:var(--accent); touch-action:pan-x;}
+  input[type=color]{width:40px; height:40px; background:none; border:1px solid var(--border); border-radius:7px; padding:0; cursor:pointer;}
+  input[type=text]{background:var(--stagebg); border:1px solid var(--border); border-radius:7px; padding:8px;
+    color:var(--text); font-family:inherit; font-size:12px; width:100%;}
+  label.check{display:flex; align-items:center; gap:8px; font-size:12px; color:#c7c5cc; cursor:pointer;}
+
+  .swatch{width:24px; height:24px; border-radius:5px; border:1px solid var(--border); cursor:pointer; padding:0;}
+  .swatch-grid{display:grid; grid-template-columns:repeat(8,1fr); gap:6px;}
+
+  .bone-grid{display:grid; grid-template-columns:1fr 1fr; gap:3px;}
+  .bone-item{display:flex; align-items:center; gap:6px; text-align:left; width:100%; padding:5px 6px;
+    border-radius:6px; background:none; border:none; color:var(--text); font-family:inherit; font-size:10.5px; cursor:pointer;}
+  .bone-item:hover{background:#232228;}
+  .bone-item.selected{background:#2b2a32;}
+  .dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+
+  .caption{font-size:11px; color:var(--muted); flex-shrink:0; line-height:1.4;}
+  .pose-row{margin-bottom:9px;}
+  .pose-label{display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--muted); margin-bottom:3px; gap:6px;}
+  .flip-check{display:flex; align-items:center; gap:3px; font-size:9px; cursor:pointer; flex-shrink:0;}
+  .flip-check input{margin:0;}
+
+  .upload-label{cursor:pointer; padding:22px; border:1px dashed var(--border); border-radius:10px; font-size:13px;
+    color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .upload-label:hover{border-color:rgba(232,89,95,.6);}
+  .upload-label input{display:none;}
+  .hidden{display:none !important;}
+  img.preview-img{max-width:100%; max-height:100%; border-radius:8px; object-fit:contain;}
+
+  .timeline-bar{flex-shrink:0; border:1px solid var(--border); border-radius:9px; background:var(--panel2); padding:8px 10px;}
+  .tl-controls{display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap;}
+  .tl-time{font-size:10px; color:var(--muted); white-space:nowrap;}
+  .tl-dur{display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted); margin-left:auto;}
+  .tl-dur button{width:20px; height:20px; border-radius:5px; border:1px solid var(--border); background:#232228; color:#c7c5cc; cursor:pointer; font-size:11px; touch-action:manipulation;}
+  .tl-track{position:relative; height:34px; background:var(--stagebg); border-radius:6px; border:1px solid var(--border); touch-action:none; cursor:pointer;}
+  .tl-playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--accent); pointer-events:none; z-index:3;}
+  .tl-marker{position:absolute; top:50%; width:13px; height:13px; background:#f2b134; border:2px solid #18171c;
+    transform:translate(-50%,-50%) rotate(45deg); cursor:grab; z-index:2;}
+  .tl-marker.selected{background:var(--accent);}
+
+  .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .modal-card{background:var(--panel2); border:1px solid var(--border); border-radius:12px; max-width:420px; width:100%; max-height:85vh; overflow-y:auto;}
+  .modal-header{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel2);}
+  .modal-header h2{font-size:13px; margin:0; font-weight:700; letter-spacing:.02em;}
+  .modal-close{width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:#232228; color:#c7c5cc; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .modal-body{padding:16px; display:flex; flex-direction:column; gap:18px;}
+  .modal-section-title{font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted); margin-bottom:8px;}
+  .shortcut-row{display:flex; align-items:center; gap:10px; font-size:11.5px; color:#c7c5cc; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);}
+  .shortcut-row:last-child{border-bottom:none;}
+  .shortcut-icon{width:30px; height:30px; border-radius:7px; background:#232228; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accent);}
+
+  ::-webkit-scrollbar{width:7px; height:7px;}
+  ::-webkit-scrollbar-track{background:#1a1a1f;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   PIXEL RIG STUDIO v3 — single-file vanilla HTML/CSS/JS
+   ===================================================================== */
+
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+let __lastTouchEnd = 0;
+document.addEventListener("touchend", (e) => {
+  const now = Date.now();
+  if (now - __lastTouchEnd <= 350) e.preventDefault();
+  __lastTouchEnd = now;
+}, { passive: false });
+
+/* ---------- custom icon set ---------- */
+const ICONS = {
+  pencil: '<path d="M4 20l1-5L16 4l4 4L9 19l-5 1z"/><path d="M14 6l4 4"/>',
+  eraser: '<rect x="5" y="10.5" width="14" height="7" rx="1.2" transform="rotate(-18 12 12)"/><line x1="8" y1="20" x2="20" y2="20"/>',
+  bucket: '<path d="M4 10l8-6 8 6-8 6-8-6z"/><path d="M8 12v4.5C8 18.4 9.8 20 12 20s4-1.6 4-3.5V12"/>',
+  eyedrop: '<path d="M17 3l4 4-9.5 9.5-5 1 1-5L17 3z"/><line x1="8.5" y1="15.5" x2="4.5" y2="19.5"/>',
+  line: '<line x1="5" y1="19" x2="19" y2="5"/><circle cx="5" cy="19" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="5" r="1.4" fill="currentColor" stroke="none"/>',
+  rect: '<rect x="4.5" y="6.5" width="15" height="11" rx="1"/>',
+  select: '<path d="M4 4l7.2 16 2.1-6.9L20 11.2 4 4z"/>',
+  undo: '<path d="M7 7L3 11l4 4"/><path d="M3 11h11a6 6 0 0 1 0 12h-2"/>',
+  redo: '<path d="M17 7l4 4-4 4"/><path d="M21 11H10a6 6 0 0 0 0 12h2"/>',
+  bone: '<circle cx="6.5" cy="6.5" r="2.6"/><circle cx="17.5" cy="17.5" r="2.6"/><line x1="8.3" y1="8.3" x2="15.7" y2="15.7"/>',
+  grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1"/>',
+  play: '<path d="M6 4l14 8-14 8V4z"/>',
+  pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3.2M12 18.3v3.2M4.4 4.4l2.3 2.3M17.3 17.3l2.3 2.3M2.5 12h3.2M18.3 12h3.2M4.4 19.6l2.3-2.3M17.3 6.7l2.3-2.3"/>',
+  hand: '<path d="M8 12.5V5.2a1.5 1.5 0 0 1 3 0v5.3M11 10V4a1.5 1.5 0 0 1 3 0v6.3M14 10.3V5.6a1.5 1.5 0 0 1 3 0V13M8 12.5l-2 1.2a2.2 2.2 0 0 0-1 1.9v1.2a6 6 0 0 0 6 6h1.5a6 6 0 0 0 6-6V13"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16.5l-5.5-5.5-4 4-3-3-5.5 5.5"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  trash: '<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 12.5h9L17.5 7"/>',
+  x: '<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>',
+  wand: '<path d="M4 20L17 7"/><path d="M14.5 3.5l1.2 1.2M19 5l1.2 1.2M12.3 6.6l0.9 0.9M17.4 2.9l0.9 0.9"/>',
+  loop: '<path d="M4 12a8 8 0 0 1 8-8h4"/><path d="M14 1.5l2.5 2.5-2.5 2.5"/><path d="M20 12a8 8 0 0 1-8 8H8"/><path d="M10 23l-2.5-2.5L10 18"/>',
+  boomerang: '<path d="M4 16.5c4-8 12-8 16 0"/><path d="M17.5 12.5l2.5 4-4.3 0.8"/>',
+  once: '<line x1="4" y1="12" x2="17" y2="12"/><path d="M13 7l5 5-5 5"/>',
+  resetView: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.2" y2="16.2"/><line x1="7.5" y1="11" x2="14.5" y2="11"/>',
+  flip: '<path d="M12 2v20"/><path d="M6.5 7l-3 5 3 5"/><path d="M17.5 7l3 5-3 5"/>',
+};
+function icon(name, size) {
+  size = size || 18;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ""}</svg>`;
+}
+
+function lightenHex(hex, amt) {
+  const r = Math.min(255, parseInt(hex.slice(1,3),16)+amt);
+  const g = Math.min(255, parseInt(hex.slice(3,5),16)+amt);
+  const b = Math.min(255, parseInt(hex.slice(5,7),16)+amt);
+  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+}
+
+/* ---------- Starter sprite: "Nikki Freeman" ---------- */
+const NIKKI_RAW = '{"w":42,"h":51,"palette":["#393939","#4b3f41","#191725","#09080d","#41282e","#13111e","#4f4c4f","#784e4d","#530f15","#a8877e","#272532","#757373","#d3bbac","#dac6b4","#deccb8","#525c52","#2b131c","#af998f","#88827e","#70605f","#7a6e6c","#c5ab9d","#737373","#737372","#666766","#737374","#647863"],"grid":[[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,3,3,3,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,3,4,3,3,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,3,3,0,7,1,3,3,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,3,0,8,9,9,3,3,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,3,1,6,9,9,11,3,5,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,3,8,7,12,13,14,10,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,9,0,16,9,13,14,17,5,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,19,17,20,3,7,12,9,3,3,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,9,9,13,1,1,20,9,10,3,3,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,20,9,21,4,3,9,13,13,2,1,5,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,7,17,4,3,3,7,14,21,5,9,9,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,17,7,7,8,8,8,4,12,19,3,7,21,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,17,14,9,4,-1,4,16,8,4,7,8,16,7,12,17,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,17,14,12,9,-1,-1,4,8,8,8,8,8,8,9,21,9,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,17,14,14,21,-1,-1,-1,4,8,8,8,8,16,4,9,12,21,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,21,21,14,-1,-1,-1,-1,4,8,8,8,8,8,19,18,21,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,18,12,13,21,18,-1,-1,-1,-1,16,8,8,8,8,8,19,-1,18,14,14,21,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,18,17,17,12,21,21,-1,-1,-1,-1,-1,16,8,8,8,8,8,8,1,-1,-1,17,14,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[15,12,13,14,14,13,-1,-1,-1,-1,-1,-1,4,16,16,8,8,1,8,8,4,-1,-1,18,9,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[18,12,21,21,12,18,-1,-1,-1,-1,-1,-1,16,16,4,4,1,19,18,1,4,-1,-1,-1,-1,12,14,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,18,-1,17,18,-1,-1,-1,-1,-1,-1,6,3,3,2,16,10,0,1,16,2,15,-1,-1,-1,18,13,14,21,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,5,5,2,2,2,5,5,2,2,10,-1,-1,-1,-1,18,13,14,17,18,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,5,2,2,2,2,5,2,2,2,2,-1,-1,-1,-1,-1,18,13,14,14,13,17,15,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,5,5,2,2,5,2,5,5,5,2,2,-1,-1,-1,-1,-1,-1,18,13,13,13,12,18,15,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,10,2,2,5,5,3,3,3,5,5,2,6,-1,-1,-1,-1,-1,-1,18,21,18,18,15,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,7,-1,-1,-1,-1,6,5,1,6,6,10,0,20,21,9,4,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,19,19,-1,-1,-1,-1,15,1,12,13,13,21,6,21,12,9,7,19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,14,14,14,12,11,21,14,9,7,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,17,14,13,11,21,14,9,9,19,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,21,9,14,13,22,9,14,9,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,14,13,14,18,9,14,21,12,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,18,14,21,14,17,23,13,21,9,13,18,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,17,12,12,13,17,22,21,13,12,13,9,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,13,21,13,18,22,18,13,12,13,12,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,12,14,14,13,22,22,22,17,14,14,21,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,21,14,21,6,22,22,24,9,17,19,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,10,15,0,6,22,22,15,2,2,10,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,2,10,2,6,22,22,24,10,2,2,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,10,2,10,10,25,22,22,22,1,2,10,10,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,2,10,0,25,22,22,22,24,10,10,0,6,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,10,0,25,22,22,22,25,6,2,2,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,5,2,24,22,22,22,22,6,2,2,2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,5,5,5,1,22,22,22,22,0,5,2,10,-1,-1,-1,-1,26,26,0,6,-1,-1,26,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,2,2,2,0,24,22,22,6,10,2,10,10,-1,-1,-1,-1,26,0,2,10,-1,-1,0,15,15,15,26,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,2,2,2,0,1,24,24,10,2,2,10,10,-1,-1,-1,-1,15,15,16,10,-1,0,10,0,15,15,15,15],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,5,5,5,2,2,0,1,5,5,5,2,5,-1,-1,-1,-1,6,4,16,16,4,16,16,15,15,15,26,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,6,5,5,5,5,5,0,6,5,5,5,5,5,-1,4,0,6,6,1,8,8,1,1,15,-1,-1,15,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,15,0,0,0,0,0,6,15,0,0,0,0,1,-1,19,15,-1,19,6,1,1,6,15,15,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,6,6,15,-1,1,6,6,6,6,-1,-1,-1,-1,-1,15,15,15,19,6,1,26,26,26,-1,-1]]}';
+const NIKKI_DATA = JSON.parse(NIKKI_RAW);
+
+function nikkiToColorGrid() {
+  const { w, h, palette, grid } = NIKKI_DATA;
+  const out = [];
+  for (let y = 0; y < h; y++) {
+    const row = [];
+    for (let x = 0; x < w; x++) {
+      const idx = grid[y][x];
+      row.push(idx === -1 ? null : palette[idx]);
+    }
+    out.push(row);
+  }
+  return out;
+}
+function blankColorGrid(w, h) {
+  const out = [];
+  for (let y = 0; y < h; y++) out.push(new Array(w).fill(null));
+  return out;
+}
+
+/* ---------- Bone / rig definitions (advanced, 19 bones, structurally connected) ---------- */
+const BONE_ORDER = [
+  "torso", "neck", "head",
+  "shoulderL", "upperArmL", "lowerArmL", "handL",
+  "shoulderR", "upperArmR", "lowerArmR", "handR",
+  "hipL", "upperLegL", "lowerLegL", "footL",
+  "hipR", "upperLegR", "lowerLegR", "footR",
+];
+const BONE_META = {
+  torso:     { label: "Torso",        parent: null,       color: "#e8595f" },
+  neck:      { label: "Neck",         parent: "torso",     color: "#f2934f", attachTo: "pivot" },
+  head:      { label: "Head",         parent: "neck",      color: "#f2b134" },
+  shoulderL: { label: "L Shoulder",   parent: "torso",     color: "#4f8ff2", attachTo: "pivot" },
+  upperArmL: { label: "L Upper Arm",  parent: "shoulderL", color: "#5fb3e8" },
+  lowerArmL: { label: "L Lower Arm",  parent: "upperArmL", color: "#8fd0f2" },
+  handL:     { label: "L Hand",       parent: "lowerArmL", color: "#bfe6f7" },
+  shoulderR: { label: "R Shoulder",   parent: "torso",     color: "#4ff2a0", attachTo: "pivot" },
+  upperArmR: { label: "R Upper Arm",  parent: "shoulderR", color: "#5fe8b3" },
+  lowerArmR: { label: "R Lower Arm",  parent: "upperArmR", color: "#8ff2d0" },
+  handR:     { label: "R Hand",       parent: "lowerArmR", color: "#c3f7e3" },
+  hipL:      { label: "L Hip",        parent: "torso",     color: "#a05fe8" },
+  upperLegL: { label: "L Upper Leg",  parent: "hipL",       color: "#c85fe8" },
+  lowerLegL: { label: "L Lower Leg",  parent: "upperLegL", color: "#e08ff2" },
+  footL:     { label: "L Foot",       parent: "lowerLegL", color: "#f0c3f7" },
+  hipR:      { label: "R Hip",        parent: "torso",     color: "#e89a5f" },
+  upperLegR: { label: "R Upper Leg",  parent: "hipR",       color: "#e8b35f" },
+  lowerLegR: { label: "R Lower Leg",  parent: "upperLegR", color: "#f2d08f" },
+  footR:     { label: "R Foot",       parent: "lowerLegR", color: "#f7e6c3" },
+};
+const FLIPPABLE_BONES = ["head", "handL", "handR", "footL", "footR"];
+function childrenOf(boneId) { return BONE_ORDER.filter((b) => BONE_META[b].parent === boneId); }
+function zeroPose() { return Object.fromEntries(BONE_ORDER.map((b) => [b, 0])); }
+function zeroFlip() { return Object.fromEntries(BONE_ORDER.map((b) => [b, false])); }
+
+function findOpaqueBBox(colorGrid) {
+  const h = colorGrid.length, w = colorGrid[0].length;
+  let minX = w, maxX = -1, minY = h, maxY = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (colorGrid[y][x]) {
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return { minX: 0, maxX: w - 1, minY: 0, maxY: h - 1 };
+  return { minX, maxX, minY, maxY };
+}
+
+function autoRigBones(colorGrid) {
+  const { minX, maxX, minY, maxY } = findOpaqueBBox(colorGrid);
+  const W = maxX - minX, H = maxY - minY;
+  const cx = (minX + maxX) / 2;
+  const topY = minY, chestY = minY + H * 0.16, neckTopY = minY + H * 0.11;
+  const hipY = minY + H * 0.52, kneeY = minY + H * 0.75, ankleY = minY + H * 0.90, footY = minY + H * 0.98;
+  const shX = W * 0.16, elX = W * 0.42, wristX = W * 0.45, handX = W * 0.47;
+  const hipX = W * 0.13, ankX = W * 0.13, toeX = W * 0.10;
+  const p = (x, y) => ({ x, y });
+
+  const b = {};
+  b.torso     = { pivot: p(cx, chestY), tip: p(cx, hipY) };
+  b.neck      = { pivot: p(cx, chestY), tip: p(cx, neckTopY) };
+  b.head      = { pivot: p(cx, neckTopY), tip: p(cx, topY) };
+
+  b.shoulderL = { pivot: p(cx, chestY), tip: p(cx - shX, chestY + H * 0.02) };
+  b.upperArmL = { pivot: p(cx - shX, chestY + H * 0.02), tip: p(cx - elX, chestY + H * 0.22) };
+  b.lowerArmL = { pivot: p(cx - elX, chestY + H * 0.22), tip: p(cx - wristX, chestY + H * 0.38) };
+  b.handL     = { pivot: p(cx - wristX, chestY + H * 0.38), tip: p(cx - handX, chestY + H * 0.46) };
+
+  b.shoulderR = { pivot: p(cx, chestY), tip: p(cx + shX, chestY + H * 0.02) };
+  b.upperArmR = { pivot: p(cx + shX, chestY + H * 0.02), tip: p(cx + elX, chestY + H * 0.22) };
+  b.lowerArmR = { pivot: p(cx + elX, chestY + H * 0.22), tip: p(cx + wristX, chestY + H * 0.38) };
+  b.handR     = { pivot: p(cx + wristX, chestY + H * 0.38), tip: p(cx + handX, chestY + H * 0.46) };
+
+  b.hipL      = { pivot: p(cx, hipY), tip: p(cx - hipX, hipY + H * 0.02) };
+  b.upperLegL = { pivot: p(cx - hipX, hipY + H * 0.02), tip: p(cx - hipX, kneeY) };
+  b.lowerLegL = { pivot: p(cx - hipX, kneeY), tip: p(cx - ankX, ankleY) };
+  b.footL     = { pivot: p(cx - ankX, ankleY), tip: p(cx - ankX + toeX, footY) };
+
+  b.hipR      = { pivot: p(cx, hipY), tip: p(cx + hipX, hipY + H * 0.02) };
+  b.upperLegR = { pivot: p(cx + hipX, hipY + H * 0.02), tip: p(cx + hipX, kneeY) };
+  b.lowerLegR = { pivot: p(cx + hipX, kneeY), tip: p(cx + ankX, ankleY) };
+  b.footR     = { pivot: p(cx + ankX, ankleY), tip: p(cx + ankX - toeX, footY) };
+
+  for (const id of BONE_ORDER) b[id].flip = false;
+  return b;
+}
+
+/* Cascading edits keep the rig structurally connected: a child's pivot is
+   always exactly wherever it attaches on its parent (the parent's tip, or
+   for a few upper-body bones, the parent's own pivot/chest point). Moving
+   a joint drags everything attached to it below. */
+function childrenAttachedAtTip(boneId) {
+  return childrenOf(boneId).filter((c) => (BONE_META[c].attachTo || "tip") !== "pivot");
+}
+function childrenAttachedAtPivot(boneId) {
+  return childrenOf(boneId).filter((c) => BONE_META[c].attachTo === "pivot");
+}
+function cascadeShift(boneId, delta) {
+  const bn = state.bones[boneId];
+  bn.tip = { x: bn.tip.x + delta.x, y: bn.tip.y + delta.y };
+  for (const c of childrenAttachedAtTip(boneId)) {
+    state.bones[c].pivot = { x: state.bones[c].pivot.x + delta.x, y: state.bones[c].pivot.y + delta.y };
+    cascadeShift(c, delta);
+  }
+}
+function cascadeFromTip(boneId, newTip) {
+  const old = state.bones[boneId].tip;
+  const delta = { x: newTip.x - old.x, y: newTip.y - old.y };
+  state.bones[boneId].tip = newTip;
+  for (const c of childrenAttachedAtTip(boneId)) {
+    state.bones[c].pivot = { x: state.bones[c].pivot.x + delta.x, y: state.bones[c].pivot.y + delta.y };
+    cascadeShift(c, delta);
+  }
+}
+function cascadeFromRootPivot(newPivot) {
+  const old = state.bones.torso.pivot;
+  const delta = { x: newPivot.x - old.x, y: newPivot.y - old.y };
+  state.bones.torso.pivot = newPivot;
+  state.bones.torso.tip = { x: state.bones.torso.tip.x + delta.x, y: state.bones.torso.tip.y + delta.y };
+  for (const c of childrenOf("torso")) {
+    state.bones[c].pivot = { x: state.bones[c].pivot.x + delta.x, y: state.bones[c].pivot.y + delta.y };
+    cascadeShift(c, delta);
+  }
+}
+
+function pointSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * dx, cy = ay + t * dy;
+  return Math.hypot(px - cx, py - cy);
+}
+function nearestBoneId(x, y, bones) {
+  let best = null, bestD = Infinity;
+  for (const id of BONE_ORDER) {
+    const bn = bones[id];
+    if (!bn) continue;
+    const d = pointSegDist(x, y, bn.pivot.x, bn.pivot.y, bn.tip.x, bn.tip.y);
+    if (d < bestD) { bestD = d; best = id; }
+  }
+  return best;
+}
+
+function rot(x, y, a) { const c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; }
+
+function computeWorldTransforms(bones, poseAngles) {
+  const world = {};
+  function walk(id, parentWorld, parentRestPivot) {
+    const bn = bones[id];
+    const localAngle = ((poseAngles[id] || 0) * Math.PI) / 180;
+    let pivot, angle;
+    if (!parentWorld) { pivot = { x: bn.pivot.x, y: bn.pivot.y }; angle = localAngle; }
+    else {
+      const offX = bn.pivot.x - parentRestPivot.x, offY = bn.pivot.y - parentRestPivot.y;
+      const [rx, ry] = rot(offX, offY, parentWorld.angle);
+      pivot = { x: parentWorld.pivot.x + rx, y: parentWorld.pivot.y + ry };
+      angle = parentWorld.angle + localAngle;
+    }
+    world[id] = { pivot, angle };
+    for (const c of childrenOf(id)) walk(c, world[id], bn.pivot);
+  }
+  walk("torso", null, null);
+  return world;
+}
+
+function resampleColorGrid(grid, newW, newH) {
+  const oldH = grid.length, oldW = grid[0].length;
+  if (newW === oldW && newH === oldH) return grid.map((r) => r.slice());
+  const src = document.createElement("canvas");
+  src.width = oldW; src.height = oldH;
+  const sctx = src.getContext("2d");
+  const imgData = sctx.createImageData(oldW, oldH);
+  for (let y = 0; y < oldH; y++) for (let x = 0; x < oldW; x++) {
+    const i = (y * oldW + x) * 4, c = grid[y][x];
+    if (c) {
+      imgData.data[i] = parseInt(c.slice(1, 3), 16);
+      imgData.data[i + 1] = parseInt(c.slice(3, 5), 16);
+      imgData.data[i + 2] = parseInt(c.slice(5, 7), 16);
+      imgData.data[i + 3] = 255;
+    }
+  }
+  sctx.putImageData(imgData, 0, 0);
+  const dst = document.createElement("canvas");
+  dst.width = newW; dst.height = newH;
+  const dctx = dst.getContext("2d");
+  dctx.imageSmoothingEnabled = newW < oldW;
+  dctx.imageSmoothingQuality = "high";
+  dctx.drawImage(src, 0, 0, oldW, oldH, 0, 0, newW, newH);
+  const data = dctx.getImageData(0, 0, newW, newH).data;
+  const out = [];
+  for (let y = 0; y < newH; y++) {
+    const row = [];
+    for (let x = 0; x < newW; x++) {
+      const i = (y * newW + x) * 4, a = data[i + 3];
+      if (a < 64) row.push(null);
+      else row.push(`#${data[i].toString(16).padStart(2,"0")}${data[i+1].toString(16).padStart(2,"0")}${data[i+2].toString(16).padStart(2,"0")}`);
+    }
+    out.push(row);
+  }
+  return out;
+}
+
+function bresenhamLine(x0, y0, x1, y1) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  const pts = [];
+  while (true) {
+    pts.push([x0, y0]);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+  return pts;
+}
+
+/* =====================================================================
+   GLOBAL STATE
+   ===================================================================== */
+const DRAW_CELL = 16, IMPORT_CELL = 12, RIG_CELL = 10, RIG_PAD = 140;
+
+const state = {
+  mode: "draw",
+  colorGrid: nikkiToColorGrid(),
+  history: [],
+  redoStack: [],
+  palmRejection: true,
+  canvasBg: "#111014",
+  settingsOpen: false,
+
+  bones: null,
+  overrides: {},
+  selectedBone: "torso",
+  rigMode: "pose",
+  pose: zeroPose(),
+  keyframes: [{ t: 0, pose: zeroPose(), flip: zeroFlip() }],
+  selectedKfTime: null,
+  playhead: 0,
+  playing: false,
+  duration: 1.2,
+  loopMode: "once",
+  rafId: null,
+
+  tool: "pencil",
+  color: "#e8595f",
+  swatches: ["#000000","#ffffff","#e8595f","#f2b134","#5fb3e8","#5fe8b3","#c85fe8","#a8877e","#530f15","#191725"],
+  targetW: 42,
+  brushSize: 1,
+  mirrorX: false,
+  rectFilled: true,
+  selection: null,
+
+  drawView: { zoom: 1, panX: 0, panY: 0 },
+  rigView: { zoom: 1, panX: 0, panY: 0 },
+
+  imgUrl: null,
+  importTargetW: 44,
+  colorLevels: 5,
+  removeBg: true,
+  previewGrid: null,
+};
+state.bones = autoRigBones(state.colorGrid);
+state.targetW = state.colorGrid[0].length;
+
+function gridDims() { return { w: state.colorGrid[0].length, h: state.colorGrid.length }; }
+function isRejectedTouch(e) { return state.palmRejection && e.pointerType === "touch"; }
+
+let currentRedraw = null; // whatever tab is active assigns its own lightweight redraw fn here
+
+function pushDrawHistory() {
+  state.history.push(state.colorGrid.map((r) => r.slice()));
+  if (state.history.length > 40) state.history.shift();
+  state.redoStack = [];
+}
+function undo() {
+  if (!state.history.length) return;
+  state.redoStack.push(state.colorGrid.map((r) => r.slice()));
+  state.colorGrid = state.history.pop();
+  if (currentRedraw) currentRedraw();
+}
+function redo() {
+  if (!state.redoStack.length) return;
+  state.history.push(state.colorGrid.map((r) => r.slice()));
+  state.colorGrid = state.redoStack.pop();
+  if (currentRedraw) currentRedraw();
+}
+
+function replaceSprite(newGrid) {
+  state.colorGrid = newGrid;
+  state.history = [];
+  state.redoStack = [];
+  state.bones = autoRigBones(newGrid);
+  state.overrides = {};
+  state.selection = null;
+  const z = zeroPose(), zf = zeroFlip();
+  state.pose = z;
+  state.keyframes = [{ t: 0, pose: z, flip: zf }];
+  state.selectedKfTime = null;
+  state.playhead = 0;
+  state.playing = false;
+  state.targetW = newGrid[0].length;
+}
+function loadBlank() { replaceSprite(blankColorGrid(32, 40)); state.mode = "draw"; renderApp(); }
+function loadNikki() { replaceSprite(nikkiToColorGrid()); state.mode = "draw"; renderApp(); }
+
+function applyResample(newW, newH) {
+  const { w: oldW, h: oldH } = gridDims();
+  const scaled = resampleColorGrid(state.colorGrid, newW, newH);
+  const sx = newW / oldW, sy = newH / oldH;
+  const nb = {};
+  for (const id of BONE_ORDER) {
+    nb[id] = {
+      pivot: { x: state.bones[id].pivot.x * sx, y: state.bones[id].pivot.y * sy },
+      tip: { x: state.bones[id].tip.x * sx, y: state.bones[id].tip.y * sy },
+      flip: state.bones[id].flip,
+    };
+  }
+  state.colorGrid = scaled;
+  state.bones = nb;
+  state.overrides = {};
+  state.selection = null;
+  renderApp();
+}
+
+/* =====================================================================
+   TOUCH GESTURES: pinch-zoom/pan (all tabs) + 2/3-finger tap undo/redo (draw)
+   ===================================================================== */
+function attachTouchGestures(canvas, opts) {
+  // opts: { view, applyTransform, onGestureStart, enableTapUndo }
+  const touches = new Map();
+  let pinchActive = false, pinchStart = null;
+  let tapMaxCount = 0, tapStartTime = 0, tapMoved = false;
+
+  function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+  function mid(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "touch") return;
+    if (touches.size === 0) { tapStartTime = Date.now(); tapMoved = false; }
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tapMaxCount = Math.max(tapMaxCount, touches.size);
+    if (touches.size === 2) {
+      if (opts.onGestureStart) opts.onGestureStart();
+      const pts = [...touches.values()];
+      pinchStart = { dist: dist(pts[0], pts[1]) || 1, center: mid(pts[0], pts[1]), zoom: opts.view.zoom, panX: opts.view.panX, panY: opts.view.panY };
+      pinchActive = true;
+    }
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "touch" || !touches.has(e.pointerId)) return;
+    const prev = touches.get(e.pointerId);
+    if (Math.hypot(e.clientX - prev.x, e.clientY - prev.y) > 8) tapMoved = true;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinchActive && touches.size >= 2) {
+      const pts = [...touches.values()].slice(0, 2);
+      const d = dist(pts[0], pts[1]) || 1, c = mid(pts[0], pts[1]);
+      const scaleFactor = d / pinchStart.dist;
+      opts.view.zoom = Math.max(0.5, Math.min(6, pinchStart.zoom * scaleFactor));
+      opts.view.panX = pinchStart.panX + (c.x - pinchStart.center.x);
+      opts.view.panY = pinchStart.panY + (c.y - pinchStart.center.y);
+      opts.applyTransform();
+    }
+  });
+  function endTouch(e) {
+    if (e.pointerType !== "touch") return;
+    touches.delete(e.pointerId);
+    if (touches.size < 2) pinchActive = false;
+    if (touches.size === 0) {
+      const duration = Date.now() - tapStartTime;
+      if (opts.enableTapUndo && duration < 350 && !tapMoved) {
+        if (tapMaxCount === 2) undo();
+        else if (tapMaxCount === 3) redo();
+      }
+      tapMaxCount = 0;
+    }
+  }
+  canvas.addEventListener("pointerup", endTouch);
+  canvas.addEventListener("pointercancel", endTouch);
+  return { isGesture: () => touches.size >= 2 };
+}
+function applyViewTransform(canvas, view) {
+  canvas.style.transformOrigin = "center center";
+  canvas.style.transform = `translate(${view.panX}px, ${view.panY}px) scale(${view.zoom})`;
+}
+function getCanvasScale(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return 1;
+  return canvas.width / rect.width;
+}
+
+/* =====================================================================
+   ANIMATION TIME -> POSE
+   ===================================================================== */
+function getLastKfTime() { return state.keyframes.reduce((m, k) => Math.max(m, k.t), 0); }
+function computePoseAtTimeClamped(t) {
+  const sorted = [...state.keyframes].sort((a, b) => a.t - b.t);
+  if (sorted.length === 0) return { pose: zeroPose(), flip: zeroFlip() };
+  if (sorted.length === 1) return { pose: { ...sorted[0].pose }, flip: { ...sorted[0].flip } };
+  if (t <= sorted[0].t) return { pose: { ...sorted[0].pose }, flip: { ...sorted[0].flip } };
+  const last = sorted[sorted.length - 1];
+  if (t >= last.t) return { pose: { ...last.pose }, flip: { ...last.flip } };
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const cur = sorted[i], nxt = sorted[i + 1];
+    if (t >= cur.t && t <= nxt.t) {
+      const span = (nxt.t - cur.t) || 1, f = (t - cur.t) / span;
+      const pose = {};
+      for (const b of BONE_ORDER) { const a = cur.pose[b] || 0, c = nxt.pose[b] || 0; pose[b] = a + (c - a) * f; }
+      return { pose, flip: { ...cur.flip } };
+    }
+  }
+  return { pose: { ...last.pose }, flip: { ...last.flip } };
+}
+function computePoseAtTimeLooping(t, dur) {
+  const sorted = [...state.keyframes].sort((a, b) => a.t - b.t);
+  if (sorted.length === 0) return { pose: zeroPose(), flip: zeroFlip() };
+  if (sorted.length === 1) return { pose: { ...sorted[0].pose }, flip: { ...sorted[0].flip } };
+  let prev = sorted[sorted.length - 1], next = sorted[0];
+  let prevT = prev.t - dur, nextT = next.t;
+  for (let i = 0; i < sorted.length; i++) {
+    const cur = sorted[i], nxt = sorted[(i + 1) % sorted.length];
+    const curT = cur.t, nxtT = i === sorted.length - 1 ? nxt.t + dur : nxt.t;
+    if (t >= curT && t <= nxtT) { prev = cur; next = nxt; prevT = curT; nextT = nxtT; break; }
+  }
+  const span = (nextT - prevT) || 1, f = (t - prevT) / span;
+  const pose = {};
+  for (const b of BONE_ORDER) { const a = prev.pose[b] || 0, c = next.pose[b] || 0; pose[b] = a + (c - a) * f; }
+  return { pose, flip: { ...prev.flip } };
+}
+function applyPoseAtTime(t) {
+  const { pose, flip } = computePoseAtTimeClamped(t);
+  state.pose = pose;
+  for (const id of BONE_ORDER) state.bones[id].flip = !!flip[id];
+}
+function applyPoseAtTimeLooping(t) {
+  const { pose, flip } = computePoseAtTimeLooping(t, state.duration);
+  state.pose = pose;
+  for (const id of BONE_ORDER) state.bones[id].flip = !!flip[id];
+}
+function hasUnsavedPoseChanges() {
+  const at = computePoseAtTimeClamped(state.playhead);
+  for (const id of BONE_ORDER) {
+    if (Math.abs((state.pose[id] || 0) - (at.pose[id] || 0)) > 0.5) return true;
+    if (!!state.bones[id].flip !== !!at.flip[id]) return true;
+  }
+  return false;
+}
+
+/* =====================================================================
+   RENDER SHELL
+   ===================================================================== */
+const root = document.getElementById("app");
+
+function renderApp() {
+  const { w, h } = gridDims();
+  const modeLabel = { draw: "Draw", import: "Import Photo", rig: "Rig & Animate" }[state.mode];
+
+  root.innerHTML = `
+    <nav class="rail">
+      <div class="rail-logo">PR</div>
+      <button class="rail-btn ${state.mode==="draw"?"active":""}" data-act="mode" data-mode="draw" title="Draw">${icon("pencil",20)}</button>
+      <button class="rail-btn ${state.mode==="import"?"active":""}" data-act="mode" data-mode="import" title="Import Photo">${icon("image",20)}</button>
+      <button class="rail-btn ${state.mode==="rig"?"active":""}" data-act="mode" data-mode="rig" title="Rig &amp; Animate">${icon("bone",20)}</button>
+    </nav>
+    <div class="content">
+      <header class="topbar">
+        <div><span class="title">${modeLabel}</span><span class="dims">${w}&times;${h}px</span></div>
+        <div class="actions">
+          <button class="rail-btn" id="settingsBtn" title="Settings" style="width:34px;height:34px;">${icon("gear",18)}</button>
+          <button class="btn small" data-act="loadNikki">Load Nikki</button>
+          <button class="btn small" data-act="loadBlank">New Blank</button>
+        </div>
+      </header>
+      <main class="main" id="main"></main>
+    </div>
+    ${state.settingsOpen ? settingsModalHTML() : ""}
+  `;
+
+  const main = document.getElementById("main");
+  if (state.mode === "draw") main.innerHTML = drawTabHTML();
+  else if (state.mode === "import") main.innerHTML = importTabHTML();
+  else main.innerHTML = rigTabHTML();
+
+  attachShellListeners();
+  if (state.mode === "draw") setupDrawTab();
+  else if (state.mode === "import") setupImportTab();
+  else setupRigTab();
+  if (state.settingsOpen) setupSettingsModal();
+}
+
+function attachShellListeners() {
+  root.querySelectorAll('[data-act="mode"]').forEach((btn) => {
+    btn.addEventListener("click", () => { state.mode = btn.dataset.mode; renderApp(); });
+  });
+  root.querySelector('[data-act="loadNikki"]').addEventListener("click", loadNikki);
+  root.querySelector('[data-act="loadBlank"]').addEventListener("click", loadBlank);
+  document.getElementById("settingsBtn").addEventListener("click", () => { state.settingsOpen = true; renderApp(); });
+}
+
+/* =====================================================================
+   SETTINGS MODAL
+   ===================================================================== */
+function settingsModalHTML() {
+  return `
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="modal-close" id="modalCloseBtn">${icon("x",15)}</button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <div class="modal-section-title">Input</div>
+            <label class="check mb"><input type="checkbox" id="palmToggle" ${state.palmRejection?"checked":""}/> Palm rejection (Apple Pencil draws, resting fingers don't)</label>
+          </div>
+          <div>
+            <div class="modal-section-title">Canvas</div>
+            <div class="row">
+              <input type="color" id="bgColorPicker" value="${state.canvasBg}" />
+              <span class="caption">Canvas background color</span>
+            </div>
+          </div>
+          <div>
+            <div class="modal-section-title">Shortcuts</div>
+            <div class="shortcut-row"><span class="shortcut-icon">${icon("undo",15)}</span> Two-finger tap &mdash; Undo</div>
+            <div class="shortcut-row"><span class="shortcut-icon">${icon("redo",15)}</span> Three-finger tap &mdash; Redo</div>
+            <div class="shortcut-row"><span class="shortcut-icon">${icon("resetView",15)}</span> Two-finger drag &mdash; Zoom &amp; pan the canvas</div>
+            <div class="shortcut-row"><span class="shortcut-icon">${icon("pencil",15)}</span> Apple Pencil always draws, even with palm rejection on</div>
+            <div class="shortcut-row"><span class="shortcut-icon">${icon("bone",15)}</span> Rig: tap a body part, drag to rotate, tap the small circle to flip</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function setupSettingsModal() {
+  const backdrop = document.getElementById("modalBackdrop");
+  backdrop.addEventListener("pointerdown", (e) => { if (e.target === backdrop) { state.settingsOpen = false; renderApp(); } });
+  document.getElementById("modalCloseBtn").addEventListener("click", () => { state.settingsOpen = false; renderApp(); });
+  document.getElementById("palmToggle").addEventListener("change", (e) => { state.palmRejection = e.target.checked; });
+  document.getElementById("bgColorPicker").addEventListener("input", (e) => {
+    state.canvasBg = e.target.value;
+    if (currentRedraw) currentRedraw();
+  });
+}
+
+/* =====================================================================
+   DRAW TAB
+   ===================================================================== */
+function drawTabHTML() {
+  const { w, h } = gridDims();
+  const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+  const tools = [
+    ["pencil","Pencil"], ["eraser","Eraser"], ["bucket","Fill"], ["eyedrop","Eyedropper"],
+    ["line","Line"], ["rect","Rectangle"], ["select","Select / Move"],
+  ];
+  return `
+    <div class="stage-wrap" id="drawWrap" style="background:${state.canvasBg}">
+      <canvas id="drawCanvas" width="${w * DRAW_CELL}" height="${h * DRAW_CELL}"></canvas>
+      <button class="stage-reset-btn" id="drawResetView" title="Reset view">${icon("resetView",16)}</button>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <div class="panel-header">Tools</div>
+        <div class="panel-body">
+          <div class="grid4 mb">
+            ${tools.map(([id,label]) => `<button class="btn icon-btn tool-btn ${state.tool===id?"active":""}" data-tool="${id}" title="${label}">${icon(id,17)}</button>`).join("")}
+          </div>
+          <div class="caption mb">Brush size: <span id="brushLabel">${state.brushSize}</span>px</div>
+          <input type="range" id="brushRange" min="1" max="12" value="${state.brushSize}" class="mb" />
+          <label class="check mb"><input type="checkbox" id="mirrorCheck" ${state.mirrorX?"checked":""}/> Mirror horizontally</label>
+          ${state.tool === "rect" ? `<label class="check mb"><input type="checkbox" id="rectFilledCheck" ${state.rectFilled?"checked":""}/> Filled rectangle</label>` : ""}
+          <div class="grid2">
+            <button class="btn" id="undoBtn">${icon("undo",14)} Undo</button>
+            <button class="btn" id="redoBtn">${icon("redo",14)} Redo</button>
+          </div>
+        </div>
+      </div>
+
+      ${state.tool === "select" ? `
+      <div class="panel">
+        <div class="panel-header">Selection</div>
+        <div class="panel-body">
+          <p class="caption mb">Drag to select a rectangle. Drag inside it to move its contents.</p>
+          <div class="grid2 mb">
+            <button class="btn small" id="selFillBtn">Fill</button>
+            <button class="btn small" id="selDeleteBtn">${icon("trash",12)} Delete</button>
+          </div>
+          <button class="btn block" id="selDeselectBtn">Deselect</button>
+        </div>
+      </div>` : ""}
+
+      <div class="panel">
+        <div class="panel-header">Color</div>
+        <div class="panel-body">
+          <div class="row">
+            <input type="color" id="colorPicker" value="${state.color}" />
+            <input type="text" id="colorHex" value="${state.color}" />
+          </div>
+          <button class="btn block mt" id="saveSwatchBtn">${icon("plus",12)} Save swatch</button>
+          <div class="swatch-grid mt" id="swatchGrid">
+            ${state.swatches.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}"></button>`).join("")}
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Pixel Detail</div>
+        <div class="panel-body">
+          <div class="caption mb" id="detailLabel">Target width: ${state.targetW}px &rarr; ${state.targetW}&times;${targetH}</div>
+          <input type="range" id="detailRange" min="12" max="140" value="${state.targetW}" />
+          <button class="btn primary block mt" id="applyDetailBtn">Apply resolution</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setupDrawTab() {
+  const canvas = document.getElementById("drawCanvas");
+  const ctx = canvas.getContext("2d");
+  let painting = false;
+  let shapeStart = null, shapeCur = null;
+  let selDragStart = null;
+  let moveBuffer = null, moveOffset = { dx: 0, dy: 0 };
+
+  function inSelection(x, y) {
+    const s = state.selection;
+    return s && x >= s.x0 && x <= s.x1 && y >= s.y0 && y <= s.y1;
+  }
+  function setCell(x, y, val) {
+    const { w, h } = gridDims();
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    state.colorGrid[y][x] = val;
+    if (state.mirrorX) {
+      const mx = w - 1 - x;
+      if (mx !== x) state.colorGrid[y][mx] = val;
+    }
+  }
+  function applyBrush(x0, y0, val) {
+    const size = state.brushSize, half = Math.floor(size / 2);
+    for (let dy = -half; dy < size - half; dy++)
+      for (let dx = -half; dx < size - half; dx++)
+        setCell(x0 + dx, y0 + dy, val);
+  }
+
+  function drawGridToCanvas() {
+    const { w, h } = gridDims();
+    const bgA = state.canvasBg, bgB = lightenHex(state.canvasBg, 14);
+    ctx.clearRect(0, 0, w * DRAW_CELL, h * DRAW_CELL);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = state.colorGrid[y][x];
+      ctx.fillStyle = c ? c : ((x + y) % 2 === 0 ? bgA : bgB);
+      ctx.fillRect(x * DRAW_CELL, y * DRAW_CELL, DRAW_CELL, DRAW_CELL);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x++) { ctx.beginPath(); ctx.moveTo(x*DRAW_CELL,0); ctx.lineTo(x*DRAW_CELL,h*DRAW_CELL); ctx.stroke(); }
+    for (let y = 0; y <= h; y++) { ctx.beginPath(); ctx.moveTo(0,y*DRAW_CELL); ctx.lineTo(w*DRAW_CELL,y*DRAW_CELL); ctx.stroke(); }
+
+    if (shapeStart && shapeCur && (state.tool === "line" || state.tool === "rect")) {
+      ctx.globalAlpha = 0.6;
+      if (state.tool === "line") {
+        bresenhamLine(shapeStart.x, shapeStart.y, shapeCur.x, shapeCur.y).forEach(([x, y]) => {
+          if (x < 0 || y < 0 || x >= w || y >= h) return;
+          ctx.fillStyle = state.color;
+          ctx.fillRect(x * DRAW_CELL, y * DRAW_CELL, DRAW_CELL, DRAW_CELL);
+        });
+      } else {
+        const x0 = Math.min(shapeStart.x, shapeCur.x), x1 = Math.max(shapeStart.x, shapeCur.x);
+        const y0 = Math.min(shapeStart.y, shapeCur.y), y1 = Math.max(shapeStart.y, shapeCur.y);
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          if (!state.rectFilled && x !== x0 && x !== x1 && y !== y0 && y !== y1) continue;
+          if (x < 0 || y < 0 || x >= w || y >= h) continue;
+          ctx.fillStyle = state.color;
+          ctx.fillRect(x * DRAW_CELL, y * DRAW_CELL, DRAW_CELL, DRAW_CELL);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (moveBuffer) {
+      ctx.globalAlpha = 0.85;
+      for (let ry = 0; ry < moveBuffer.h; ry++) for (let rx = 0; rx < moveBuffer.w; rx++) {
+        const val = moveBuffer.data[ry][rx];
+        if (val == null) continue;
+        const nx = moveBuffer.x0 + rx + moveOffset.dx, ny = moveBuffer.y0 + ry + moveOffset.dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        ctx.fillStyle = val;
+        ctx.fillRect(nx * DRAW_CELL, ny * DRAW_CELL, DRAW_CELL, DRAW_CELL);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (state.selection) {
+      const s = state.selection;
+      const ox = moveBuffer ? moveOffset.dx : 0, oy = moveBuffer ? moveOffset.dy : 0;
+      ctx.strokeStyle = "#5fb3e8"; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+      ctx.strokeRect((s.x0+ox) * DRAW_CELL, (s.y0+oy) * DRAW_CELL, (s.x1 - s.x0 + 1) * DRAW_CELL, (s.y1 - s.y0 + 1) * DRAW_CELL);
+      ctx.setLineDash([]);
+    }
+  }
+  currentRedraw = drawGridToCanvas;
+  applyViewTransform(canvas, state.drawView);
+
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    return { x: Math.floor(((e.clientX - rect.left) * scale) / DRAW_CELL), y: Math.floor(((e.clientY - rect.top) * scale) / DRAW_CELL) };
+  }
+  function paintAt(x, y) {
+    const { w, h } = gridDims();
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    if (state.tool === "eyedrop") {
+      const c = state.colorGrid[y][x];
+      if (c) { state.color = c; document.getElementById("colorPicker").value = c; document.getElementById("colorHex").value = c; }
+      setToolUI("pencil");
+      return;
+    }
+    if (state.tool === "fill") {
+      const target = state.colorGrid[y][x];
+      if (target === state.color) return;
+      const stack = [[x, y]], seen = new Set();
+      while (stack.length) {
+        const [cx, cy] = stack.pop();
+        const key = cx + "," + cy;
+        if (seen.has(key) || cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+        if (state.colorGrid[cy][cx] !== target) continue;
+        seen.add(key);
+        setCell(cx, cy, state.color);
+        stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+      }
+      return;
+    }
+    applyBrush(x, y, state.tool === "eraser" ? null : state.color);
+  }
+  function setToolUI(tool) {
+    state.tool = tool;
+    document.querySelectorAll(".tool-btn").forEach((b) => b.classList.toggle("active", b.dataset.tool === tool));
+  }
+
+  function cancelInteractions() {
+    painting = false; shapeStart = null; shapeCur = null; selDragStart = null; moveBuffer = null;
+    drawGridToCanvas();
+  }
+  const gesture = attachTouchGestures(canvas, {
+    view: state.drawView,
+    applyTransform: () => applyViewTransform(canvas, state.drawView),
+    onGestureStart: cancelInteractions,
+    enableTapUndo: true,
+  });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (isRejectedTouch(e) || gesture.isGesture()) return;
+    canvas.setPointerCapture(e.pointerId);
+    const { x, y } = cellFromEvent(e);
+
+    if (state.tool === "select") {
+      if (inSelection(x, y)) {
+        pushDrawHistory();
+        const s = state.selection;
+        moveBuffer = { x0: s.x0, y0: s.y0, w: s.x1 - s.x0 + 1, h: s.y1 - s.y0 + 1, data: [] };
+        for (let yy = s.y0; yy <= s.y1; yy++) {
+          const row = [];
+          for (let xx = s.x0; xx <= s.x1; xx++) { row.push(state.colorGrid[yy][xx]); state.colorGrid[yy][xx] = null; }
+          moveBuffer.data.push(row);
+        }
+        moveOffset = { dx: 0, dy: 0 };
+        selDragStart = { x, y, mode: "move" };
+      } else {
+        selDragStart = { x, y, mode: "new" };
+        state.selection = { x0: x, y0: y, x1: x, y1: y };
+      }
+      drawGridToCanvas();
+      return;
+    }
+    if (state.tool === "line" || state.tool === "rect") {
+      pushDrawHistory();
+      shapeStart = { x, y }; shapeCur = { x, y };
+      drawGridToCanvas();
+      return;
+    }
+    pushDrawHistory();
+    painting = true;
+    paintAt(x, y);
+    drawGridToCanvas();
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (isRejectedTouch(e) || gesture.isGesture()) return;
+    const { x, y } = cellFromEvent(e);
+    if (state.tool === "select" && selDragStart) {
+      if (selDragStart.mode === "new") {
+        state.selection = { x0: Math.min(selDragStart.x, x), y0: Math.min(selDragStart.y, y), x1: Math.max(selDragStart.x, x), y1: Math.max(selDragStart.y, y) };
+      } else if (selDragStart.mode === "move") {
+        moveOffset = { dx: x - selDragStart.x, dy: y - selDragStart.y };
+      }
+      drawGridToCanvas();
+      return;
+    }
+    if ((state.tool === "line" || state.tool === "rect") && shapeStart) {
+      shapeCur = { x, y };
+      drawGridToCanvas();
+      return;
+    }
+    if (painting) { paintAt(x, y); drawGridToCanvas(); }
+  });
+
+  canvas.addEventListener("pointerup", () => {
+    if (state.tool === "select" && selDragStart) {
+      if (selDragStart.mode === "move" && moveBuffer) {
+        const { w: gw, h: gh } = gridDims();
+        for (let ry = 0; ry < moveBuffer.h; ry++) for (let rx = 0; rx < moveBuffer.w; rx++) {
+          const val = moveBuffer.data[ry][rx];
+          if (val == null) continue;
+          const nx = moveBuffer.x0 + rx + moveOffset.dx, ny = moveBuffer.y0 + ry + moveOffset.dy;
+          if (nx >= 0 && ny >= 0 && nx < gw && ny < gh) setCell(nx, ny, val);
+        }
+        state.selection = { x0: moveBuffer.x0 + moveOffset.dx, y0: moveBuffer.y0 + moveOffset.dy, x1: moveBuffer.x0 + moveOffset.dx + moveBuffer.w - 1, y1: moveBuffer.y0 + moveOffset.dy + moveBuffer.h - 1 };
+        moveBuffer = null; moveOffset = { dx: 0, dy: 0 };
+      }
+      selDragStart = null;
+      drawGridToCanvas();
+      return;
+    }
+    if ((state.tool === "line" || state.tool === "rect") && shapeStart) {
+      if (state.tool === "line") {
+        bresenhamLine(shapeStart.x, shapeStart.y, shapeCur.x, shapeCur.y).forEach(([x, y]) => applyBrush(x, y, state.color));
+      } else {
+        const x0 = Math.min(shapeStart.x, shapeCur.x), x1 = Math.max(shapeStart.x, shapeCur.x);
+        const y0 = Math.min(shapeStart.y, shapeCur.y), y1 = Math.max(shapeStart.y, shapeCur.y);
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+          if (!state.rectFilled && x !== x0 && x !== x1 && y !== y0 && y !== y1) continue;
+          setCell(x, y, state.color);
+        }
+      }
+      shapeStart = null; shapeCur = null;
+      drawGridToCanvas();
+      return;
+    }
+    painting = false;
+  });
+  canvas.addEventListener("pointercancel", () => { painting = false; selDragStart = null; shapeStart = null; });
+
+  document.getElementById("drawResetView").addEventListener("click", () => {
+    state.drawView.zoom = 1; state.drawView.panX = 0; state.drawView.panY = 0;
+    applyViewTransform(canvas, state.drawView);
+  });
+
+  document.querySelectorAll(".tool-btn").forEach((btn) => {
+    btn.addEventListener("click", () => { state.tool = btn.dataset.tool; state.selection = null; renderApp(); });
+  });
+
+  document.getElementById("undoBtn").addEventListener("click", undo);
+  document.getElementById("redoBtn").addEventListener("click", redo);
+
+  const colorPicker = document.getElementById("colorPicker");
+  const colorHex = document.getElementById("colorHex");
+  colorPicker.addEventListener("input", () => { state.color = colorPicker.value; colorHex.value = colorPicker.value; });
+  colorHex.addEventListener("input", () => { state.color = colorHex.value; });
+
+  document.getElementById("saveSwatchBtn").addEventListener("click", () => {
+    if (!state.swatches.includes(state.color)) {
+      state.swatches = [state.color, ...state.swatches].slice(0, 16);
+      document.getElementById("swatchGrid").innerHTML = state.swatches.map((c) => `<button class="swatch" data-color="${c}" style="background:${c}"></button>`).join("");
+      bindSwatchClicks();
+    }
+  });
+  function bindSwatchClicks() {
+    document.querySelectorAll(".swatch").forEach((s) => {
+      s.addEventListener("click", () => { state.color = s.dataset.color; colorPicker.value = s.dataset.color; colorHex.value = s.dataset.color; });
+    });
+  }
+  bindSwatchClicks();
+
+  const brushRange = document.getElementById("brushRange");
+  brushRange.addEventListener("input", () => { state.brushSize = Number(brushRange.value); document.getElementById("brushLabel").textContent = state.brushSize; });
+  document.getElementById("mirrorCheck").addEventListener("change", (e) => { state.mirrorX = e.target.checked; });
+  const rectFilledCheck = document.getElementById("rectFilledCheck");
+  if (rectFilledCheck) rectFilledCheck.addEventListener("change", (e) => { state.rectFilled = e.target.checked; });
+
+  const selFillBtn = document.getElementById("selFillBtn");
+  if (selFillBtn) selFillBtn.addEventListener("click", () => {
+    if (!state.selection) return;
+    pushDrawHistory();
+    const s = state.selection;
+    for (let y = s.y0; y <= s.y1; y++) for (let x = s.x0; x <= s.x1; x++) setCell(x, y, state.color);
+    drawGridToCanvas();
+  });
+  const selDeleteBtn = document.getElementById("selDeleteBtn");
+  if (selDeleteBtn) selDeleteBtn.addEventListener("click", () => {
+    if (!state.selection) return;
+    pushDrawHistory();
+    const s = state.selection;
+    for (let y = s.y0; y <= s.y1; y++) for (let x = s.x0; x <= s.x1; x++) setCell(x, y, null);
+    drawGridToCanvas();
+  });
+  const selDeselectBtn = document.getElementById("selDeselectBtn");
+  if (selDeselectBtn) selDeselectBtn.addEventListener("click", () => { state.selection = null; renderApp(); });
+
+  const detailRange = document.getElementById("detailRange");
+  const detailLabel = document.getElementById("detailLabel");
+  detailRange.addEventListener("input", () => {
+    state.targetW = Number(detailRange.value);
+    const { w, h } = gridDims();
+    const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+    detailLabel.textContent = `Target width: ${state.targetW}px \u2192 ${state.targetW}\u00d7${targetH}`;
+  });
+  document.getElementById("applyDetailBtn").addEventListener("click", () => {
+    const { w, h } = gridDims();
+    const targetH = Math.max(1, Math.round(h * (state.targetW / w)));
+    applyResample(state.targetW, targetH);
+  });
+
+  drawGridToCanvas();
+}
+
+/* =====================================================================
+   IMPORT TAB
+   ===================================================================== */
+function importTabHTML() {
+  return `
+    <div class="stage-wrap" id="importWrap" style="background:${state.canvasBg}">
+      ${!state.imgUrl ? `
+        <label class="upload-label" id="uploadLabel">
+          ${icon("image",26)}
+          Click to upload a reference photo
+          <input type="file" id="fileInput" accept="image/*" />
+        </label>
+      ` : state.previewGrid ? `
+        <canvas id="previewCanvas" width="${state.previewGrid[0].length*IMPORT_CELL}" height="${state.previewGrid.length*IMPORT_CELL}"></canvas>
+      ` : `
+        <img id="refImg" class="preview-img" src="${state.imgUrl}" />
+      `}
+    </div>
+    <div class="side">
+      <div class="panel">
+        <div class="panel-header">Convert settings</div>
+        <div class="panel-body">
+          <div class="caption mb" id="widthLabel">Pixel width (quality): ${state.importTargetW}</div>
+          <input type="range" id="widthRange" min="12" max="128" value="${state.importTargetW}" class="mb" />
+          <div class="caption mb" id="levelsLabel">Color levels: ${state.colorLevels}</div>
+          <input type="range" id="levelsRange" min="2" max="12" value="${state.colorLevels}" class="mb" />
+          <label class="check mb"><input type="checkbox" id="removeBgCheck" ${state.removeBg?"checked":""}/> Remove background</label>
+          <button class="btn block" id="rerenderBtn" ${!state.imgUrl?"disabled":""}>Re-render</button>
+        </div>
+      </div>
+      ${state.previewGrid ? `
+      <div class="panel">
+        <div class="panel-header">Result</div>
+        <div class="panel-body">
+          <button class="btn primary block" id="useSpriteBtn">Use as sprite &rarr;</button>
+          <button class="btn block mt" id="tryAnotherBtn">Try another photo</button>
+        </div>
+      </div>` : ""}
+    </div>
+  `;
+}
+function posterize(v, levels) { const step = 255 / (levels - 1); return Math.round(Math.round(v / step) * step); }
+function pixelateImage(img) {
+  const aspect = img.naturalHeight / img.naturalWidth;
+  const w = state.importTargetW, h = Math.max(1, Math.round(w * aspect));
+  const off = document.createElement("canvas");
+  off.width = w; off.height = h;
+  const ctx = off.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  const grid = [];
+  for (let y = 0; y < h; y++) {
+    const row = [];
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = posterize(data.data[i], state.colorLevels);
+      const g = posterize(data.data[i+1], state.colorLevels);
+      const b = posterize(data.data[i+2], state.colorLevels);
+      row.push(`#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`);
+    }
+    grid.push(row);
+  }
+  if (state.removeBg) {
+    const isClose = (c1, c2, tol) => {
+      const p = (h2) => [parseInt(h2.slice(1,3),16), parseInt(h2.slice(3,5),16), parseInt(h2.slice(5,7),16)];
+      const [r1,g1,b1] = p(c1), [r2,g2,b2] = p(c2);
+      return Math.abs(r1-r2)<=tol && Math.abs(g1-g2)<=tol && Math.abs(b1-b2)<=tol;
+    };
+    const bg = grid[0][0];
+    const stack = [];
+    for (let x=0;x<w;x++){ if(isClose(grid[0][x],bg,20)) stack.push([x,0]); if(isClose(grid[h-1][x],bg,20)) stack.push([x,h-1]); }
+    for (let y=0;y<h;y++){ if(isClose(grid[y][0],bg,20)) stack.push([0,y]); if(isClose(grid[y][w-1],bg,20)) stack.push([w-1,y]); }
+    const visited = Array.from({ length: h }, () => new Array(w).fill(false));
+    while (stack.length) {
+      const [x, y] = stack.pop();
+      if (x<0||y<0||x>=w||y>=h||visited[y][x]) continue;
+      if (!isClose(grid[y][x], bg, 20)) continue;
+      visited[y][x] = true; grid[y][x] = null;
+      stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+    }
+  }
+  return grid;
+}
+function drawPreviewCanvas() {
+  const canvas = document.getElementById("previewCanvas");
+  if (!canvas || !state.previewGrid) return;
+  const ctx = canvas.getContext("2d");
+  const w = state.previewGrid[0].length, h = state.previewGrid.length;
+  const bgA = state.canvasBg, bgB = lightenHex(state.canvasBg, 14);
+  ctx.clearRect(0,0,w*IMPORT_CELL,h*IMPORT_CELL);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const c = state.previewGrid[y][x];
+    ctx.fillStyle = c ? c : ((x+y)%2===0 ? bgA : bgB);
+    ctx.fillRect(x*IMPORT_CELL,y*IMPORT_CELL,IMPORT_CELL,IMPORT_CELL);
+  }
+}
+function setupImportTab() {
+  currentRedraw = drawPreviewCanvas;
+  if (!state.imgUrl) {
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { state.imgUrl = reader.result; state.previewGrid = null; renderApp(); };
+      reader.readAsDataURL(file);
+    });
+    return;
+  }
+  if (state.previewGrid) {
+    drawPreviewCanvas();
+    document.getElementById("useSpriteBtn").addEventListener("click", () => {
+      replaceSprite(state.previewGrid);
+      state.imgUrl = null; state.previewGrid = null;
+      state.mode = "draw";
+      renderApp();
+    });
+    document.getElementById("tryAnotherBtn").addEventListener("click", () => {
+      state.imgUrl = null; state.previewGrid = null; renderApp();
+    });
+  } else {
+    const img = document.getElementById("refImg");
+    const doPixelate = () => { state.previewGrid = pixelateImage(img); renderApp(); };
+    if (img.complete && img.naturalWidth > 0) doPixelate();
+    else img.addEventListener("load", doPixelate);
+  }
+  const widthRange = document.getElementById("widthRange");
+  const widthLabel = document.getElementById("widthLabel");
+  widthRange.addEventListener("input", () => { state.importTargetW = Number(widthRange.value); widthLabel.textContent = `Pixel width (quality): ${state.importTargetW}`; });
+  const levelsRange = document.getElementById("levelsRange");
+  const levelsLabel = document.getElementById("levelsLabel");
+  levelsRange.addEventListener("input", () => { state.colorLevels = Number(levelsRange.value); levelsLabel.textContent = `Color levels: ${state.colorLevels}`; });
+  document.getElementById("removeBgCheck").addEventListener("change", (e) => { state.removeBg = e.target.checked; });
+  document.getElementById("rerenderBtn").addEventListener("click", () => {
+    const img = document.getElementById("refImg") || (() => { const i = new Image(); i.src = state.imgUrl; return i; })();
+    if (img.complete && img.naturalWidth > 0) { state.previewGrid = pixelateImage(img); renderApp(); }
+    else img.addEventListener("load", () => { state.previewGrid = pixelateImage(img); renderApp(); });
+  });
+}
+
+/* =====================================================================
+   RIG TAB
+   ===================================================================== */
+function rigTabHTML() {
+  const { w, h } = gridDims();
+  const stageW = w * RIG_CELL + RIG_PAD * 2;
+  const stageH = h * RIG_CELL + RIG_PAD * 2;
+  const captions = {
+    skeleton: "Drag a joint (white dot) to reshape the rig. Children always stay attached to their parent.",
+    paint: `Editing &quot;${BONE_META[state.selectedBone].label}&quot; &mdash; click or drag pixels to move them onto this bone.`,
+    pose: "Tap a body part to select it, then drag it to rotate freely. Tap the small circular icon to flip it.",
+  };
+  const loopIcon = { loop: icon("loop",13)+" Loop", boomerang: icon("boomerang",13)+" Boomerang", once: icon("once",13)+" Once" }[state.loopMode];
+  const kfSelected = state.selectedKfTime !== null && state.keyframes.some((k) => Math.abs(k.t - state.selectedKfTime) < 0.001);
+
+  return `
+    <div class="stage-col">
+      <div class="row">
+        <button class="btn rigmode-btn ${state.rigMode==="skeleton"?"active":""}" data-rigmode="skeleton">${icon("bone",14)} Skeleton</button>
+        <button class="btn rigmode-btn ${state.rigMode==="paint"?"active":""}" data-rigmode="paint">${icon("grid",14)} Regions</button>
+        <button class="btn rigmode-btn ${state.rigMode==="pose"?"active":""}" data-rigmode="pose">${icon("play",14)} Animate</button>
+      </div>
+      <div class="stage-wrap" style="background:${state.canvasBg}">
+        <canvas id="rigCanvas" width="${stageW}" height="${stageH}"></canvas>
+        <button class="stage-reset-btn" id="rigResetView" title="Reset view">${icon("resetView",16)}</button>
+      </div>
+      <div class="caption" id="rigCaption">${captions[state.rigMode]}</div>
+      ${state.rigMode === "pose" ? `
+      <div class="timeline-bar">
+        <div class="tl-controls">
+          <button class="btn primary small" id="playBtn">${state.playing ? icon("pause",13) : icon("play",13)}</button>
+          <button class="btn small" id="loopModeBtn">${loopIcon}</button>
+          <button class="btn small" id="addKfBtn">${icon("plus",12)} Keyframe</button>
+          <button class="btn small ${kfSelected?"":"disabled"}" id="delKfBtn">${icon("trash",12)}</button>
+          <span class="tl-time" id="timeLabel">${state.playhead.toFixed(2)}s</span>
+          <div class="tl-dur">
+            <span>Loop len:</span>
+            <button data-dur-adj="-0.1">&minus;</button>
+            <span id="durVal">${state.duration.toFixed(1)}s</span>
+            <button data-dur-adj="0.1">+</button>
+          </div>
+        </div>
+        <div class="tl-track" id="tlTrack">
+          <div class="tl-playhead" id="tlPlayhead" style="left:0%"></div>
+          ${state.keyframes.map((k, i) => `<div class="tl-marker ${state.selectedKfTime!==null && Math.abs(k.t-state.selectedKfTime)<0.001?"selected":""}" data-index="${i}" style="left:${(k.t/Math.max(state.duration,getLastKfTime(),0.1))*100}%" title="${k.t.toFixed(2)}s"></div>`).join("")}
+        </div>
+      </div>` : ""}
+    </div>
+    <div class="side">
+      <div class="panel ${state.rigMode!=="pose"?"panel-grow":""}">
+        <div class="panel-header">Bones <button class="btn small" id="autoRigBtn">${icon("wand",12)} Auto-Rig</button></div>
+        <div class="panel-body">
+          <div class="bone-grid" id="boneList">
+            ${BONE_ORDER.map((id) => `
+              <button class="bone-item ${state.selectedBone===id?"selected":""}" data-bone="${id}">
+                <span class="dot" style="background:${BONE_META[id].color}"></span>${BONE_META[id].label}
+              </button>`).join("")}
+          </div>
+          ${state.rigMode==="paint" ? `<button class="btn block mt" id="clearOverridesBtn">Reset this bone to auto</button>` : ""}
+        </div>
+      </div>
+      ${state.rigMode==="pose" ? `
+      <div class="panel panel-grow">
+        <div class="panel-header">Pose</div>
+        <div class="panel-body">
+          ${BONE_ORDER.filter((id)=>id!=="torso").map((id) => `
+            <div class="pose-row">
+              <div class="pose-label">
+                <span style="color:${BONE_META[id].color}">${BONE_META[id].label}</span>
+                <span class="row" style="gap:6px;">
+                  ${FLIPPABLE_BONES.includes(id) ? `<label class="flip-check"><input type="checkbox" class="flip-check-input" data-bone="${id}" ${state.bones[id].flip?"checked":""}/>flip</label>` : ""}
+                  <span id="poseVal_${id}">${Math.round(state.pose[id]||0)}&deg;</span>
+                </span>
+              </div>
+              <input type="range" class="pose-range" data-bone="${id}" min="-180" max="180" value="${state.pose[id]||0}" />
+            </div>`).join("")}
+          <button class="btn block" id="resetPoseBtn">${icon("undo",12)} Reset pose</button>
+        </div>
+      </div>` : ""}
+    </div>
+  `;
+}
+
+function computeOwnerAndBBox() {
+  const { w: gridW, h: gridH } = gridDims();
+  let owner = Array.from({ length: gridH }, () => new Array(gridW).fill(null));
+  for (let y = 0; y < gridH; y++) for (let x = 0; x < gridW; x++) {
+    if (!state.colorGrid[y][x]) continue;
+    const key = x + "," + y;
+    owner[y][x] = state.overrides[key] || nearestBoneId(x, y, state.bones);
+  }
+  // Smoothing passes: clean up small mis-assigned speckle without touching
+  // pixels the person explicitly painted onto a bone.
+  for (let pass = 0; pass < 2; pass++) {
+    const next = owner.map((row) => row.slice());
+    for (let y = 0; y < gridH; y++) for (let x = 0; x < gridW; x++) {
+      const cur = owner[y][x];
+      if (!cur) continue;
+      if (state.overrides[x + "," + y]) continue;
+      const counts = {};
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) continue;
+        const nb = owner[ny][nx];
+        if (!nb) continue;
+        counts[nb] = (counts[nb] || 0) + 1;
+      }
+      let bestId = cur, bestCount = counts[cur] || 0;
+      for (const id in counts) if (counts[id] > bestCount) { bestCount = counts[id]; bestId = id; }
+      if (bestId !== cur && bestCount >= 6) next[y][x] = bestId;
+    }
+    owner = next;
+  }
+  const bbox = {};
+  for (let y = 0; y < gridH; y++) for (let x = 0; x < gridW; x++) {
+    const boneId = owner[y][x];
+    if (!boneId) continue;
+    if (!bbox[boneId]) bbox[boneId] = { minX: x, maxX: x, minY: y, maxY: y };
+    else {
+      const b = bbox[boneId];
+      if (x < b.minX) b.minX = x; if (x > b.maxX) b.maxX = x;
+      if (y < b.minY) b.minY = y; if (y > b.maxY) b.maxY = y;
+    }
+  }
+  return { owner, bbox };
+}
+
+function renderPoseSnapped(ctx, poseAngles, gridW, gridH, owner, bbox, world) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (const boneId of BONE_ORDER) {
+    const bb = bbox[boneId];
+    if (!bb) continue;
+    const rp = state.bones[boneId].pivot;
+    const flip = !!state.bones[boneId].flip;
+    const wt = world[boneId];
+    const cosA = Math.cos(wt.angle), sinA = Math.sin(wt.angle);
+    const invCosA = Math.cos(-wt.angle), invSinA = Math.sin(-wt.angle);
+    const corners = [[bb.minX,bb.minY],[bb.maxX+1,bb.minY],[bb.minX,bb.maxY+1],[bb.maxX+1,bb.maxY+1]];
+    let dminX=Infinity,dmaxX=-Infinity,dminY=Infinity,dmaxY=-Infinity;
+    for (const [sx,sy] of corners) {
+      let lx = sx - rp.x, ly = sy - rp.y;
+      if (flip) lx = -lx;
+      const wx = wt.pivot.x + (lx*cosA - ly*sinA);
+      const wy = wt.pivot.y + (lx*sinA + ly*cosA);
+      if (wx<dminX) dminX=wx; if (wx>dmaxX) dmaxX=wx;
+      if (wy<dminY) dminY=wy; if (wy>dmaxY) dmaxY=wy;
+    }
+    const x0 = Math.floor(dminX)-1, x1 = Math.ceil(dmaxX)+1;
+    const y0 = Math.floor(dminY)-1, y1 = Math.ceil(dmaxY)+1;
+    for (let dy=y0; dy<y1; dy++) for (let dx=x0; dx<x1; dx++) {
+      const wx = dx+0.5-wt.pivot.x, wy = dy+0.5-wt.pivot.y;
+      let lx = wx*invCosA - wy*invSinA;
+      const ly = wx*invSinA + wy*invCosA;
+      if (flip) lx = -lx;
+      const sx = Math.round(rp.x + lx - 0.5);
+      const sy = Math.round(rp.y + ly - 0.5);
+      if (sx<0||sy<0||sx>=gridW||sy>=gridH) continue;
+      if (owner[sy][sx] !== boneId) continue;
+      ctx.fillStyle = state.colorGrid[sy][sx];
+      ctx.fillRect(RIG_PAD+dx*RIG_CELL, RIG_PAD+dy*RIG_CELL, RIG_CELL, RIG_CELL);
+    }
+  }
+}
+
+function drawSkeletonOverlay(ctx, s) {
+  ctx.save();
+  ctx.translate(RIG_PAD, RIG_PAD);
+  for (const id of BONE_ORDER) {
+    const bn = state.bones[id], meta = BONE_META[id];
+    const sel = state.selectedBone === id;
+    ctx.strokeStyle = meta.color; ctx.lineWidth = (sel?3:1.5)*s; ctx.globalAlpha = sel?1:0.55;
+    ctx.beginPath(); ctx.moveTo(bn.pivot.x*RIG_CELL, bn.pivot.y*RIG_CELL); ctx.lineTo(bn.tip.x*RIG_CELL, bn.tip.y*RIG_CELL); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (!BONE_META[id].parent) {
+      // root pivot handle (only draggable joint without a parent tip)
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(bn.pivot.x*RIG_CELL, bn.pivot.y*RIG_CELL, (sel?7:5)*s, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = meta.color; ctx.lineWidth = 2*s; ctx.stroke();
+    }
+    ctx.fillStyle = meta.color;
+    ctx.beginPath(); ctx.arc(bn.tip.x*RIG_CELL, bn.tip.y*RIG_CELL, (sel?7:5)*s, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "#111014"; ctx.lineWidth = 2*s; ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawRegionOverlay(ctx, owner) {
+  const { w: gridW, h: gridH } = gridDims();
+  ctx.save();
+  ctx.translate(RIG_PAD, RIG_PAD);
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = BONE_META[state.selectedBone].color;
+  for (let y=0;y<gridH;y++) for (let x=0;x<gridW;x++) {
+    if (owner[y][x] !== state.selectedBone) continue;
+    ctx.fillRect(x*RIG_CELL, y*RIG_CELL, RIG_CELL, RIG_CELL);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+function drawGizmo(ctx, boneId, world, s) {
+  const wp = world[boneId].pivot;
+  const cx = RIG_PAD + wp.x*RIG_CELL, cy = RIG_PAD + wp.y*RIG_CELL;
+  const rp = state.bones[boneId].pivot, rt = state.bones[boneId].tip;
+  const restLen = Math.hypot(rt.x-rp.x, rt.y-rp.y)*RIG_CELL;
+  const radius = Math.max(22*s, Math.min(70*s, restLen*0.8));
+  ctx.save();
+  ctx.strokeStyle = "#ffffff"; ctx.globalAlpha=0.85; ctx.lineWidth=1.5*s;
+  ctx.setLineDash([4*s,4*s]);
+  ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  const worldAngle = world[boneId].angle;
+  const hx = cx + Math.cos(worldAngle)*radius, hy = cy + Math.sin(worldAngle)*radius;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(hx,hy); ctx.strokeStyle=BONE_META[boneId].color; ctx.globalAlpha=0.9; ctx.lineWidth=2*s; ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx,hy,7*s,0,Math.PI*2); ctx.fillStyle=BONE_META[boneId].color; ctx.globalAlpha=1; ctx.fill();
+  ctx.strokeStyle="#111014"; ctx.lineWidth=2*s; ctx.stroke();
+  const ix = cx+28*s, iy = cy-28*s, ir = 13*s;
+  ctx.beginPath(); ctx.arc(ix,iy,ir,0,Math.PI*2); ctx.fillStyle="#232228"; ctx.fill();
+  ctx.strokeStyle="#ffffff"; ctx.lineWidth=1.5*s; ctx.stroke();
+  ctx.strokeStyle="#ffffff"; ctx.lineWidth=1.6*s; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(ix-ir*0.55,iy); ctx.lineTo(ix+ir*0.55,iy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ix-ir*0.55,iy); ctx.lineTo(ix-ir*0.15,iy-ir*0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ix-ir*0.55,iy); ctx.lineTo(ix-ir*0.15,iy+ir*0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ix+ir*0.55,iy); ctx.lineTo(ix+ir*0.15,iy-ir*0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ix+ir*0.55,iy); ctx.lineTo(ix+ir*0.15,iy+ir*0.4); ctx.stroke();
+  ctx.restore();
+  return { ix, iy, ir };
+}
+
+function drawRigCanvas() {
+  const canvas = document.getElementById("rigCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  const s = getCanvasScale(canvas);
+  const { w: gridW, h: gridH } = gridDims();
+  const { owner, bbox } = computeOwnerAndBBox();
+  if (state.rigMode === "skeleton") {
+    const world = computeWorldTransforms(state.bones, zeroPose());
+    renderPoseSnapped(ctx, zeroPose(), gridW, gridH, owner, bbox, world);
+    drawSkeletonOverlay(ctx, s);
+  } else if (state.rigMode === "paint") {
+    const world = computeWorldTransforms(state.bones, zeroPose());
+    renderPoseSnapped(ctx, zeroPose(), gridW, gridH, owner, bbox, world);
+    drawRegionOverlay(ctx, owner);
+  } else {
+    const world = computeWorldTransforms(state.bones, state.pose);
+    renderPoseSnapped(ctx, state.pose, gridW, gridH, owner, bbox, world);
+    if (state.selectedBone) drawGizmo(ctx, state.selectedBone, world, s);
+  }
+}
+
+function hitTestBoneAtPose(x, y, world) {
+  const { owner } = computeOwnerAndBBox();
+  const { w: gridW, h: gridH } = gridDims();
+  for (let i = BONE_ORDER.length - 1; i >= 0; i--) {
+    const boneId = BONE_ORDER[i];
+    const rp = state.bones[boneId].pivot;
+    const flip = !!state.bones[boneId].flip;
+    const wt = world[boneId];
+    const cosA = Math.cos(-wt.angle), sinA = Math.sin(-wt.angle);
+    let lx = (x - wt.pivot.x) * cosA - (y - wt.pivot.y) * sinA;
+    const ly = (x - wt.pivot.x) * sinA + (y - wt.pivot.y) * cosA;
+    if (flip) lx = -lx;
+    const sx = Math.round(rp.x + lx - 0.5), sy = Math.round(rp.y + ly - 0.5);
+    if (sx < 0 || sy < 0 || sx >= gridW || sy >= gridH) continue;
+    if (owner[sy][sx] === boneId) return boneId;
+  }
+  return null;
+}
+
+function syncPoseSlidersUI() {
+  if (state.rigMode !== "pose") return;
+  for (const id of BONE_ORDER) {
+    if (id === "torso") continue;
+    const slider = document.querySelector(`.pose-range[data-bone="${id}"]`);
+    const label = document.getElementById(`poseVal_${id}`);
+    if (slider) slider.value = state.pose[id] || 0;
+    if (label) label.textContent = `${Math.round(state.pose[id]||0)}\u00b0`;
+    const flipInput = document.querySelector(`.flip-check-input[data-bone="${id}"]`);
+    if (flipInput) flipInput.checked = !!state.bones[id].flip;
+  }
+  const timeLabel = document.getElementById("timeLabel");
+  if (timeLabel) timeLabel.textContent = `${state.playhead.toFixed(2)}s`;
+  const ph = document.getElementById("tlPlayhead");
+  if (ph) {
+    const trackEnd = Math.max(state.duration, getLastKfTime(), 0.1);
+    ph.style.left = (state.playhead / trackEnd * 100) + "%";
+  }
+  refreshUnsavedIndicator();
+}
+function refreshUnsavedIndicator() {
+  const btn = document.getElementById("addKfBtn");
+  if (btn) btn.classList.toggle("pulse", hasUnsavedPoseChanges());
+}
+function refreshPlayButton() {
+  const btn = document.getElementById("playBtn");
+  if (btn) btn.innerHTML = state.playing ? icon("pause",13) : icon("play",13);
+}
+
+function startPlayback() {
+  state.playing = true;
+  state.playhead = 0;
+  refreshPlayButton();
+  const startPerf = performance.now();
+  function tick(now) {
+    const raw = (now - startPerf) / 1000;
+    const lastT = getLastKfTime();
+    let t;
+    if (state.loopMode === "loop") {
+      t = state.duration > 0 ? (raw % state.duration) : 0;
+      applyPoseAtTimeLooping(t);
+    } else if (state.loopMode === "once") {
+      t = Math.min(raw, lastT);
+      applyPoseAtTime(t);
+      state.playhead = t;
+      drawRigCanvas();
+      syncPoseSlidersUI();
+      if (raw >= lastT) { stopPlayback(); refreshPlayButton(); return; }
+      state.rafId = requestAnimationFrame(tick);
+      return;
+    } else {
+      const cycle = lastT > 0 ? lastT * 2 : 0.0001;
+      const phase = raw % cycle;
+      t = phase <= lastT ? phase : cycle - phase;
+      applyPoseAtTime(t);
+    }
+    state.playhead = t;
+    drawRigCanvas();
+    syncPoseSlidersUI();
+    state.rafId = requestAnimationFrame(tick);
+  }
+  state.rafId = requestAnimationFrame(tick);
+}
+function stopPlayback() {
+  state.playing = false;
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+  state.rafId = null;
+}
+function scrub(t) {
+  stopPlayback();
+  refreshPlayButton();
+  state.playhead = Math.max(0, t);
+  applyPoseAtTime(state.playhead);
+  syncPoseSlidersUI();
+  drawRigCanvas();
+}
+
+function setupRigTab() {
+  const canvas = document.getElementById("rigCanvas");
+  let dragRef = null;
+  currentRedraw = drawRigCanvas;
+  applyViewTransform(canvas, state.rigView);
+
+  document.getElementById("rigResetView").addEventListener("click", () => {
+    state.rigView.zoom = 1; state.rigView.panX = 0; state.rigView.panY = 0;
+    applyViewTransform(canvas, state.rigView);
+  });
+
+  document.querySelectorAll(".rigmode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => { stopPlayback(); state.rigMode = btn.dataset.rigmode; renderApp(); });
+  });
+  document.getElementById("autoRigBtn").addEventListener("click", () => {
+    state.bones = autoRigBones(state.colorGrid);
+    state.overrides = {};
+    drawRigCanvas();
+  });
+  document.querySelectorAll(".bone-item").forEach((btn) => {
+    btn.addEventListener("click", () => { state.selectedBone = btn.dataset.bone; renderApp(); });
+  });
+  const clearBtn = document.getElementById("clearOverridesBtn");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    for (const k of Object.keys(state.overrides)) if (state.overrides[k] === state.selectedBone) delete state.overrides[k];
+    drawRigCanvas();
+  });
+
+  function toGrid(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+    const px = (e.clientX - rect.left) * scaleX - RIG_PAD;
+    const py = (e.clientY - rect.top) * scaleY - RIG_PAD;
+    return { x: px / RIG_CELL, y: py / RIG_CELL };
+  }
+  function toCanvasPx(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  }
+  function paintCell(xf, yf) {
+    const { w: gridW, h: gridH } = gridDims();
+    const x = Math.floor(xf), y = Math.floor(yf);
+    if (x<0||y<0||x>=gridW||y>=gridH || !state.colorGrid[y][x]) return;
+    state.overrides[x+","+y] = state.selectedBone;
+  }
+
+  function cancelRigInteractions() { dragRef = null; drawRigCanvas(); }
+  const gesture = attachTouchGestures(canvas, {
+    view: state.rigView,
+    applyTransform: () => applyViewTransform(canvas, state.rigView),
+    onGestureStart: cancelRigInteractions,
+    enableTapUndo: false,
+  });
+
+  canvas.addEventListener("pointerdown", (e) => {
+    if (isRejectedTouch(e) || gesture.isGesture()) return;
+    canvas.setPointerCapture(e.pointerId);
+    const s = getCanvasScale(canvas);
+    if (state.rigMode === "skeleton") {
+      const { x, y } = toGrid(e);
+      const hitPx = 18 * s / RIG_CELL;
+      let best = null, bestD = hitPx;
+      for (const id of BONE_ORDER) {
+        const bn = state.bones[id];
+        const dTip = Math.hypot(x-bn.tip.x, y-bn.tip.y);
+        if (dTip < bestD) { bestD = dTip; best = { boneId:id, part:"tip" }; }
+        if (!BONE_META[id].parent) {
+          const dPiv = Math.hypot(x-bn.pivot.x, y-bn.pivot.y);
+          if (dPiv < bestD) { bestD = dPiv; best = { boneId:id, part:"pivot" }; }
+        }
+      }
+      if (best) {
+        dragRef = best;
+        if (state.selectedBone !== best.boneId) { state.selectedBone = best.boneId; renderApp(); }
+      }
+    } else if (state.rigMode === "paint") {
+      const { x, y } = toGrid(e);
+      paintCell(x, y);
+      dragRef = { painting: true };
+      drawRigCanvas();
+    } else if (state.rigMode === "pose") {
+      const world = computeWorldTransforms(state.bones, state.pose);
+      if (state.selectedBone) {
+        const wp = world[state.selectedBone].pivot;
+        const iconX = RIG_PAD + wp.x*RIG_CELL + 28*s, iconY = RIG_PAD + wp.y*RIG_CELL - 28*s;
+        const pt = toCanvasPx(e);
+        if (Math.hypot(pt.x-iconX, pt.y-iconY) < 16*s) {
+          state.bones[state.selectedBone].flip = !state.bones[state.selectedBone].flip;
+          drawRigCanvas();
+          refreshUnsavedIndicator();
+          syncPoseSlidersUI();
+          dragRef = null;
+          return;
+        }
+      }
+      const { x, y } = toGrid(e);
+      const hit = hitTestBoneAtPose(x, y, world);
+      if (hit) {
+        state.selectedBone = hit;
+        dragRef = { rotating: true, boneId: hit };
+        drawRigCanvas();
+      } else {
+        dragRef = null;
+      }
+    }
+  });
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (isRejectedTouch(e) || gesture.isGesture()) return;
+    if (!dragRef) return;
+    if (state.rigMode === "skeleton" && dragRef.boneId) {
+      const { x, y } = toGrid(e);
+      if (dragRef.part === "pivot") cascadeFromRootPivot({ x, y });
+      else cascadeFromTip(dragRef.boneId, { x, y });
+      drawRigCanvas();
+    } else if (state.rigMode === "paint" && dragRef.painting) {
+      const { x, y } = toGrid(e);
+      paintCell(x, y);
+      drawRigCanvas();
+    } else if (state.rigMode === "pose" && dragRef.rotating) {
+      const { x, y } = toGrid(e);
+      const boneId = dragRef.boneId;
+      const world = computeWorldTransforms(state.bones, state.pose);
+      const parentId = BONE_META[boneId].parent;
+      const parentWorldAngle = parentId ? world[parentId].angle : 0;
+      const rp = state.bones[boneId].pivot, rt = state.bones[boneId].tip;
+      const restAngle = Math.atan2(rt.y-rp.y, rt.x-rp.x);
+      const wp = world[boneId].pivot;
+      const desiredWorldAngle = Math.atan2(y-wp.y, x-wp.x);
+      let localAngle = desiredWorldAngle - restAngle - parentWorldAngle;
+      while (localAngle > Math.PI) localAngle -= 2*Math.PI;
+      while (localAngle < -Math.PI) localAngle += 2*Math.PI;
+      state.pose[boneId] = localAngle * 180 / Math.PI;
+      drawRigCanvas();
+      syncPoseSlidersUI();
+    }
+  });
+
+  canvas.addEventListener("pointerup", () => { dragRef = null; });
+  canvas.addEventListener("pointercancel", () => { dragRef = null; });
+
+  if (state.rigMode === "pose") {
+    document.querySelectorAll(".pose-range").forEach((slider) => {
+      slider.addEventListener("input", () => {
+        const id = slider.dataset.bone;
+        state.pose[id] = Number(slider.value);
+        document.getElementById(`poseVal_${id}`).textContent = `${Math.round(state.pose[id])}\u00b0`;
+        drawRigCanvas();
+        refreshUnsavedIndicator();
+      });
+    });
+    document.querySelectorAll(".flip-check-input").forEach((chk) => {
+      chk.addEventListener("change", () => {
+        state.bones[chk.dataset.bone].flip = chk.checked;
+        drawRigCanvas();
+        refreshUnsavedIndicator();
+      });
+    });
+    document.getElementById("resetPoseBtn").addEventListener("click", () => {
+      state.pose = zeroPose();
+      for (const id of BONE_ORDER) state.bones[id].flip = false;
+      syncPoseSlidersUI();
+      drawRigCanvas();
+    });
+    document.getElementById("playBtn").addEventListener("click", () => {
+      if (state.playing) { stopPlayback(); refreshPlayButton(); } else { startPlayback(); }
+    });
+    document.getElementById("loopModeBtn").addEventListener("click", () => {
+      const order = ["loop", "boomerang", "once"];
+      state.loopMode = order[(order.indexOf(state.loopMode) + 1) % order.length];
+      renderApp();
+    });
+    document.getElementById("addKfBtn").addEventListener("click", () => {
+      const t = Math.round(state.playhead * 100) / 100;
+      state.keyframes = state.keyframes.filter((k) => Math.abs(k.t - t) > 0.001);
+      const flipSnap = {}; for (const id of BONE_ORDER) flipSnap[id] = !!state.bones[id].flip;
+      state.keyframes.push({ t, pose: { ...state.pose }, flip: flipSnap });
+      state.keyframes.sort((a,b)=>a.t-b.t);
+      state.selectedKfTime = t;
+      renderApp();
+    });
+    document.getElementById("delKfBtn").addEventListener("click", () => {
+      if (state.selectedKfTime === null || state.keyframes.length <= 1) return;
+      state.keyframes = state.keyframes.filter((k) => Math.abs(k.t - state.selectedKfTime) > 0.001);
+      state.selectedKfTime = null;
+      renderApp();
+    });
+    document.querySelectorAll("[data-dur-adj]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.duration = Math.max(0.2, Math.round((state.duration + Number(btn.dataset.durAdj)) * 10) / 10);
+        document.getElementById("durVal").textContent = state.duration.toFixed(1) + "s";
+        renderApp();
+      });
+    });
+
+    const tlTrack = document.getElementById("tlTrack");
+    let tlDrag = null;
+    tlTrack.addEventListener("pointerdown", (e) => {
+      if (isRejectedTouch(e)) return;
+      tlTrack.setPointerCapture(e.pointerId);
+      const marker = e.target.closest(".tl-marker");
+      const trackEnd = Math.max(state.duration, getLastKfTime(), 0.1);
+      if (marker) {
+        tlDrag = { kfIndex: Number(marker.dataset.index), trackEnd, startX: e.clientX, startY: e.clientY, moved: false };
+        return;
+      }
+      const rect = tlTrack.getBoundingClientRect();
+      const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      scrub(frac * trackEnd);
+      tlDrag = { scrubbing: true, trackEnd };
+    });
+    tlTrack.addEventListener("pointermove", (e) => {
+      if (isRejectedTouch(e) || !tlDrag) return;
+      const rect = tlTrack.getBoundingClientRect();
+      const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      if (tlDrag.scrubbing) {
+        scrub(frac * tlDrag.trackEnd);
+      } else if (tlDrag.kfIndex !== undefined) {
+        if (Math.hypot(e.clientX - tlDrag.startX, e.clientY - tlDrag.startY) > 4) tlDrag.moved = true;
+        const newT = Math.round(frac * tlDrag.trackEnd * 100) / 100;
+        state.keyframes[tlDrag.kfIndex].t = newT;
+        const markerEl = document.querySelector(`.tl-marker[data-index="${tlDrag.kfIndex}"]`);
+        if (markerEl) markerEl.style.left = (newT / tlDrag.trackEnd * 100) + "%";
+      }
+    });
+    tlTrack.addEventListener("pointerup", () => {
+      if (tlDrag && tlDrag.kfIndex !== undefined) {
+        const kf = state.keyframes[tlDrag.kfIndex];
+        state.selectedKfTime = kf.t;
+        if (!tlDrag.moved) scrub(kf.t);
+        state.keyframes.sort((a,b)=>a.t-b.t);
+        renderApp();
+      }
+      tlDrag = null;
+    });
+    tlTrack.addEventListener("pointercancel", () => { tlDrag = null; });
+  }
+
+  drawRigCanvas();
+  if (state.rigMode === "pose") refreshUnsavedIndicator();
+}
+
+/* ---------- boot ---------- */
+renderApp();
+</script>
+</body>
+</html>
